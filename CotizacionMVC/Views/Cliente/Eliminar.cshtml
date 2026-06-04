@@ -1,0 +1,54 @@
+﻿@model CotizacionMVC.Models.Entidades.Cliente
+
+@{
+    ViewData["Title"] = "Eliminar Cliente";
+    var tieneCotizaciones = ViewBag.TieneCotizaciones ?? false;
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-danger text-white">
+            <h2><i class="fas fa-exclamation-triangle"></i> Eliminar Cliente</h2>
+        </div>
+        <div class="card-body">
+            @if (tieneCotizaciones)
+            {
+                <div class="alert alert-warning">
+                    <i class="fas fa-warning"></i> No se puede eliminar este cliente porque tiene cotizaciones asociadas.
+                </div>
+                <a asp-action="Indice" class="btn btn-secondary">Volver al listado</a>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    <i class="fas fa-warning"></i> ¿Está seguro de que desea eliminar este cliente?
+                </div>
+
+                <dl class="row">
+                    <dt class="col-sm-3">Nombre</dt>
+                    <dd class="col-sm-9">@Model.Nombre</dd>
+
+                    <dt class="col-sm-3">Teléfono</dt>
+                    <dd class="col-sm-9">@(!string.IsNullOrWhiteSpace(Model.Contacto.Telefono) ? Model.Contacto.Telefono : "—")</dd>
+
+                    <dt class="col-sm-3">Email</dt>
+                    <dd class="col-sm-9">@(!string.IsNullOrWhiteSpace(Model.Contacto.Correo) ? Model.Contacto.Correo : "—")</dd>
+                </dl>
+
+                <form asp-action="Eliminar" method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Confirmar Eliminación
+                    </button>
+                    <a asp-action="Indice" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+}

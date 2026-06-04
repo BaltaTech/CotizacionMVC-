@@ -1,0 +1,527 @@
+﻿@{
+    ViewData["Title"] = "Nueva Cotización";
+    var clientes = ViewBag.Clientes as List<CotizacionMVC.Models.Entidades.Cliente> ?? new List<CotizacionMVC.Models.Entidades.Cliente>();
+    var equipos = ViewBag.Equipos as List<CotizacionMVC.Models.Entidades.Equipo> ?? new List<CotizacionMVC.Models.Entidades.Equipo>();
+    var instalaciones = ViewBag.Instalaciones as List<CotizacionMVC.Models.Entidades.Instalacion> ?? new List<CotizacionMVC.Models.Entidades.Instalacion>();
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h2><i class="fas fa-file-invoice"></i> Nueva Cotización</h2>
+        </div>
+        <div class="card-body">
+            <form id="formCotizacion" method="post">
+                @Html.AntiForgeryToken()
+
+                <!-- Cliente -->
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">Cliente *</label>
+                        <select id="clienteId" name="clienteId" class="form-select" required>
+                            <option value="">-- Seleccione un cliente --</option>
+                            @foreach (var cliente in clientes)
+                            {
+                                <option value="@cliente.Id">@cliente.Nombre - @cliente.Contacto.Telefono</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Área y Condiciones -->
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Área (m²)</label>
+                        <input type="number" id="areaMetrosCuadrados" name="areaMetrosCuadrados" class="form-control" value="100" step="1" />
+                        <div id="cargaTermicaInfo" class="mt-1 small text-muted"></div>
+                    </div>
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label fw-bold">Condiciones de Pago</label>
+                        <input type="text" id="condicionesPago" name="condicionesPago" class="form-control" placeholder="Ej: 50% anticipo, 50% contra entrega" />
+                    </div>
+                </div>
+
+                <!-- Equipos -->
+                <h4 class="text-primary mt-4"><i class="fas fa-microchip"></i> Equipos</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped" id="tablaEquipos">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>Equipo</th>
+                                <th>Cantidad</th>
+                                <th>Precio Unitario</th>
+                                <th>Subtotal</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="equiposBody">
+                            <tr><td colspan="5" class="text-center text-muted">No hay equipos agregados</td><td style="display:none"></td><td style="display:none"></td><td style="display:none"></td><td style="display:none"></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mb-3">
+                    <button type="button" id="btnAgregarEquipo" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-plus"></i> Agregar Equipo
+                    </button>
+                </div>
+
+                <!-- Instalaciones -->
+                <h4 class="text-primary mt-4"><i class="fas fa-tools"></i> Instalaciones</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped" id="tablaInstalaciones">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>Concepto</th>
+                                <th>Descripción</th>
+                                <th>Cantidad</th>
+                                <th>Costo Unitario</th>
+                                <th>Subtotal</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="instalacionesBody">
+                            <tr><td colspan="6" class="text-center text-muted">No hay instalaciones agregadas</td><td style="display:none"></td><td style="display:none"></td><td style="display:none"></td><td style="display:none"></td><td style="display:none"></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mb-4">
+                    <button type="button" id="btnAgregarInstalacion" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-plus"></i> Agregar Instalación
+                    </button>
+                </div>
+
+                <!-- Totales -->
+                <div class="row mt-4">
+                    <div class="col-md-5 offset-md-7">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <span>Subtotal Equipos:</span>
+                                    <strong id="totalEquipos">$0.00</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Subtotal Instalaciones:</span>
+                                    <strong id="totalInstalaciones">$0.00</strong>
+                                </div>
+                                <hr />
+                                <div class="d-flex justify-content-between">
+                                    <span>Subtotal:</span>
+                                    <strong id="subtotal">$0.00</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>IVA (16%):</span>
+                                    <strong id="iva">$0.00</strong>
+                                </div>
+                                <div class="d-flex justify-content-between fs-4">
+                                    <span>TOTAL:</span>
+                                    <strong id="total">$0.00</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Campos ocultos para enviar datos -->
+                <input type="hidden" id="equiposJson" name="equipos" />
+                <input type="hidden" id="instalacionesJson" name="instalaciones" />
+
+                <div class="mt-4 text-end">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Guardar Cotización
+                    </button>
+                    <a asp-action="Indice" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar equipo -->
+<div class="modal fade" id="modalEquipo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-microchip"></i> Agregar Equipo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Equipo</label>
+                    <select id="equipoSelect" class="form-select">
+                        <option value="">-- Seleccione un equipo --</option>
+                        @foreach (var equipo in equipos)
+                        {
+                            <option value="@equipo.Id"
+                                    data-precio-base="@equipo.PrecioBase"
+                                    data-moneda="@equipo.MonedaOriginal"
+                                    data-marca="@equipo.Marca"
+                                    data-modelo="@equipo.Modelo"
+                                    data-capacidad="@equipo.CapacidadToneladas">
+                                @equipo.Marca - @equipo.Modelo (@equipo.CapacidadToneladas TR) - @equipo.MonedaOriginal @equipo.PrecioBase
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Cantidad</label>
+                    <input type="number" id="equipoCantidad" class="form-control" value="1" min="1" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarEquipo" class="btn btn-primary">Agregar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar instalación -->
+<div class="modal fade" id="modalInstalacion" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-tools"></i> Agregar Instalación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Tipo</label>
+                    <select id="instalacionTipoSelect" class="form-select">
+                        <option value="predefinida">Instalación Predefinida</option>
+                        <option value="personalizada">Instalación Personalizada</option>
+                    </select>
+                </div>
+                <div id="instalacionPredefinidaDiv">
+                    <label class="form-label">Seleccionar Instalación</label>
+                    <select id="instalacionSelect" class="form-select">
+                        <option value="">-- Seleccione una instalación --</option>
+                        @foreach (var inst in instalaciones)
+                        {
+                            <option value="@inst.Id" data-costo="@inst.CostoUnitario" data-desc="@inst.Descripcion">@inst.Concepto - $@inst.CostoUnitario</option>
+                        }
+                    </select>
+                </div>
+                <div id="instalacionPersonalizadaDiv" style="display:none;">
+                    <div class="mb-2">
+                        <label class="form-label">Concepto</label>
+                        <input type="text" id="instConcepto" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Descripción</label>
+                        <textarea id="instDescripcion" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Costo Unitario (MXN)</label>
+                        <input type="number" id="instCostoPersonalizado" class="form-control" step="0.01" />
+                    </div>
+                </div>
+                <div class="mb-3 mt-3">
+                    <label class="form-label">Cantidad</label>
+                    <input type="number" id="instalacionCantidad" class="form-control" value="1" min="1" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarInstalacion" class="btn btn-primary">Agregar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Variables globales
+        var equiposAgregados = [];
+        var instalacionesAgregadas = [];
+        var utilidadEmpresa = 20; // Estos valores deberían venir de la empresa activa
+        var utilidadVendedor = 10;
+        var tipoCambio = 20.50;
+
+        // Calcular precio final con utilidades
+        function calcularPrecioFinal(precioBase, moneda) {
+            var precioEnMXN = precioBase;
+
+            // Convertir a MXN si está en USD
+            if (moneda === 'USD') {
+                precioEnMXN = precioBase * tipoCambio;
+            }
+
+            // Aplicar utilidades
+            var precioConUtilidadEmpresa = precioEnMXN * (1 + utilidadEmpresa / 100);
+            var precioFinal = precioConUtilidadEmpresa * (1 + utilidadVendedor / 100);
+
+            return Math.round(precioFinal * 100) / 100;
+        }
+
+        // Calcular carga térmica
+        function calcularCargaTermica() {
+            var area = $('#areaMetrosCuadrados').val();
+            if (area && area > 0) {
+                $.get('/Cotizacion/CalcularCargaTermica', { area: area }, function(data) {
+                    $('#cargaTermicaInfo').html('<i class="fas fa-thermometer-half"></i> Capacidad sugerida: ' + data.tr + ' TR (' + data.btu + ' BTU/h)<br/><small>Regla: 16 m² = 1 TR</small>');
+                });
+            }
+        }
+
+        // Actualizar totales
+        function actualizarTotales() {
+            var totalEquipos = 0;
+            var totalInstalaciones = 0;
+
+            equiposAgregados.forEach(function(eq) {
+                totalEquipos += eq.subtotal;
+            });
+
+            instalacionesAgregadas.forEach(function(inst) {
+                totalInstalaciones += inst.subtotal;
+            });
+
+            var subtotal = totalEquipos + totalInstalaciones;
+            var iva = subtotal * 0.16;
+            var total = subtotal + iva;
+
+            $('#totalEquipos').text('$' + totalEquipos.toFixed(2));
+            $('#totalInstalaciones').text('$' + totalInstalaciones.toFixed(2));
+            $('#subtotal').text('$' + subtotal.toFixed(2));
+            $('#iva').text('$' + iva.toFixed(2));
+            $('#total').text('$' + total.toFixed(2));
+        }
+
+        // Renderizar tabla de equipos
+        function renderizarEquipos() {
+            var html = '';
+            if (equiposAgregados.length === 0) {
+                html = '<tr><td colspan="5" class="text-center text-muted">No hay equipos agregados</td></tr>';
+            } else {
+                for (var i = 0; i < equiposAgregados.length; i++) {
+                    var eq = equiposAgregados[i];
+                    html += '<tr>' +
+                        '<td><strong>' + eq.marca + '</strong> - ' + eq.modelo + ' (' + eq.capacidad + ' TR)</td>' +
+                        '<td><input type="number" class="form-control form-control-sm cantidad-equipo" style="width:80px" data-indice="' + i + '" value="' + eq.cantidad + '" min="1" /></td>' +
+                        '<td>$' + eq.precioUnitario.toFixed(2) + '</td>' +
+                        '<td>$' + eq.subtotal.toFixed(2) + '</td>' +
+                        '<td><button type="button" class="btn btn-sm btn-danger eliminar-equipo" data-indice="' + i + '"><i class="fas fa-trash"></i></button></td>' +
+                        '</tr>';
+                }
+            }
+            $('#equiposBody').html(html);
+            actualizarTotales();
+        }
+
+        // Renderizar tabla de instalaciones
+        function renderizarInstalaciones() {
+            var html = '';
+            if (instalacionesAgregadas.length === 0) {
+                html = '<tr><td colspan="6" class="text-center text-muted">No hay instalaciones agregadas</td></tr>';
+            } else {
+                for (var i = 0; i < instalacionesAgregadas.length; i++) {
+                    var inst = instalacionesAgregadas[i];
+                    html += '<tr>' +
+                        '<td>' + inst.concepto + '</td>' +
+                        '<td>' + inst.descripcion + '</td>' +
+                        '<td><input type="number" class="form-control form-control-sm cantidad-instalacion" style="width:80px" data-indice="' + i + '" value="' + inst.cantidad + '" min="1" /></td>' +
+                        '<td>$' + inst.costoUnitario.toFixed(2) + '</td>' +
+                        '<td>$' + inst.subtotal.toFixed(2) + '</td>' +
+                        '<td><button type="button" class="btn btn-sm btn-danger eliminar-instalacion" data-indice="' + i + '"><i class="fas fa-trash"></i></button></td>' +
+                        '</tr>';
+                }
+            }
+            $('#instalacionesBody').html(html);
+            actualizarTotales();
+        }
+
+        // Agregar equipo
+        $('#btnAgregarEquipo').click(function() {
+            $('#modalEquipo').modal('show');
+        });
+
+        $('#btnConfirmarEquipo').click(function() {
+            var equipoId = $('#equipoSelect').val();
+            var cantidad = parseInt($('#equipoCantidad').val());
+            var selected = $('#equipoSelect option:selected');
+
+            if (!equipoId) {
+                alert('Seleccione un equipo');
+                return;
+            }
+
+            if (isNaN(cantidad) || cantidad < 1) cantidad = 1;
+
+            var precioBase = parseFloat(selected.data('precio-base'));
+            var moneda = selected.data('moneda');
+            var precioFinal = calcularPrecioFinal(precioBase, moneda);
+
+            var nuevoEquipo = {
+                equipoId: equipoId,
+                marca: selected.data('marca'),
+                modelo: selected.data('modelo'),
+                capacidad: selected.data('capacidad'),
+                cantidad: cantidad,
+                precioUnitario: precioFinal,
+                subtotal: precioFinal * cantidad
+            };
+
+            equiposAgregados.push(nuevoEquipo);
+            renderizarEquipos();
+            $('#modalEquipo').modal('hide');
+            $('#equipoCantidad').val(1);
+        });
+
+        // Agregar instalación
+        $('#btnAgregarInstalacion').click(function() {
+            $('#modalInstalacion').modal('show');
+        });
+
+        $('#instalacionTipoSelect').change(function() {
+            if ($(this).val() == 'predefinida') {
+                $('#instalacionPredefinidaDiv').show();
+                $('#instalacionPersonalizadaDiv').hide();
+            } else {
+                $('#instalacionPredefinidaDiv').hide();
+                $('#instalacionPersonalizadaDiv').show();
+            }
+        });
+
+        // Cuando se selecciona una instalación predefinida, copiar costo
+        $('#instalacionSelect').change(function() {
+            var selected = $(this).find(':selected');
+            var costo = selected.data('costo');
+            if (costo) {
+                $('#instCostoPersonalizado').val(costo);
+            }
+        });
+
+        $('#btnConfirmarInstalacion').click(function() {
+            var tipo = $('#instalacionTipoSelect').val();
+            var cantidad = parseInt($('#instalacionCantidad').val());
+            var instalacionId = null;
+            var concepto = '';
+            var descripcion = '';
+            var costo = 0;
+
+            if (tipo == 'predefinida') {
+                instalacionId = $('#instalacionSelect').val();
+                if (!instalacionId) {
+                    alert('Seleccione una instalación');
+                    return;
+                }
+                var selected = $('#instalacionSelect').find(':selected');
+                concepto = selected.text().split(' - ')[0];
+                costo = selected.data('costo');
+                descripcion = selected.data('desc') || '';
+            } else {
+                concepto = $('#instConcepto').val();
+                descripcion = $('#instDescripcion').val();
+                costo = parseFloat($('#instCostoPersonalizado').val());
+                if (!concepto) {
+                    alert('Ingrese un concepto');
+                    return;
+                }
+                if (isNaN(costo) || costo <= 0) {
+                    alert('Ingrese un costo válido');
+                    return;
+                }
+            }
+
+            if (isNaN(cantidad) || cantidad < 1) cantidad = 1;
+
+            var nuevaInstalacion = {
+                instalacionId: instalacionId,
+                concepto: concepto,
+                descripcion: descripcion,
+                cantidad: cantidad,
+                costoUnitario: costo,
+                subtotal: cantidad * costo
+            };
+
+            instalacionesAgregadas.push(nuevaInstalacion);
+            renderizarInstalaciones();
+            $('#modalInstalacion').modal('hide');
+            $('#instalacionCantidad').val(1);
+            $('#instConcepto').val('');
+            $('#instDescripcion').val('');
+            $('#instCostoPersonalizado').val('');
+        });
+
+        // Eventos dinámicos para equipos
+        $(document).on('change', '.cantidad-equipo', function() {
+            var indice = $(this).data('indice');
+            var nuevaCantidad = parseInt($(this).val());
+            if (isNaN(nuevaCantidad) || nuevaCantidad < 1) nuevaCantidad = 1;
+            equiposAgregados[indice].cantidad = nuevaCantidad;
+            equiposAgregados[indice].subtotal = equiposAgregados[indice].precioUnitario * nuevaCantidad;
+            renderizarEquipos();
+        });
+
+        $(document).on('click', '.eliminar-equipo', function() {
+            var indice = $(this).data('indice');
+            equiposAgregados.splice(indice, 1);
+            renderizarEquipos();
+        });
+
+        // Eventos dinámicos para instalaciones
+        $(document).on('change', '.cantidad-instalacion', function() {
+            var indice = $(this).data('indice');
+            var nuevaCantidad = parseInt($(this).val());
+            if (isNaN(nuevaCantidad) || nuevaCantidad < 1) nuevaCantidad = 1;
+            instalacionesAgregadas[indice].cantidad = nuevaCantidad;
+            instalacionesAgregadas[indice].subtotal = instalacionesAgregadas[indice].costoUnitario * nuevaCantidad;
+            renderizarInstalaciones();
+        });
+
+        $(document).on('click', '.eliminar-instalacion', function() {
+            var indice = $(this).data('indice');
+            instalacionesAgregadas.splice(indice, 1);
+            renderizarInstalaciones();
+        });
+
+        // Enviar formulario
+        $('#formCotizacion').submit(function(e) {
+            var clienteId = $('#clienteId').val();
+            if (!clienteId) {
+                alert('Debe seleccionar un cliente');
+                e.preventDefault();
+                return false;
+            }
+
+            if (equiposAgregados.length === 0) {
+                alert('Debe agregar al menos un equipo');
+                e.preventDefault();
+                return false;
+            }
+
+            // Preparar JSON para enviar
+            var equiposJson = equiposAgregados.map(function(eq) {
+                return {
+                    equipoId: eq.equipoId,
+                    cantidad: eq.cantidad
+                };
+            });
+
+            var instalacionesJson = instalacionesAgregadas.map(function(inst) {
+                return {
+                    instalacionId: inst.instalacionId,
+                    concepto: inst.concepto,
+                    descripcion: inst.descripcion,
+                    cantidad: inst.cantidad,
+                    costoUnitario: inst.costoUnitario
+                };
+            });
+
+            $('#equiposJson').val(JSON.stringify(equiposJson));
+            $('#instalacionesJson').val(JSON.stringify(instalacionesJson));
+        });
+
+        // Inicializar
+        $('#areaMetrosCuadrados').on('change', calcularCargaTermica);
+        calcularCargaTermica();
+
+        // Inicializar tipo de instalación
+        $('#instalacionTipoSelect').trigger('change');
+    </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+}

@@ -1,0 +1,104 @@
+﻿@model CotizacionMVC.Models.Entidades.Equipo
+
+@{
+    ViewData["Title"] = "Editar Equipo";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-warning text-dark">
+            <h2><i class="fas fa-edit"></i> Editar Equipo</h2>
+        </div>
+        <div class="card-body">
+            <form asp-action="Editar" method="post">
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="FechaCreacion" />
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Marca" class="form-label fw-bold"></label>
+                        <select asp-for="Marca" class="form-select" asp-items="Html.GetEnumSelectList<CotizacionMVC.Models.Enums.TipoMarca>()">
+                            <option value="">Seleccione una marca...</option>
+                        </select>
+                        <span asp-validation-for="Marca" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Modelo" class="form-label fw-bold"></label>
+                        <input asp-for="Modelo" class="form-control" />
+                        <span asp-validation-for="Modelo" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="Tipo" class="form-label fw-bold">Tipo</label>
+                        <input asp-for="Tipo" class="form-control" />
+                        <span asp-validation-for="Tipo" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="CapacidadToneladas" class="form-label fw-bold">Capacidad (TR)</label>
+                        <input asp-for="CapacidadToneladas" class="form-control" step="0.1" />
+                        <span asp-validation-for="CapacidadToneladas" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="Tension" class="form-label fw-bold">Tensión</label>
+                        <input asp-for="Tension" class="form-control" />
+                        <span asp-validation-for="Tension" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Tecnologia" class="form-label fw-bold">Tecnología</label>
+                        <input asp-for="Tecnologia" class="form-control" />
+                        <span asp-validation-for="Tecnologia" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label asp-for="PrecioBase" class="form-label fw-bold">Precio Base</label>
+                        <input asp-for="PrecioBase" class="form-control" step="0.01" />
+                        <span asp-validation-for="PrecioBase" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label asp-for="MonedaOriginal" class="form-label fw-bold">Moneda</label>
+                        <select asp-for="MonedaOriginal" class="form-select">
+                            <option value="MXN">MXN - Peso Mexicano</option>
+                            <option value="USD">USD - Dólar Americano</option>
+                        </select>
+                        <span asp-validation-for="MonedaOriginal" class="text-danger"></span>
+                        <small class="text-muted">Trane y York solo en USD. Otras marcas solo en MXN.</small>
+                    </div>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input asp-for="Activo" class="form-check-input" type="checkbox" />
+                    <label asp-for="Activo" class="form-check-label">Equipo activo (disponible en catálogo)</label>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                    <a asp-action="Indice" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver al listado
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+}

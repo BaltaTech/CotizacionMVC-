@@ -1,0 +1,62 @@
+﻿@model CotizacionMVC.Models.Entidades.Equipo
+
+@{
+    ViewData["Title"] = "Eliminar Equipo";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-danger text-white">
+            <h2><i class="fas fa-exclamation-triangle"></i> Eliminar Equipo</h2>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <i class="fas fa-warning"></i> ¿Está seguro de que desea eliminar este equipo?
+                @if (ViewBag.EstaEnUso != null && ViewBag.EstaEnUso)
+                {
+                    <strong>Este equipo está siendo utilizado en cotizaciones. Solo se desactivará, no se eliminará físicamente.</strong>
+                }
+            </div>
+
+            <dl class="row">
+                <dt class="col-sm-3">Marca</dt>
+                <dd class="col-sm-9">@Model.Marca</dd>
+
+                <dt class="col-sm-3">Modelo</dt>
+                <dd class="col-sm-9">@Model.Modelo</dd>
+
+                <dt class="col-sm-3">Capacidad</dt>
+                <dd class="col-sm-9">@Model.CapacidadToneladas.ToString("N1") TR</dd>
+
+                <dt class="col-sm-3">Precio Base</dt>
+                <dd class="col-sm-9">@Model.PrecioBase.ToString("N2") @Model.MonedaOriginal</dd>
+
+                <dt class="col-sm-3">Estado actual</dt>
+                <dd class="col-sm-9">
+                    @if (Model.Activo)
+                    {
+                        <span class="badge bg-success">Activo</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Inactivo</span>
+                    }
+                </dd>
+            </dl>
+
+            <form asp-action="Eliminar" method="post">
+                <input type="hidden" asp-for="Id" />
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Confirmar Eliminación
+                </button>
+                <a asp-action="Indice" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Cancelar
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+}

@@ -1,0 +1,114 @@
+﻿@model CotizacionMVC.Models.Entidades.Cliente
+
+@{
+    ViewData["Title"] = "Nuevo Cliente";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h2><i class="fas fa-user-plus"></i> Nuevo Cliente</h2>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                <div asp-validation-summary="All" class="alert alert-danger"></div>
+
+                <h4 class="text-primary mb-3">Datos Básicos</h4>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold">Nombre / Razón Social *</label>
+                        <input name="nombre" class="form-control" />
+                    </div>
+                </div>
+
+                <h4 class="text-primary mb-3 mt-4">Contacto</h4>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> El cliente debe tener al menos un medio de contacto
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <input name="telefono" class="form-control" placeholder="5512345678" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Teléfono Móvil</label>
+                        <input name="telefonoMovil" class="form-control" placeholder="5512345678" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Correo Electrónico</label>
+                        <input name="correo" class="form-control" placeholder="cliente@ejemplo.com" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Nombre de Contacto</label>
+                        <input name="nombreContacto" class="form-control" placeholder="Persona con quien tratar" />
+                    </div>
+                </div>
+
+                <h4 class="text-primary mb-3 mt-4">Dirección (Opcional)</h4>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Calle</label>
+                        <input name="calle" class="form-control" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Número Exterior</label>
+                        <input name="numeroExterior" class="form-control" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Número Interior</label>
+                        <input name="numeroInterior" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Colonia</label>
+                        <input name="colonia" class="form-control" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Ciudad</label>
+                        <input name="ciudad" class="form-control" />
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">Estado</label>
+                        <input name="estado" class="form-control" />
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">Código Postal</label>
+                        <input name="codigoPostal" class="form-control" />
+                    </div>
+                </div>
+
+                <h4 class="text-primary mb-3 mt-4">Observaciones</h4>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <textarea name="observaciones" class="form-control" rows="3" placeholder="Notas adicionales..."></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Guardar Cliente
+                    </button>
+                    <a asp-action="Indice" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+}

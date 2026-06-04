@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CotizacionMVC.Tests/CotizacionMVC.Tests.csproj" Id="9cac076f-c604-4ec9-8420-ba13bd916884" />
+  <Project Path="CotizacionMVC/CotizacionMVC.csproj" />
+</Solution>

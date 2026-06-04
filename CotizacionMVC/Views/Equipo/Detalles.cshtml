@@ -1,0 +1,64 @@
+﻿@model CotizacionMVC.Models.Entidades.Equipo
+
+@{
+    ViewData["Title"] = "Detalles del Equipo";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h2><i class="fas fa-microchip"></i> Detalles del Equipo</h2>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Marca</dt>
+                <dd class="col-sm-9">@Model.Marca</dd>
+
+                <dt class="col-sm-3">Modelo</dt>
+                <dd class="col-sm-9">@Model.Modelo</dd>
+
+                <dt class="col-sm-3">Tipo</dt>
+                <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.Tipo) ? "No especificado" : Model.Tipo)</dd>
+
+                <dt class="col-sm-3">Capacidad</dt>
+                <dd class="col-sm-9">@Model.CapacidadToneladas.ToString("N1") Toneladas de Refrigeración (TR)</dd>
+
+                <dt class="col-sm-3">Tensión</dt>
+                <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.Tension) ? "No especificada" : Model.Tension)</dd>
+
+                <dt class="col-sm-3">Tecnología</dt>
+                <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.Tecnologia) ? "No especificada" : Model.Tecnologia)</dd>
+
+                <dt class="col-sm-3">Precio Base</dt>
+                <dd class="col-sm-9">@Model.PrecioBase.ToString("N2") @Model.MonedaOriginal</dd>
+
+                <dt class="col-sm-3">Estado</dt>
+                <dd class="col-sm-9">
+                    @if (Model.Activo)
+                    {
+                        <span class="badge bg-success">Activo</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Inactivo</span>
+                    }
+                </dd>
+
+                <dt class="col-sm-3">Fecha de Creación</dt>
+                <dd class="col-sm-9">@Model.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+            </dl>
+        </div>
+        <div class="card-footer">
+            <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Editar
+            </a>
+            <a asp-action="Indice" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver al listado
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+}
