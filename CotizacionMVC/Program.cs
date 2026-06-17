@@ -1,5 +1,7 @@
 using CotizacionMVC.Data;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Infrastructure;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,8 @@ builder.Services.AddSession(opciones =>
     opciones.Cookie.HttpOnly = true;
     opciones.Cookie.IsEssential = true;
 });
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 // Para acceder a la sesión desde las vistas
 builder.Services.AddHttpContextAccessor();

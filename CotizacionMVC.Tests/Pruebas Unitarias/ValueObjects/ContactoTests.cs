@@ -6,7 +6,6 @@ namespace CotizacionMVC.Tests.Pruebas_Unitarias.ValueObjects
     public class ContactoTests
     {
         [Fact]
-
         public void Constructor_ConSoloTelefono_CrearInstanciaCorrectamente()
         {
             // Act 

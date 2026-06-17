@@ -20,25 +20,25 @@
             {
                 var inst = instalaciones[i];
                 <tr>
-                    <td>@inst.Concepto</td
-                    <td>@inst.Descripcion</td
+                    <td>@inst.Concepto</td>
+                    <td>@inst.Descripcion</td>
                     <td>
                         <input type="number" class="form-control form-control-sm cantidad-instalacion" style="width:80px" data-indice="@i" value="@inst.Cantidad" min="1" />
-                    </td
-                    <td>$@inst.CostoUnitario.ToString("N2")</td
-                    <td>$@inst.Subtotal.ToString("N2")</td
+                    </td>
+                    >                    <td>$@inst.CostoUnitario.ToString("N2")</td>
+                    <td>$@inst.Subtotal.ToString("N2")</td>
                     <td>
                         <button type="button" class="btn btn-sm btn-danger eliminar-instalacion" data-indice="@i">
                             <i class="fas fa-trash"></i>
                         </button>
-                    </td
+                    </td>
                 </tr>
             }
         }
         else
         {
             <tr>
-                <td colspan="6" class="text-center text-muted">No hay instalaciones agregadas</td
+                <td colspan="6" class="text-center text-muted">No hay instalaciones agregadas</td>
             </tr>
         }
     </tbody>

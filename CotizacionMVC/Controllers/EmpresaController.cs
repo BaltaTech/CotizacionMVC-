@@ -89,9 +89,6 @@ namespace CotizacionMVC.Controllers
                     empresa.Eslogan ?? ""
                 );
 
-                // Actualizar otros campos
-                _contextoBaseDatos.Entry(empresaExistente).CurrentValues.SetValues(empresa);
-
                 await _contextoBaseDatos.SaveChangesAsync();
 
                 TempData["MensajeExito"] = $"Empresa {empresaExistente.NombreComercial} actualizada exitosamente";

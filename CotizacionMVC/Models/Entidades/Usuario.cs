@@ -37,7 +37,9 @@ namespace CotizacionMVC.Models.Entidades
             if (string.IsNullOrWhiteSpace(correoElectronico))
                 throw new ArgumentException("El correo electrónico es obligatorio");
 
-            if (!correoElectronico.Contains("@"))
+            // Validación normal de formato email
+            var emailRegex = new System.Text.RegularExpressions.Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$");
+            if (!emailRegex.IsMatch(correoElectronico))
                 throw new ArgumentException("El correo electrónico no es válido");
 
             Id = Guid.NewGuid();

@@ -17,7 +17,7 @@ namespace CotizacionMVC.Controllers
         }
 
         // GET: Cliente/Indice
-        public async Task<IActionResult> Indice(string termino = null)
+        public async Task<IActionResult> Indice(string? termino = null)
         {
             var consulta = _contextoBaseDatos.Clientes
                 .Include(c => c.Cotizaciones)
@@ -28,9 +28,9 @@ namespace CotizacionMVC.Controllers
                 termino = termino.ToLower();
                 consulta = consulta.Where(c =>
                     c.Nombre.ToLower().Contains(termino) ||
-                    c.Contacto.Telefono.ToLower().Contains(termino) ||
-                    c.Contacto.TelefonoMovil.ToLower().Contains(termino) ||
-                    c.Contacto.Correo.ToLower().Contains(termino)
+                    (c.Contacto.Telefono != null && c.Contacto.Telefono.ToLower().Contains(termino)) ||
+                    (c.Contacto.TelefonoMovil != null && c.Contacto.TelefonoMovil.ToLower().Contains(termino)) ||
+                    (c.Contacto.Correo != null && c.Contacto.Correo.ToLower().Contains(termino))
                 );
             }
 
@@ -46,9 +46,7 @@ namespace CotizacionMVC.Controllers
         public async Task<IActionResult> Detalles(Guid? id)
         {
             if (id == null)
-            {
                 return NotFound("No se proporcionó un identificador de cliente");
-            }
 
             var cliente = await _contextoBaseDatos.Clientes
                 .Include(c => c.Cotizaciones)
@@ -56,9 +54,7 @@ namespace CotizacionMVC.Controllers
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (cliente == null)
-            {
                 return NotFound($"No se encontró el cliente con ID {id}");
-            }
 
             return View(cliente);
         }
@@ -109,18 +105,16 @@ namespace CotizacionMVC.Controllers
 
             if (hayErrores)
             {
+                ConservarValoresEnViewBag(nombre, telefono, telefonoMovil, correo, nombreContacto,
+                    calle, numeroExterior, numeroInterior, colonia, ciudad, estado, codigoPostal, observaciones);
                 return View();
             }
 
             try
             {
-                // Crear Value Object Contacto
                 var contacto = new Contacto(telefono, telefonoMovil, correo, nombreContacto);
-
-                // Crear cliente
                 var cliente = new Cliente(nombre, contacto);
 
-                // Agregar dirección si se proporcionó al menos un campo
                 bool tieneDireccion = !string.IsNullOrWhiteSpace(calle) ||
                                       !string.IsNullOrWhiteSpace(colonia) ||
                                       !string.IsNullOrWhiteSpace(ciudad) ||
@@ -140,11 +134,8 @@ namespace CotizacionMVC.Controllers
                     cliente.ActualizarDireccion(direccion);
                 }
 
-                // Agregar observaciones
                 if (!string.IsNullOrWhiteSpace(observaciones))
-                {
                     cliente.AgregarObservaciones(observaciones);
-                }
 
                 _contextoBaseDatos.Clientes.Add(cliente);
                 await _contextoBaseDatos.SaveChangesAsync();
@@ -155,6 +146,8 @@ namespace CotizacionMVC.Controllers
             catch (Exception ex)
             {
                 ModelState.AddModelError("", $"Error al guardar: {ex.Message}");
+                ConservarValoresEnViewBag(nombre, telefono, telefonoMovil, correo, nombreContacto,
+                    calle, numeroExterior, numeroInterior, colonia, ciudad, estado, codigoPostal, observaciones);
                 return View();
             }
         }
@@ -163,16 +156,12 @@ namespace CotizacionMVC.Controllers
         public async Task<IActionResult> Editar(Guid? id)
         {
             if (id == null)
-            {
                 return NotFound("No se proporcionó un identificador de cliente");
-            }
 
             var cliente = await _contextoBaseDatos.Clientes.FindAsync(id);
 
             if (cliente == null)
-            {
                 return NotFound($"No se encontró el cliente con ID {id}");
-            }
 
             return View(cliente);
         }
@@ -198,27 +187,27 @@ namespace CotizacionMVC.Controllers
         {
             bool hayErrores = false;
 
-            // Validar nombre obligatorio
             if (string.IsNullOrWhiteSpace(nombre))
             {
                 ModelState.AddModelError("nombre", "El nombre del cliente es obligatorio");
                 hayErrores = true;
             }
 
-            // Validar que tenga al menos un medio de contacto
             bool tieneTelefono = !string.IsNullOrWhiteSpace(telefono);
             bool tieneMovil = !string.IsNullOrWhiteSpace(telefonoMovil);
             bool tieneCorreo = !string.IsNullOrWhiteSpace(correo);
 
             if (!tieneTelefono && !tieneMovil && !tieneCorreo)
             {
-                ModelState.AddModelError("", "El cliente debe tener al menos un medio de contacto (teléfono, teléfono móvil o correo electrónico)");
+                ModelState.AddModelError("", "El cliente debe tener al menos un medio de contacto");
                 hayErrores = true;
             }
 
             if (hayErrores)
             {
                 var clienteOriginal = await _contextoBaseDatos.Clientes.FindAsync(id);
+                ConservarValoresEnViewBag(nombre, telefono, telefonoMovil, correo, nombreContacto,
+                    calle, numeroExterior, numeroInterior, colonia, ciudad, estado, codigoPostal, observaciones);
                 return View(clienteOriginal);
             }
 
@@ -227,15 +216,11 @@ namespace CotizacionMVC.Controllers
                 var cliente = await _contextoBaseDatos.Clientes.FindAsync(id);
 
                 if (cliente == null)
-                {
                     return NotFound($"No se encontró el cliente con ID {id}");
-                }
 
-                // Actualizar contacto
                 var nuevoContacto = new Contacto(telefono, telefonoMovil, correo, nombreContacto);
                 cliente.ActualizarContacto(nuevoContacto);
 
-                // Actualizar dirección
                 bool tieneDireccion = !string.IsNullOrWhiteSpace(calle) ||
                                       !string.IsNullOrWhiteSpace(colonia) ||
                                       !string.IsNullOrWhiteSpace(ciudad) ||
@@ -259,7 +244,6 @@ namespace CotizacionMVC.Controllers
                     cliente.ActualizarDireccion(null);
                 }
 
-                // Actualizar observaciones
                 cliente.AgregarObservaciones(observaciones);
 
                 await _contextoBaseDatos.SaveChangesAsync();
@@ -271,6 +255,8 @@ namespace CotizacionMVC.Controllers
             {
                 ModelState.AddModelError("", $"Error al actualizar: {ex.Message}");
                 var clienteOriginal = await _contextoBaseDatos.Clientes.FindAsync(id);
+                ConservarValoresEnViewBag(nombre, telefono, telefonoMovil, correo, nombreContacto,
+                    calle, numeroExterior, numeroInterior, colonia, ciudad, estado, codigoPostal, observaciones);
                 return View(clienteOriginal);
             }
         }
@@ -280,18 +266,14 @@ namespace CotizacionMVC.Controllers
         public async Task<IActionResult> Eliminar(Guid? id)
         {
             if (id == null)
-            {
                 return NotFound("No se proporcionó un identificador de cliente");
-            }
 
             var cliente = await _contextoBaseDatos.Clientes
                 .Include(c => c.Cotizaciones)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (cliente == null)
-            {
                 return NotFound($"No se encontró el cliente con ID {id}");
-            }
 
             return View(cliente);
         }
@@ -307,9 +289,7 @@ namespace CotizacionMVC.Controllers
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (cliente == null)
-            {
                 return NotFound($"No se encontró el cliente con ID {id}");
-            }
 
             if (cliente.Cotizaciones.Any())
             {
@@ -322,6 +302,36 @@ namespace CotizacionMVC.Controllers
 
             TempData["MensajeExito"] = $"Cliente {cliente.Nombre} eliminado exitosamente";
             return RedirectToAction(nameof(Indice));
+        }
+
+        private void ConservarValoresEnViewBag(
+            string nombre,
+            string telefono,
+            string telefonoMovil,
+            string correo,
+            string nombreContacto,
+            string calle,
+            string numeroExterior,
+            string numeroInterior,
+            string colonia,
+            string ciudad,
+            string estado,
+            string codigoPostal,
+            string observaciones)
+        {
+            ViewBag.Nombre = nombre;
+            ViewBag.Telefono = telefono;
+            ViewBag.TelefonoMovil = telefonoMovil;
+            ViewBag.Correo = correo;
+            ViewBag.NombreContacto = nombreContacto;
+            ViewBag.Calle = calle;
+            ViewBag.NumeroExterior = numeroExterior;
+            ViewBag.NumeroInterior = numeroInterior;
+            ViewBag.Colonia = colonia;
+            ViewBag.Ciudad = ciudad;
+            ViewBag.Estado = estado;
+            ViewBag.CodigoPostal = codigoPostal;
+            ViewBag.Observaciones = observaciones;
         }
     }
 }

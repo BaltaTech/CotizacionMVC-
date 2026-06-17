@@ -17,7 +17,7 @@
                 <div class="row">
                     <div class="col-md-12 mb-3">
                         <label class="form-label fw-bold">Nombre / Razón Social *</label>
-                        <input name="nombre" class="form-control" />
+                        <input name="nombre" class="form-control" required value="@ViewBag.Nombre" />
                     </div>
                 </div>
 
@@ -29,22 +29,26 @@
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Teléfono</label>
-                        <input name="telefono" class="form-control" placeholder="5512345678" />
+                        <input name="telefono" type="tel" class="form-control"
+                               placeholder="5512345678" value="@ViewBag.Telefono" />
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Teléfono Móvil</label>
-                        <input name="telefonoMovil" class="form-control" placeholder="5512345678" />
+                        <input name="telefonoMovil" type="tel" class="form-control"
+                               placeholder="5512345678" value="@ViewBag.TelefonoMovil" />
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Correo Electrónico</label>
-                        <input name="correo" class="form-control" placeholder="cliente@ejemplo.com" />
+                        <input name="correo" type="email" class="form-control"
+                               placeholder="cliente@ejemplo.com" value="@ViewBag.Correo" />
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Nombre de Contacto</label>
-                        <input name="nombreContacto" class="form-control" placeholder="Persona con quien tratar" />
+                        <input name="nombreContacto" class="form-control"
+                               placeholder="Persona con quien tratar" value="@ViewBag.NombreContacto" />
                     </div>
                 </div>
 
@@ -52,41 +56,50 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Calle</label>
-                        <input name="calle" class="form-control" />
+                        <input name="calle" class="form-control" value="@ViewBag.Calle" />
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Número Exterior</label>
-                        <input name="numeroExterior" class="form-control" />
+                        <input name="numeroExterior" class="form-control" value="@ViewBag.NumeroExterior" />
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Número Interior</label>
-                        <input name="numeroInterior" class="form-control" />
+                        <input name="numeroInterior" class="form-control" value="@ViewBag.NumeroInterior" />
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Colonia</label>
-                        <input name="colonia" class="form-control" />
+                        <input name="colonia" class="form-control" value="@ViewBag.Colonia" />
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Ciudad</label>
-                        <input name="ciudad" class="form-control" />
+                        <input name="ciudad" class="form-control" value="@ViewBag.Ciudad" />
                     </div>
                     <div class="col-md-2 mb-3">
                         <label class="form-label">Estado</label>
-                        <input name="estado" class="form-control" />
+                        <select name="estado" class="form-control">
+                            <option value="">Seleccione...</option>
+                            <option value="CDMX" selected="@(ViewBag.Estado == "CDMX")">CDMX</option>
+                            <option value="EdoMex" selected="@(ViewBag.Estado == "EdoMex")">Estado de México</option>
+                            <option value="Jalisco" selected="@(ViewBag.Estado == "Jalisco")">Jalisco</option>
+                            <option value="NuevoLeon" selected="@(ViewBag.Estado == "NuevoLeon")">Nuevo León</option>
+                            <option value="Puebla" selected="@(ViewBag.Estado == "Puebla")">Puebla</option>
+                            <option value="Otro" selected="@(ViewBag.Estado == "Otro")">Otro</option>
+                        </select>
                     </div>
                     <div class="col-md-2 mb-3">
                         <label class="form-label">Código Postal</label>
-                        <input name="codigoPostal" class="form-control" />
+                        <input name="codigoPostal" class="form-control" value="@ViewBag.CodigoPostal" />
                     </div>
                 </div>
 
                 <h4 class="text-primary mb-3 mt-4">Observaciones</h4>
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <textarea name="observaciones" class="form-control" rows="3" placeholder="Notas adicionales..."></textarea>
+                        <textarea name="observaciones" class="form-control" rows="3"
+                                  placeholder="Notas adicionales...">@ViewBag.Observaciones</textarea>
                     </div>
                 </div>
 

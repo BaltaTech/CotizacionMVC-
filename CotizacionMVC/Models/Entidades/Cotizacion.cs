@@ -1,5 +1,6 @@
 ﻿using CotizacionMVC.Models.Enums;
 using CotizacionMVC.Models.Valor;
+using System.Reflection.Metadata;
 
 namespace CotizacionMVC.Models.Entidades
 {
@@ -26,6 +27,8 @@ namespace CotizacionMVC.Models.Entidades
         public Dinero Iva { get; private set; }
         public Dinero Total { get; private set; }
         public bool RequiereAutorizacion { get; private set; }
+
+        public string? RutaPdf { get; private set; }
 
         public IReadOnlyCollection<ItemCotizacion> ItemsEquipos => _itemsEquipos.AsReadOnly();
         public IReadOnlyCollection<ItemInstalacion> ItemsInstalacion => _itemsInstalacion.AsReadOnly();
@@ -211,5 +214,33 @@ namespace CotizacionMVC.Models.Entidades
         {
             return (int)Estado;
         }
+
+        public void ActualizarDatosBasicos(Cliente cliente, decimal areaMetrosCuadrados, string condicionesPago)
+        {
+            if (!PuedeSerModificada())
+                throw new InvalidOperationException("La cotización no puede ser modificada en su estado actual");
+
+            if (cliente == null)
+                throw new ArgumentNullException(nameof(cliente));
+
+            if (areaMetrosCuadrados <= 0)
+                throw new ArgumentException("El área debe ser mayor a cero");
+
+            Cliente = cliente;
+            ClienteId = cliente.Id;
+            AreaMetrosCuadrados = areaMetrosCuadrados;
+            CondicionesPago = condicionesPago ?? string.Empty;
+        }
+
+        public void GuardarRutaPdf(string ruta)
+        {
+            
+            RutaPdf = ruta;
+        }
+
+        
+       
+
+
     }
 }
