@@ -10,6 +10,13 @@
             <h2><i class="fas fa-file-invoice"></i> Cotización @Model.NumeroCotizacion</h2>
         </div>
         <div class="card-body">
+
+            <!-- DEBUG -->
+            @if (TempData["DebugItems"] != null)
+            {
+                <div class="alert alert-info">@TempData["DebugItems"]</div>
+            }
+
             <!-- Datos de la cotización -->
             <div class="row mb-4">
                 <div class="col-md-6">
@@ -65,8 +72,8 @@
                                     <td>@item.Equipo?.Modelo</td>
                                     <td>@item.Equipo?.CapacidadToneladas TR</td>
                                     <td>@item.Cantidad</td>
-                                    <td>@item.PrecioUnitario.ToString()</td>
-                                    <td>@item.Subtotal.ToString()</td>
+                                    <td>@item.PrecioUnitario.Monto.ToString("N2")</td>
+                                    <td>@item.Subtotal.Monto.ToString("N2")</td>
                                 </tr>
                             }
                         </tbody>
@@ -100,8 +107,8 @@
                                     <td>@item.Concepto</td>
                                     <td>@item.Descripcion</td>
                                     <td>@item.Cantidad</td>
-                                    <td>@item.CostoUnitario.ToString()</td>
-                                    <td>@item.Subtotal.ToString()</td>
+                                    <td>@item.CostoUnitario.Monto.ToString("N2")</td>
+                                    <td>@item.Subtotal.Monto.ToString("N2")</td>
                                 </tr>
                             }
                         </tbody>
@@ -121,15 +128,15 @@
                             <table class="table table-borderless">
                                 <tr>
                                     <td><strong>Subtotal:</strong></td>
-                                    <td class="text-end">@Model.Subtotal.ToString()</td>
+                                    <td class="text-end">@Model.Subtotal.Monto.ToString("N2")</td>
                                 </tr>
                                 <tr>
                                     <td><strong>IVA (16%):</strong></td>
-                                    <td class="text-end">@Model.Iva.ToString()</td>
+                                    <td class="text-end">@Model.Iva.Monto.ToString("N2")</td>
                                 </tr>
                                 <tr class="table-primary">
                                     <td><strong>TOTAL:</strong></td>
-                                    <td class="text-end fw-bold fs-5">@Model.Total.ToString()</td>
+                                    <td class="text-end fw-bold fs-5">@Model.Total.Monto.ToString("N2")</td>
                                 </tr>
                             </table>
                         </div>
@@ -139,7 +146,7 @@
 
             <!-- Estado actual -->
             <div class="mt-4">
-                <h5>Estado actual: <span class="badge bg-secondary">@Model.ObtenerPorcentajeEstado()% - @Model.Estado</span></h5>
+                <h5>Estado actual: <span class="badge bg-secondary">@Model.Estado</span></h5>
             </div>
         </div>
         <div class="card-footer">

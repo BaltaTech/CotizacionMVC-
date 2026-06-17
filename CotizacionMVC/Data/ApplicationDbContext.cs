@@ -85,9 +85,7 @@ namespace CotizacionMVC.Data
                 entidad.Property(e => e.PlantillaPdfNombre)
                     .HasMaxLength(100);
 
-                entidad.Ignore(e => e.UsuariosAcceso);
-                entidad.Ignore(e => e.Cotizaciones);
-                entidad.Ignore(e => e.Leads);
+            
             });
         }
 
@@ -112,8 +110,6 @@ namespace CotizacionMVC.Data
                 entidad.Property(u => u.ContraseniaHash)
                     .HasMaxLength(500);
 
-                entidad.Ignore(u => u.EmpresasAcceso);
-                entidad.Ignore(u => u.Cotizaciones);
             });
         }
 
@@ -170,7 +166,6 @@ namespace CotizacionMVC.Data
                         .HasMaxLength(10);
                 });
 
-                entidad.Ignore(c => c.Cotizaciones);
             });
         }
 
@@ -211,34 +206,22 @@ namespace CotizacionMVC.Data
 
                 entidad.OwnsOne(c => c.Subtotal, dinero =>
                 {
-                    dinero.Property(d => d.Monto)
-                        .HasPrecision(18, 2);
-
-                    dinero.Property(d => d.Moneda)
-                        .HasMaxLength(3);
+                    dinero.Property(d => d.Monto).HasPrecision(18, 2);
+                    dinero.Property(d => d.Moneda).HasMaxLength(3);
                 });
 
                 entidad.OwnsOne(c => c.Iva, dinero =>
                 {
-                    dinero.Property(d => d.Monto)
-                        .HasPrecision(18, 2);
-
-                    dinero.Property(d => d.Moneda)
-                        .HasMaxLength(3);
+                    dinero.Property(d => d.Monto).HasPrecision(18, 2);
+                    dinero.Property(d => d.Moneda).HasMaxLength(3);
                 });
 
                 entidad.OwnsOne(c => c.Total, dinero =>
                 {
-                    dinero.Property(d => d.Monto)
-                        .HasPrecision(18, 2);
-
-                    dinero.Property(d => d.Moneda)
-                        .HasMaxLength(3);
+                    dinero.Property(d => d.Monto).HasPrecision(18, 2);
+                    dinero.Property(d => d.Moneda).HasMaxLength(3);
                 });
 
-                entidad.Ignore(c => c.ItemsEquipos);
-                entidad.Ignore(c => c.ItemsInstalacion);
-                entidad.Ignore(c => c.Seguimientos);
             });
         }
 

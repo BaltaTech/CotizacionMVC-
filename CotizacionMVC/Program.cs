@@ -1,12 +1,16 @@
-using CotizacionMVC.Data;
+﻿using CotizacionMVC.Data;
+using CotizacionMVC.Servicios;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Infrastructure;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// ✅ CORREGIDO: Usar IDocumento en lugar de IDocument
+builder.Services.AddScoped<IDocumento, PdfCotizacion>();
+// builder.Services.AddScoped<PdfCotizacion>(); // Esta línea es opcional, solo si necesitas inyectar PdfCotizacion directamente
 
 // Registrar el DbContext con PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(opciones =>
@@ -23,7 +27,7 @@ builder.Services.AddSession(opciones =>
 
 QuestPDF.Settings.License = LicenseType.Community;
 
-// Para acceder a la sesi�n desde las vistas
+// Para acceder a la sesión desde las vistas
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();

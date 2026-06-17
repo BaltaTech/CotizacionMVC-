@@ -1,21 +1,22 @@
 ﻿using CotizacionMVC.Data;
 using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Models.Enums;
+using CotizacionMVC.Servicios;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 
 namespace CotizacionMVC.Controllers
 {
     public class CotizacionController : Controller
     {
         private readonly ApplicationDbContext _contextoBaseDatos;
+        private readonly IDocumento _documentoService; 
 
-        public CotizacionController(ApplicationDbContext contextoBaseDatos)
+        // Constructor actualizado
+        public CotizacionController(ApplicationDbContext contextoBaseDatos, IDocumento documentoService)
         {
             _contextoBaseDatos = contextoBaseDatos;
+            _documentoService = documentoService;  
         }
 
         // GET: Cotizacion/Indice
@@ -82,13 +83,19 @@ namespace CotizacionMVC.Controllers
             string equipos,
             string instalaciones)
         {
+            // 🔥 SOLUCCIÓN AL JSON: CaseInsensitive activado para que mapee sin importar mayúsculas/minúsculas
+            var opcionesJson = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
             var listaEquipos = string.IsNullOrEmpty(equipos)
                 ? new List<ItemCotizacionJson>()
-                : System.Text.Json.JsonSerializer.Deserialize<List<ItemCotizacionJson>>(equipos);
+                : System.Text.Json.JsonSerializer.Deserialize<List<ItemCotizacionJson>>(equipos, opcionesJson);
 
             var listaInstalaciones = string.IsNullOrEmpty(instalaciones)
                 ? new List<ItemInstalacionJson>()
-                : System.Text.Json.JsonSerializer.Deserialize<List<ItemInstalacionJson>>(instalaciones);
+                : System.Text.Json.JsonSerializer.Deserialize<List<ItemInstalacionJson>>(instalaciones, opcionesJson);
 
             if (clienteId == Guid.Empty)
             {
@@ -201,36 +208,84 @@ namespace CotizacionMVC.Controllers
                 }
             }
 
+            var itemsCount = cotizacion.ItemsEquipos.Count;
+            var instCount = cotizacion.ItemsInstalacion.Count;
+            Console.WriteLine($"DEBUG CREAR: ItemsEquipos en memoria: {itemsCount}, ItemsInstalacion: {instCount}");
+            TempData["DebugItems"] = $"Equipos: {itemsCount}, Instalaciones: {instCount}";
+
+            // Persistencia normal en BD
             await _contextoBaseDatos.SaveChangesAsync();
+
+            // 🔥 SOLUCIÓN AL TRACKING: Desacoplamos la entidad y sus colecciones recién guardadas de la caché local de EF.
+            // Esto obliga a que la posterior redirección a 'Detalles' haga un query limpio e hidrate correctamente los catálogos (Equipo e Instalacion).
+            _contextoBaseDatos.Entry(cotizacion).State = EntityState.Detached;
+
+            foreach (var item in cotizacion.ItemsEquipos)
+            {
+                _contextoBaseDatos.Entry(item).State = EntityState.Detached;
+            }
+            foreach (var inst in cotizacion.ItemsInstalacion)
+            {
+                _contextoBaseDatos.Entry(inst).State = EntityState.Detached;
+            }
 
             TempData["MensajeExito"] = $"Cotización {numeroCotizacion} creada exitosamente";
             return RedirectToAction(nameof(Detalles), new { id = cotizacion.Id });
         }
-
-        // GET: Cotizacion/Editar/5
-        public async Task<IActionResult> Editar(Guid? id)
+        // GET: Cotizacion/DescargarPdf/5
+        [HttpGet]
+        public async Task<IActionResult> DescargarPdf(Guid id)
         {
-            if (id == null)
-                return NotFound();
-
+            // 🔥 CORRECCIÓN 1: Usamos AsNoTracking() para obligar a EF a traer los datos reales y actualizados de la BD
             var cotizacion = await _contextoBaseDatos.Cotizaciones
+                .AsNoTracking()
+                .Include(c => c.Cliente)
+                .Include(c => c.Empresa)
+                .Include(c => c.Vendedor)
                 .Include(c => c.ItemsEquipos)
+                    .ThenInclude(i => i.Equipo) // Hidrata la marca, modelo, etc.
                 .Include(c => c.ItemsInstalacion)
+                    .ThenInclude(i => i.Instalacion)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (cotizacion == null)
-                return NotFound();
+                return NotFound("Cotización no encontrada");
 
-            if (!cotizacion.PuedeSerModificada())
+            // 🔥 CORRECCIÓN 2: Validar que el archivo físico exista Y NO ESTÉ VACÍO (0 bytes) por pruebas previas erróneas
+            if (!string.IsNullOrEmpty(cotizacion.RutaPdf))
             {
-                TempData["MensajeError"] = "Esta cotización no puede ser modificada porque ya está aceptada o cerrada";
-                return RedirectToAction(nameof(Detalles), new { id });
+                var rutaExistente = Path.Combine(Directory.GetCurrentDirectory(), cotizacion.RutaPdf);
+                FileInfo fileInfo = new FileInfo(rutaExistente);
+
+                if (fileInfo.Exists && fileInfo.Length > 0)
+                {
+                    var bytesExistentes = await System.IO.File.ReadAllBytesAsync(rutaExistente);
+                    return File(bytesExistentes, _documentoService.TipoContenido,
+                        $"{cotizacion.NumeroCotizacion}{_documentoService.ExtensionArchivo}");
+                }
             }
 
-            ViewBag.Clientes = await _contextoBaseDatos.Clientes.OrderBy(c => c.Nombre).ToListAsync();
-            ViewBag.Equipos = await _contextoBaseDatos.Equipos.Where(e => e.Activo).ToListAsync();
+            // Si llegó aquí, generará el PDF con los datos frescos del AsNoTracking()
+            var pdfBytes = _documentoService.Generar(cotizacion);
 
-            return View(cotizacion);
+            // Guardar archivo
+            var carpeta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "pdf", "cotizaciones");
+            if (!Directory.Exists(carpeta))
+                Directory.CreateDirectory(carpeta);
+
+            var nombreArchivo = $"{cotizacion.NumeroCotizacion}{_documentoService.ExtensionArchivo}";
+            var rutaCompleta = Path.Combine(carpeta, nombreArchivo);
+            await System.IO.File.WriteAllBytesAsync(rutaCompleta, pdfBytes);
+
+            // Guardar ruta en BD
+            var rutaRelativa = $"wwwroot/pdf/cotizaciones/{nombreArchivo}";
+
+            // 🔥 CORRECCIÓN 3: Al usar AsNoTracking, debemos adjuntar (Attach) la entidad para poder actualizar solo la ruta
+            _contextoBaseDatos.Cotizaciones.Attach(cotizacion);
+            cotizacion.GuardarRutaPdf(rutaRelativa);
+            await _contextoBaseDatos.SaveChangesAsync();
+
+            return File(pdfBytes, _documentoService.TipoContenido, nombreArchivo);
         }
 
         // POST: Cotizacion/Editar/5
@@ -354,53 +409,7 @@ namespace CotizacionMVC.Controllers
             }
         }
 
-        // GET: Cotizacion/DescargarPdf/5
-        [HttpGet]
-        public async Task<IActionResult> DescargarPdf(Guid id)
-        {
-            var cotizacion = await _contextoBaseDatos.Cotizaciones
-                .Include(c => c.Cliente)
-                .Include(c => c.Empresa)
-                .Include(c => c.Vendedor)
-                .Include(c => c.ItemsEquipos)
-                    .ThenInclude(i => i.Equipo)
-                .Include(c => c.ItemsInstalacion)
-                    .ThenInclude(i => i.Instalacion)
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (cotizacion == null)
-                return NotFound("Cotización no encontrada");
-
-            // Si ya tiene PDF, devolverlo directo
-            if (!string.IsNullOrEmpty(cotizacion.RutaPdf))
-            {
-                var rutaExistente = Path.Combine(Directory.GetCurrentDirectory(), cotizacion.RutaPdf);
-                if (System.IO.File.Exists(rutaExistente))
-                {
-                    var bytesExistentes = await System.IO.File.ReadAllBytesAsync(rutaExistente);
-                    return File(bytesExistentes, "application/pdf", $"{cotizacion.NumeroCotizacion}.pdf");
-                }
-            }
-
-            // Generar PDF
-            var pdfBytes = await GenerarPdfCotizacion(cotizacion);
-
-            // Guardar archivo
-            var carpeta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "pdf", "cotizaciones");
-            if (!Directory.Exists(carpeta))
-                Directory.CreateDirectory(carpeta);
-
-            var nombreArchivo = $"{cotizacion.NumeroCotizacion}.pdf";
-            var rutaCompleta = Path.Combine(carpeta, nombreArchivo);
-            await System.IO.File.WriteAllBytesAsync(rutaCompleta, pdfBytes);
-
-            // Guardar ruta en BD
-            var rutaRelativa = $"wwwroot/pdf/cotizaciones/{nombreArchivo}";
-            cotizacion.GuardarRutaPdf(rutaRelativa);
-            await _contextoBaseDatos.SaveChangesAsync();
-
-            return File(pdfBytes, "application/pdf", nombreArchivo);
-        }
+       
 
         // ==================== MÉTODOS AUXILIARES PRIVADOS ====================
 
@@ -432,229 +441,11 @@ namespace CotizacionMVC.Controllers
             return $"{prefijo}-{numero:D4}";
         }
 
-        private async Task<byte[]> GenerarPdfCotizacion(Cotizacion cotizacion)
-        {
-            var empresa = cotizacion.Empresa;
-
-            byte[]? logoBytes = null;
-            if (!string.IsNullOrEmpty(empresa.LogoUrl))
-            {
-                var logoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", empresa.LogoUrl.TrimStart('/'));
-                if (System.IO.File.Exists(logoPath))
-                    logoBytes = await System.IO.File.ReadAllBytesAsync(logoPath);
-            }
-
-            return Document.Create(container =>
-            {
-                container.Page(page =>
-                {
-                    page.Size(PageSizes.A4);
-                    page.Margin(40);
-
-                    var colorPrimario = ParseColor(empresa.ColorPrimario ?? "#1A365D");
-                    var colorSecundario = ParseColor(empresa.ColorSecundario ?? "#2D3748");
-                    var colorGris = ParseColor("#718096");
-
-                    // ─── ENCABEZADO ───
-                    page.Header().Element(header =>
-                    {
-                        header.Column(col =>
-                        {
-                            col.Item().Row(row =>
-                            {
-                                if (logoBytes != null)
-                                    row.ConstantItem(80).Image(logoBytes);
-
-                                row.RelativeItem().Column(columna =>
-                                {
-                                    columna.Item().Text(empresa.NombreComercial)
-                                        .FontSize(20).Bold().FontColor(colorPrimario);
-
-                                    if (!string.IsNullOrEmpty(empresa.Eslogan))
-                                        columna.Item().Text(empresa.Eslogan)
-                                            .FontSize(9).FontColor(colorGris).Italic();
-                                });
-
-                                row.ConstantItem(130).Column(numero =>
-                                {
-                                    numero.Item().AlignRight().Text("COTIZACIÓN")
-                                        .FontSize(10).Bold().FontColor(colorGris);
-                                    numero.Item().AlignRight().Text(cotizacion.NumeroCotizacion)
-                                        .FontSize(18).Bold().FontColor(colorPrimario);
-                                    numero.Item().PaddingTop(3).AlignRight().Text($"Fecha: {cotizacion.FechaCreacion:dd/MM/yyyy}")
-                                        .FontSize(8).FontColor(colorGris);
-                                    numero.Item().AlignRight().Text($"Vence: {cotizacion.FechaVencimiento:dd/MM/yyyy}")
-                                        .FontSize(8).FontColor(colorGris);
-                                });
-                            });
-
-                            col.Item().PaddingTop(10).LineHorizontal(1).LineColor(colorPrimario);
-                        });
-                    });
-
-                    // ─── CONTENIDO ───
-                    page.Content().Column(content =>
-                    {
-                        content.Item().PaddingTop(20).Row(datos =>
-                        {
-                            datos.RelativeItem().Column(cliente =>
-                            {
-                                cliente.Item().Text("CLIENTE").FontSize(9).Bold().FontColor(colorGris);
-                                cliente.Item().PaddingTop(3).LineHorizontal(1).LineColor(colorPrimario);
-                                cliente.Item().PaddingTop(6).Text(cotizacion.Cliente.Nombre)
-                                    .FontSize(13).Bold().FontColor(colorSecundario);
-                                cliente.Item().Text(cotizacion.Cliente.ObtenerContactoPrincipal())
-                                    .FontSize(9).FontColor(colorGris);
-                            });
-
-                            datos.ConstantItem(180).Column(vendedor =>
-                            {
-                                vendedor.Item().Text("DATOS COMERCIALES").FontSize(9).Bold().FontColor(colorGris);
-                                vendedor.Item().PaddingTop(3).LineHorizontal(1).LineColor(colorPrimario);
-                                vendedor.Item().PaddingTop(6).Text($"Vendedor: {cotizacion.Vendedor.NombreCompleto}")
-                                    .FontSize(9).FontColor(colorSecundario);
-                                vendedor.Item().Text($"Área: {cotizacion.AreaMetrosCuadrados:N0} m²")
-                                    .FontSize(9).FontColor(colorSecundario);
-                                vendedor.Item().Text($"Condiciones: {cotizacion.CondicionesPago}")
-                                    .FontSize(9).FontColor(colorSecundario);
-                            });
-                        });
-
-                        // EQUIPOS
-                        content.Item().PaddingTop(20).Text("EQUIPOS COTIZADOS")
-                            .FontSize(10).Bold().FontColor(colorPrimario);
-                        content.Item().PaddingTop(10);
-
-                        content.Item().Table(tabla =>
-                        {
-                            tabla.ColumnsDefinition(columns =>
-                            {
-                                columns.ConstantColumn(50);
-                                columns.RelativeColumn();
-                                columns.ConstantColumn(100);
-                                columns.ConstantColumn(100);
-                            });
-
-                            tabla.Header(header =>
-                            {
-                                header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5)
-                                    .Text("Cant").FontSize(9).Bold().FontColor(colorPrimario);
-                                header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5)
-                                    .Text("Descripción").FontSize(9).Bold().FontColor(colorPrimario);
-                                header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5).AlignRight()
-                                    .Text("P. Unitario").FontSize(9).Bold().FontColor(colorPrimario);
-                                header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5).AlignRight()
-                                    .Text("Subtotal").FontSize(9).Bold().FontColor(colorPrimario);
-                            });
-
-                            foreach (var item in cotizacion.ItemsEquipos)
-                            {
-                                tabla.Cell().PaddingVertical(5)
-                                    .Text(item.Cantidad.ToString()).FontSize(10);
-                                tabla.Cell().PaddingVertical(5)
-                                    .Text($"{item.Equipo.Marca} {item.Equipo.Modelo}").FontSize(10);
-                                tabla.Cell().PaddingVertical(5).AlignRight()
-                                    .Text($"{item.PrecioUnitario.Monto:N2}").FontSize(10);
-                                tabla.Cell().PaddingVertical(5).AlignRight()
-                                    .Text($"{item.Subtotal.Monto:N2}").FontSize(10).Bold();
-                            }
-                        });
-
-                        // INSTALACIONES
-                        if (cotizacion.ItemsInstalacion.Any())
-                        {
-                            content.Item().PaddingTop(20).Text("SERVICIOS E INSTALACIONES")
-                                .FontSize(10).Bold().FontColor(colorPrimario);
-                            content.Item().PaddingTop(10);
-
-                            content.Item().Table(tabla =>
-                            {
-                                tabla.ColumnsDefinition(columns =>
-                                {
-                                    columns.RelativeColumn();
-                                    columns.ConstantColumn(100);
-                                    columns.ConstantColumn(100);
-                                });
-
-                                tabla.Header(header =>
-                                {
-                                    header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5)
-                                        .Text("Concepto").FontSize(9).Bold().FontColor(colorPrimario);
-                                    header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5).AlignRight()
-                                        .Text("Costo Unit.").FontSize(9).Bold().FontColor(colorPrimario);
-                                    header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5).AlignRight()
-                                        .Text("Subtotal").FontSize(9).Bold().FontColor(colorPrimario);
-                                });
-
-                                foreach (var inst in cotizacion.ItemsInstalacion)
-                                {
-                                    tabla.Cell().PaddingVertical(5)
-                                        .Text(inst.Concepto).FontSize(10);
-                                    tabla.Cell().PaddingVertical(5).AlignRight()
-                                        .Text($"{inst.CostoUnitario:N2}").FontSize(10);
-                                    tabla.Cell().PaddingVertical(5).AlignRight()
-                                        .Text($"{inst.Subtotal.Monto:N2}").FontSize(10).Bold();
-                                }
-                            });
-                        }
-
-                        // TOTALES
-                        content.Item().PaddingTop(20).AlignRight().Column(totales =>
-                        {
-                            totales.Item().Text($"Subtotal: {cotizacion.Subtotal.Monto:N2}").FontSize(10).FontColor(colorSecundario);
-                            totales.Item().Text($"IVA (16%): {cotizacion.Iva.Monto:N2}").FontSize(10).FontColor(colorSecundario);
-                            totales.Item().PaddingTop(5).Text($"TOTAL: {cotizacion.Total.Monto:N2}")
-                                .FontSize(14).Bold().FontColor(colorPrimario);
-                        });
-
-                        // CONDICIONES
-                        content.Item().PaddingTop(20).Text("CONDICIONES").FontSize(9).Bold().FontColor(colorGris);
-                        content.Item().Text(cotizacion.CondicionesPago).FontSize(9).FontColor(colorSecundario);
-                        content.Item().Text($"Vendedor: {cotizacion.Vendedor.NombreCompleto}").FontSize(9).FontColor(colorSecundario);
-
-                        // AVISO AUTORIZACIÓN
-                        if (cotizacion.RequiereAutorizacion)
-                        {
-                            content.Item().PaddingTop(15).Text("⚠ Esta cotización requiere autorización por ser mayor a $500,000 MXN")
-                                .FontSize(9).FontColor(ParseColor("#975A16"));
-                        }
-                    });
-
-                    // ─── PIE DE PÁGINA ───
-                    page.Footer().Element(footer =>
-                    {
-                        footer.AlignCenter().Text(text =>
-                        {
-                            text.Span($"{empresa.NombreComercial} - Página ").FontSize(8).FontColor(colorGris);
-                            text.CurrentPageNumber();
-                            text.Span(" de ").FontSize(8).FontColor(colorGris);
-                            text.TotalPages();
-                        });
-                    });
-                });
-            }).GeneratePdf();
-        }
-
-        private static QuestPDF.Infrastructure.Color ParseColor(string hex)
-        {
-            if (string.IsNullOrEmpty(hex))
-                hex = "#3B82F6";
-
-            if (hex.StartsWith("#"))
-                hex = hex.Substring(1);
-
-            if (hex.Length == 6)
-            {
-                var r = Convert.ToByte(hex.Substring(0, 2), 16);
-                var g = Convert.ToByte(hex.Substring(2, 2), 16);
-                var b = Convert.ToByte(hex.Substring(4, 2), 16);
-                return QuestPDF.Infrastructure.Color.FromRGB(r, g, b);
-            }
-
-            return QuestPDF.Infrastructure.Color.FromRGB(59, 130, 246);
-        }
+        // ❌ ELIMINADO: private async Task<byte[]> GenerarPdfCotizacion(...)
+        // ❌ ELIMINADO: private static QuestPDF.Infrastructure.Color ParseColor(...)
     }
 
+    // Estas clases pueden moverse a Models/ViewModels/
     public class ItemCotizacionJson
     {
         public Guid EquipoId { get; set; }
