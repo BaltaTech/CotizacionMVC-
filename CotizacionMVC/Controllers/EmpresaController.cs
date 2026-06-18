@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Controllers
 {
-    //[Authorize(Roles = "Administrador")]
     public class EmpresaController : Controller
     {
         private readonly ApplicationDbContext _contextoBaseDatos;
@@ -17,7 +16,6 @@ namespace CotizacionMVC.Controllers
         }
 
         // GET: Empresa/Indice
-        // Solo administrador - Lista de empresas para editar
         public async Task<IActionResult> Indice()
         {
             var empresas = await _contextoBaseDatos.Empresas
@@ -138,7 +136,6 @@ namespace CotizacionMVC.Controllers
             return RedirectToLocal(returnUrl);
         }
 
-        // Método auxiliar para obtener la empresa activa desde sesión
         public async Task<Empresa?> ObtenerEmpresaActual()
         {
             var empresaIdString = HttpContext.Session.GetString("EmpresaActivaId");

@@ -150,7 +150,6 @@ namespace CotizacionMVC.Models.Entidades
                 CorreoContacto = correo.Trim().ToLower();
         }
 
-        // Método para saber si la empresa tiene identidad visual completa
         public bool TieneIdentidadVisualCompleta()
         {
             return !string.IsNullOrWhiteSpace(LogoUrl) &&

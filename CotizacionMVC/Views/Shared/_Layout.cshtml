@@ -1,5 +1,8 @@
 ﻿@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Identity
 @inject IHttpContextAccessor HttpContextAccessor
+@inject SignInManager<CotizacionMVC.Models.Entidades.Usuario> SignInManager
+@inject UserManager<CotizacionMVC.Models.Entidades.Usuario> UserManager
 
 <!DOCTYPE html>
 <html lang="en">
@@ -14,82 +17,97 @@
 </head>
 <body>
 
-    @{
-        // Leer empresa activa de la sesión
+    @if (SignInManager.IsSignedIn(User))
+    {
         var empresaActivaNombre = Context.Session.GetString("EmpresaActivaNombre") ?? "CotizacionMVC";
-        var empresaActivaId = Context.Session.GetString("EmpresaActivaId");
-        var esTraneExclusiva = Context.Session.GetString("EmpresaEsExclusivaTrane") == "True";
-    }
 
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
-                    <i class="fas fa-snowflake"></i> @empresaActivaNombre
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Inicio</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Equipo" asp-action="Indice">Catálogo de Equipos</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Cliente" asp-action="Indice">Clientes</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Cotizacion" asp-action="Indice">Cotizaciones</a>
-                        </li>
-                        @if (User.IsInRole("Administrador"))
-                        {
+        <header>
+            <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+                <div class="container-fluid">
+                    <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                        <i class="fas fa-snowflake"></i> @empresaActivaNombre
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                        <ul class="navbar-nav flex-grow-1">
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Empresa" asp-action="Indice">Empresas</a>
+                                <a class="nav-link text-dark" asp-controller="Home" asp-action="Index">Inicio</a>
                             </li>
-                        }
-                    </ul>
-
-                    <!-- Selector de empresa siempre visible para pruebas -->
-                    <div class="dropdown ms-auto">
-                        <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-building"></i> @empresaActivaNombre
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><span class="dropdown-header text-muted">Cambiar a:</span></li>
-                            <li>
-                                <form asp-controller="Empresa" asp-action="CambiarEmpresaActiva" method="post" class="dropdown-item p-0">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="empresaId" value="d7b0a6c5-e8c8-4b7e-a390-176813056c15" />
-                                    <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                                    <button type="submit" class="dropdown-item">🔷 Aire y Clima (Trane exclusivo)</button>
-                                </form>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Equipo" asp-action="Indice">Catálogo de Equipos</a>
                             </li>
-                            <li>
-                                <form asp-controller="Empresa" asp-action="CambiarEmpresaActiva" method="post" class="dropdown-item p-0">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="empresaId" value="3a7f3e5b-4d3b-407e-8003-094b20c006ee" />
-                                    <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                                    <button type="submit" class="dropdown-item">🌐 Air and Weather (Multi-marca)</button>
-                                </form>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Cliente" asp-action="Indice">Clientes</a>
                             </li>
-                            <li><hr class="dropdown-divider" /></li>
-                            <li>
-                                <form asp-controller="Account" asp-action="Logout" method="post" class="dropdown-item p-0">
-                                    <button type="submit" class="dropdown-item text-danger">
-                                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-                                    </button>
-                                </form>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Cotizacion" asp-action="Indice">Cotizaciones</a>
+                            </li>
+                            @if (User.IsInRole("Administrador"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-controller="Empresa" asp-action="Indice">Empresas</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-controller="Usuarios" asp-action="Indice">
+                                        <i class="fas fa-users-cog"></i> Usuarios
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                        <ul class="navbar-nav ms-auto me-3">
+                            @{
+                                var usuarioActual = await UserManager.GetUserAsync(User);
+                                var roles = await UserManager.GetRolesAsync(usuarioActual!);
+                                var rolActual = roles.FirstOrDefault() ?? "Usuario";
+                            }
+                            <li class="nav-item">
+                                <span class="nav-link text-dark">
+                                    <i class="fas fa-user-circle"></i> Hola, <strong>@usuarioActual!.NombreCompleto</strong>
+                                    <span class="badge bg-primary ms-1">@rolActual</span>
+                                </span>
                             </li>
                         </ul>
+
+                        <div class="dropdown ms-auto">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-building"></i> @empresaActivaNombre
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><span class="dropdown-header text-muted">Cambiar a:</span></li>
+                                <li>
+                                    <form asp-controller="Empresa" asp-action="CambiarEmpresaActiva" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="empresaId" value="d7b0a6c5-e8c8-4b7e-a390-176813056c15" />
+                                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                                        <button type="submit" class="dropdown-item">🔷 Aire y Clima</button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form asp-controller="Empresa" asp-action="CambiarEmpresaActiva" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="empresaId" value="3a7f3e5b-4d3b-407e-8003-094b20c006ee" />
+                                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                                        <button type="submit" class="dropdown-item">🌐 Air and Weather</button>
+                                    </form>
+                                </li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <form asp-controller="Autenticacion" asp-action="Logout" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </nav>
-    </header>
+            </nav>
+        </header>
+    }
 
     <div class="container">
         <main role="main" class="pb-3">

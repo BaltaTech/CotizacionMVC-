@@ -1,19 +1,15 @@
 ﻿using CotizacionMVC.Models.Entidades;
-using CotizacionMVC.Models.Valor;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Data
 {
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : IdentityDbContext<Usuario, IdentityRole<Guid>, Guid>
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> opciones)
-            : base(opciones)
-        {
-        }
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> opciones) : base(opciones) { }
 
-        // DbSet para cada entidad (las tablas de la base de datos)
         public DbSet<Empresa> Empresas { get; set; }
-        public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<Cotizacion> Cotizaciones { get; set; }
         public DbSet<Equipo> Equipos { get; set; }
@@ -23,12 +19,13 @@ namespace CotizacionMVC.Data
         public DbSet<Seguimiento> Seguimientos { get; set; }
         public DbSet<Lead> Leads { get; set; }
 
+        // Añade temporalmente esta línea para solucionar el error "Usuarios"
+        public DbSet<Usuario> Usuarios { get; set; }
+
         protected override void OnModelCreating(ModelBuilder constructorModelos)
         {
             base.OnModelCreating(constructorModelos);
-
             ConfigurarEmpresa(constructorModelos);
-            ConfigurarUsuario(constructorModelos);
             ConfigurarCliente(constructorModelos);
             ConfigurarCotizacion(constructorModelos);
             ConfigurarEquipo(constructorModelos);
@@ -85,33 +82,11 @@ namespace CotizacionMVC.Data
                 entidad.Property(e => e.PlantillaPdfNombre)
                     .HasMaxLength(100);
 
-            
-            });
-        }
-
-        private void ConfigurarUsuario(ModelBuilder constructorModelos)
-        {
-            constructorModelos.Entity<Usuario>(entidad =>
-            {
-                entidad.ToTable("Usuarios");
-                entidad.HasKey(u => u.Id);
-
-                entidad.Property(u => u.NombreCompleto)
-                    .IsRequired()
-                    .HasMaxLength(200);
-
-                entidad.Property(u => u.CorreoElectronico)
-                    .IsRequired()
-                    .HasMaxLength(200);
-
-                entidad.HasIndex(u => u.CorreoElectronico)
-                    .IsUnique();
-
-                entidad.Property(u => u.ContraseniaHash)
-                    .HasMaxLength(500);
 
             });
         }
+
+
 
         private void ConfigurarCliente(ModelBuilder constructorModelos)
         {

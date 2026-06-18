@@ -125,7 +125,6 @@ namespace CotizacionMVC.Controllers
                     MonedaOriginal
                 );
 
-                // Completar detalles opcionales si se proporcionaron
                 if (!string.IsNullOrWhiteSpace(Tipo))
                 {
                     equipo.CompletarDetalles(Tipo, Tension ?? "", Tecnologia ?? "");

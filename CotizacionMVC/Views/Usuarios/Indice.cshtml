@@ -1,0 +1,104 @@
+﻿@model List<CotizacionMVC.Controllers.UsuarioConRolesViewModel>
+@{
+    ViewData["Title"] = "Usuarios";
+}
+
+<h2><i class="fas fa-users-cog"></i> @ViewData["Title"]</h2>
+<p>
+    <a asp-action="Crear" class="btn btn-primary"><i class="fas fa-plus"></i> Nuevo Usuario</a>
+</p>
+
+@if (TempData["MensajeExito"] != null)
+{
+    <div class="alert alert-success">@TempData["MensajeExito"]</div>
+}
+@if (TempData["MensajeError"] != null)
+{
+    <div class="alert alert-danger">@TempData["MensajeError"]</div>
+}
+
+<table class="table table-striped table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Roles</th>
+            <th>Activo</th>
+            <th>Registro</th>
+            <th>Último Acceso</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var usuario in Model)
+        {
+            <tr>
+                <td>@usuario.NombreCompleto</td>
+                <td>@usuario.Email</td>
+                <td>@usuario.RolesDisplay</td>
+                <td>
+                    @if (usuario.Activo)
+                    {
+                        <span class="badge bg-success">Sí</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">No</span>
+                    }
+                </td>
+                <td>@usuario.FechaRegistro.ToString("dd/MM/yyyy")</td>
+                <td>@(usuario.UltimoAcceso?.ToString("dd/MM/yyyy HH:mm") ?? "Nunca")</td>
+                <td>
+                    <form asp-action="CambiarEstado" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@usuario.Id" />
+                        <button type="submit" class="btn btn-sm btn-warning" title="@(usuario.Activo ? "Desactivar" : "Activar")">
+                            <i class="fas fa-power-off"></i>
+                        </button>
+                    </form>
+                    <button class="btn btn-sm btn-info" onclick="cambiarPassword('@usuario.Id', '@usuario.NombreCompleto')" title="Cambiar contraseña">
+                        <i class="fas fa-key"></i>
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Modal para cambiar contraseña -->
+<div class="modal fade" id="passwordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="CambiarPassword" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title">Cambiar Contraseña</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="userIdInput" />
+                    <p>Usuario: <strong id="userNameDisplay"></strong></p>
+                    <div class="mb-3">
+                        <label class="form-label">Nueva Contraseña</label>
+                        <input type="password" name="nuevaPassword" class="form-control" minlength="6" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Cambiar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function cambiarPassword(id, nombre) {
+            document.getElementById('userIdInput').value = id;
+            document.getElementById('userNameDisplay').textContent = nombre;
+            var modal = new bootstrap.Modal(document.getElementById('passwordModal'));
+            modal.show();
+        }
+    </script>
+}

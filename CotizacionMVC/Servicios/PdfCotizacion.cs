@@ -18,9 +18,9 @@ namespace CotizacionMVC.Servicios
             if (!string.IsNullOrEmpty(empresa.LogoUrl))
             {
                 var logoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", empresa.LogoUrl.TrimStart('/'));
-                if (System.IO.File.Exists(logoPath))
-                {                     
-                    logoBytes = System.IO.File.ReadAllBytes(logoPath);
+                if (File.Exists(logoPath))
+                {
+                    logoBytes = File.ReadAllBytes(logoPath);
                 }
             }
 
@@ -29,38 +29,43 @@ namespace CotizacionMVC.Servicios
                 container.Page(page =>
                 {
                     page.Size(PageSizes.A4);
-                    page.Margin(40);
+                    page.Margin(35);
 
                     var colorPrimario = ParseColor(empresa.ColorPrimario ?? "#1A365D");
                     var colorSecundario = ParseColor(empresa.ColorSecundario ?? "#2D3748");
                     var colorGris = ParseColor("#718096");
+                    var colorFondoTabla = ParseColor("#F7FAFC");
+                    var colorBordeSuave = ParseColor("#E2E8F0");
 
-                    // ─── ENCABEZADO ───
+                    // ─── ENCABEZADO PROFESIONAL ───
                     page.Header().Element(header =>
                     {
                         header.Column(col =>
                         {
                             col.Item().Row(row =>
                             {
+                                // Logo (mantiene proporción)
                                 if (logoBytes != null)
-                                    row.ConstantItem(80).Image(logoBytes);
+                                    row.ConstantItem(85).MaxHeight(55).Image(logoBytes).FitArea();
 
-                                row.RelativeItem().Column(columna =>
+                                // Nombre de empresa y eslogan
+                                row.RelativeItem().Column(emp =>
                                 {
-                                    columna.Item().Text(empresa.NombreComercial)
+                                    emp.Item().Text(empresa.NombreComercial)
                                         .FontSize(20).Bold().FontColor(colorPrimario);
-
                                     if (!string.IsNullOrEmpty(empresa.Eslogan))
-                                        columna.Item().Text(empresa.Eslogan)
+                                        emp.Item().Text(empresa.Eslogan)
                                             .FontSize(9).FontColor(colorGris).Italic();
+                                  
                                 });
 
-                                row.ConstantItem(130).Column(numero =>
+                                // Bloque de cotización alineado a la derecha
+                                row.ConstantItem(150).Column(numero =>
                                 {
                                     numero.Item().AlignRight().Text("COTIZACIÓN")
-                                        .FontSize(10).Bold().FontColor(colorGris);
+                                        .FontSize(9).Bold().FontColor(colorGris);
                                     numero.Item().AlignRight().Text(cotizacion.NumeroCotizacion)
-                                        .FontSize(18).Bold().FontColor(colorPrimario);
+                                        .FontSize(20).Bold().FontColor(colorPrimario);
                                     numero.Item().PaddingTop(3).AlignRight().Text($"Fecha: {cotizacion.FechaCreacion:dd/MM/yyyy}")
                                         .FontSize(8).FontColor(colorGris);
                                     numero.Item().AlignRight().Text($"Vence: {cotizacion.FechaVencimiento:dd/MM/yyyy}")
@@ -68,29 +73,32 @@ namespace CotizacionMVC.Servicios
                                 });
                             });
 
-                            col.Item().PaddingTop(10).LineHorizontal(1).LineColor(colorPrimario);
+                            // Línea decorativa doble
+                            col.Item().PaddingTop(8).LineHorizontal(1.5f).LineColor(colorPrimario);
+                            col.Item().PaddingTop(2).LineHorizontal(0.5f).LineColor(colorSecundario);
                         });
                     });
 
-                    // ─── CONTENIDO ───
+                    // ─── CONTENIDO PRINCIPAL ───
                     page.Content().Column(content =>
                     {
-                        content.Item().PaddingTop(20).Row(datos =>
+                        // Bloque Cliente / Datos Comerciales
+                        content.Item().PaddingTop(15).Row(datos =>
                         {
                             datos.RelativeItem().Column(cliente =>
                             {
-                                cliente.Item().Text("CLIENTE").FontSize(9).Bold().FontColor(colorGris);
-                                cliente.Item().PaddingTop(3).LineHorizontal(1).LineColor(colorPrimario);
+                                cliente.Item().Text("CLIENTE").FontSize(9).Bold().FontColor(colorPrimario);
+                                cliente.Item().PaddingTop(2).LineHorizontal(1).LineColor(colorPrimario);
                                 cliente.Item().PaddingTop(6).Text(cotizacion.Cliente.Nombre)
                                     .FontSize(13).Bold().FontColor(colorSecundario);
                                 cliente.Item().Text(cotizacion.Cliente.ObtenerContactoPrincipal())
                                     .FontSize(9).FontColor(colorGris);
                             });
 
-                            datos.ConstantItem(180).Column(vendedor =>
+                            datos.ConstantItem(200).Column(vendedor =>
                             {
-                                vendedor.Item().Text("DATOS COMERCIALES").FontSize(9).Bold().FontColor(colorGris);
-                                vendedor.Item().PaddingTop(3).LineHorizontal(1).LineColor(colorPrimario);
+                                vendedor.Item().Text("DATOS COMERCIALES").FontSize(9).Bold().FontColor(colorPrimario);
+                                vendedor.Item().PaddingTop(2).LineHorizontal(1).LineColor(colorPrimario);
                                 vendedor.Item().PaddingTop(6).Text($"Vendedor: {cotizacion.Vendedor.NombreCompleto}")
                                     .FontSize(9).FontColor(colorSecundario);
                                 vendedor.Item().Text($"Área: {cotizacion.AreaMetrosCuadrados:N0} m²")
@@ -100,10 +108,10 @@ namespace CotizacionMVC.Servicios
                             });
                         });
 
-                        // EQUIPOS
+                        // Tabla de Equipos
                         content.Item().PaddingTop(20).Text("EQUIPOS COTIZADOS")
-                            .FontSize(10).Bold().FontColor(colorPrimario);
-                        content.Item().PaddingTop(10);
+                            .FontSize(11).Bold().FontColor(colorPrimario);
+                        content.Item().PaddingTop(8);
 
                         content.Item().Table(tabla =>
                         {
@@ -111,153 +119,170 @@ namespace CotizacionMVC.Servicios
                             {
                                 columns.ConstantColumn(50);
                                 columns.RelativeColumn();
-                                columns.ConstantColumn(100);
-                                columns.ConstantColumn(100);
+                                columns.ConstantColumn(95);
+                                columns.ConstantColumn(95);
                             });
 
+                            // Encabezado con fondo de color
                             tabla.Header(header =>
                             {
-                                header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5)
-                                    .Text("Cant").FontSize(9).Bold().FontColor(colorPrimario);
-                                header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5)
-                                    .Text("Descripción").FontSize(9).Bold().FontColor(colorPrimario);
-                                header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5).AlignRight()
-                                    .Text("P. Unitario").FontSize(9).Bold().FontColor(colorPrimario);
-                                header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5).AlignRight()
-                                    .Text("Subtotal").FontSize(9).Bold().FontColor(colorPrimario);
+                                header.Cell().Background(colorPrimario).PaddingVertical(6).PaddingHorizontal(5)
+                                    .Text("Cant").FontSize(9).Bold().FontColor(Colors.White);
+                                header.Cell().Background(colorPrimario).PaddingVertical(6).PaddingHorizontal(5)
+                                    .Text("Descripción").FontSize(9).Bold().FontColor(Colors.White);
+                                header.Cell().Background(colorPrimario).PaddingVertical(6).PaddingHorizontal(5).AlignRight()
+                                    .Text("P. Unitario").FontSize(9).Bold().FontColor(Colors.White);
+                                header.Cell().Background(colorPrimario).PaddingVertical(6).PaddingHorizontal(5).AlignRight()
+                                    .Text("Subtotal").FontSize(9).Bold().FontColor(Colors.White);
                             });
 
+                            bool alternar = false;
                             foreach (var item in cotizacion.ItemsEquipos)
                             {
-                                tabla.Cell().PaddingVertical(5)
+                                var colorFila = alternar ? colorFondoTabla : Colors.White;
+                                alternar = !alternar;
+
+                                tabla.Cell().Background(colorFila).PaddingVertical(6).PaddingHorizontal(5)
                                     .Text(item.Cantidad.ToString()).FontSize(10);
-                                tabla.Cell().PaddingVertical(5)
+                                tabla.Cell().Background(colorFila).PaddingVertical(6).PaddingHorizontal(5)
                                     .Text($"{item.Equipo.Marca} {item.Equipo.Modelo}").FontSize(10);
-                                tabla.Cell().PaddingVertical(5).AlignRight()
+                                tabla.Cell().Background(colorFila).PaddingVertical(6).PaddingHorizontal(5).AlignRight()
                                     .Text($"{item.PrecioUnitario.Monto:N2}").FontSize(10);
-                                tabla.Cell().PaddingVertical(5).AlignRight()
+                                tabla.Cell().Background(colorFila).PaddingVertical(6).PaddingHorizontal(5).AlignRight()
                                     .Text($"{item.Subtotal.Monto:N2}").FontSize(10).Bold();
                             }
                         });
 
-                        // INSTALACIONES
+                        // Tabla de Instalaciones (si existen)
                         if (cotizacion.ItemsInstalacion.Any())
                         {
                             content.Item().PaddingTop(20).Text("SERVICIOS E INSTALACIONES")
-                                .FontSize(10).Bold().FontColor(colorPrimario);
-                            content.Item().PaddingTop(10);
+                                .FontSize(11).Bold().FontColor(colorPrimario);
+                            content.Item().PaddingTop(8);
 
                             content.Item().Table(tabla =>
                             {
-                                // 1. Aquí definimos las 5 columnas del PDF (Concepto, Descripción, Cantidad, Costo, Subtotal)
                                 tabla.ColumnsDefinition(columns =>
                                 {
-                                    columns.ConstantColumn(80);   // Concepto
-                                    columns.RelativeColumn();     // Descripción (Aquí se expandirá el texto largo)
-                                    columns.ConstantColumn(40);   // Cantidad
-                                    columns.ConstantColumn(80);   // Costo Unitario
-                                    columns.ConstantColumn(80);   // Subtotal
+                                    columns.ConstantColumn(80);  // Concepto
+                                    columns.RelativeColumn();    // Descripción
+                                    columns.ConstantColumn(45);  // Cantidad
+                                    columns.ConstantColumn(85);  // Costo Unitario
+                                    columns.ConstantColumn(85);  // Subtotal
                                 });
 
-                                // 2. Aquí dibujamos las 5 cabeceras del PDF
+                                // Encabezado con fondo
                                 tabla.Header(header =>
                                 {
-                                    header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5)
-                                        .Text("Concepto").FontSize(9).Bold().FontColor(colorPrimario);
-
-                                    header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5)
-                                        .Text("Descripción").FontSize(9).Bold().FontColor(colorPrimario);
-
-                                    header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5).AlignCenter()
-                                        .Text("Cant").FontSize(9).Bold().FontColor(colorPrimario);
-
-                                    header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5).AlignRight()
-                                        .Text("Costo Unit.").FontSize(9).Bold().FontColor(colorPrimario);
-
-                                    header.Cell().BorderBottom(1).BorderColor(colorPrimario).PaddingBottom(5).AlignRight()
-                                        .Text("Subtotal").FontSize(9).Bold().FontColor(colorPrimario);
+                                    header.Cell().Background(colorPrimario).PaddingVertical(6).PaddingHorizontal(5)
+                                        .Text("Concepto").FontSize(9).Bold().FontColor(Colors.White);
+                                    header.Cell().Background(colorPrimario).PaddingVertical(6).PaddingHorizontal(5)
+                                        .Text("Descripción").FontSize(9).Bold().FontColor(Colors.White);
+                                    header.Cell().Background(colorPrimario).PaddingVertical(6).PaddingHorizontal(5).AlignCenter()
+                                        .Text("Cant").FontSize(9).Bold().FontColor(Colors.White);
+                                    header.Cell().Background(colorPrimario).PaddingVertical(6).PaddingHorizontal(5).AlignRight()
+                                        .Text("Costo Unit.").FontSize(9).Bold().FontColor(Colors.White);
+                                    header.Cell().Background(colorPrimario).PaddingVertical(6).PaddingHorizontal(5).AlignRight()
+                                        .Text("Subtotal").FontSize(9).Bold().FontColor(Colors.White);
                                 });
 
-                                // 3. Aquí vaciamos las 5 celdas con la información por cada fila
+                                bool alternar = false;
                                 foreach (var inst in cotizacion.ItemsInstalacion)
                                 {
-                                    tabla.Cell().PaddingVertical(5)
-                                        .Text(inst.Concepto).FontSize(9).Bold();
+                                    var colorFila = alternar ? colorFondoTabla : Colors.White;
+                                    alternar = !alternar;
 
-                                    // Extraemos la descripción de la instalación que antes no se mandaba a llamar
                                     string descripcionMostrar = !string.IsNullOrWhiteSpace(inst.Descripcion)
                                         ? inst.Descripcion
                                         : (inst.Instalacion?.Descripcion ?? "Sin descripción");
 
-                                    tabla.Cell().PaddingVertical(5)
+                                    tabla.Cell().Background(colorFila).PaddingVertical(6).PaddingHorizontal(5)
+                                        .Text(inst.Concepto).FontSize(9).Bold();
+                                    tabla.Cell().Background(colorFila).PaddingVertical(6).PaddingHorizontal(5)
                                         .Text(descripcionMostrar).FontSize(9).LineHeight(1.2f);
-
-                                    tabla.Cell().PaddingVertical(5).AlignCenter()
+                                    tabla.Cell().Background(colorFila).PaddingVertical(6).PaddingHorizontal(5).AlignCenter()
                                         .Text(inst.Cantidad.ToString()).FontSize(9);
-
-                                    tabla.Cell().PaddingVertical(5).AlignRight()
+                                    tabla.Cell().Background(colorFila).PaddingVertical(6).PaddingHorizontal(5).AlignRight()
                                         .Text($"{inst.CostoUnitario.Monto:N2}").FontSize(9);
-
-                                    tabla.Cell().PaddingVertical(5).AlignRight()
+                                    tabla.Cell().Background(colorFila).PaddingVertical(6).PaddingHorizontal(5).AlignRight()
                                         .Text($"{inst.Subtotal.Monto:N2}").FontSize(9).Bold();
                                 }
                             });
                         }
 
-                        // TOTALES
-                        content.Item().PaddingTop(20).AlignRight().Column(totales =>
+                        // Bloque de totales (con fondo suave y borde redondeado)
+                        content.Item().PaddingTop(20).AlignRight().Element(totalesContainer =>
                         {
-                            totales.Item().Text($"Subtotal: {cotizacion.Subtotal.Monto:N2}").FontSize(10).FontColor(colorSecundario);
-                            totales.Item().Text($"IVA (16%): {cotizacion.Iva.Monto:N2}").FontSize(10).FontColor(colorSecundario);
-                            totales.Item().PaddingTop(5).Text($"TOTAL: {cotizacion.Total.Monto:N2}")
-                                .FontSize(14).Bold().FontColor(colorPrimario);
+                            totalesContainer.Column(colTotales =>
+                            {
+                                colTotales.Item().Background(colorFondoTabla).Border(1).BorderColor(colorBordeSuave)
+                                    .Padding(12).Column(inner =>
+                                    {
+                                        inner.Item().Text($"Subtotal: {cotizacion.Subtotal.Monto:N2}")
+                                            .FontSize(10).FontColor(colorSecundario);
+                                        inner.Item().Text($"IVA (16%): {cotizacion.Iva.Monto:N2}")
+                                            .FontSize(10).FontColor(colorSecundario);
+                                        inner.Item().PaddingTop(6).LineHorizontal(1).LineColor(colorPrimario);
+                                        inner.Item().PaddingTop(4).Text($"TOTAL: {cotizacion.Total.Monto:N2}")
+                                            .FontSize(15).Bold().FontColor(colorPrimario);
+                                    });
+                            });
                         });
 
-                        // CONDICIONES
-                        content.Item().PaddingTop(20).Text("CONDICIONES").FontSize(9).Bold().FontColor(colorGris);
-                        content.Item().Text(cotizacion.CondicionesPago).FontSize(9).FontColor(colorSecundario);
-                        content.Item().Text($"Vendedor: {cotizacion.Vendedor.NombreCompleto}").FontSize(9).FontColor(colorSecundario);
+                        // Condiciones de pago y vendedor
+                        content.Item().PaddingTop(18).Column(cond =>
+                        {
+                            cond.Item().Text("CONDICIONES").FontSize(9).Bold().FontColor(colorGris);
+                            cond.Item().Text(cotizacion.CondicionesPago).FontSize(9).FontColor(colorSecundario);
+                            cond.Item().Text($"Vendedor: {cotizacion.Vendedor.NombreCompleto}").FontSize(9).FontColor(colorSecundario);
+                        });
 
-                        // AVISO AUTORIZACIÓN
+                        // Aviso de autorización
                         if (cotizacion.RequiereAutorizacion)
                         {
-                            content.Item().PaddingTop(15).Text("⚠ Esta cotización requiere autorización por ser mayor a $500,000 MXN")
-                                .FontSize(9).FontColor(ParseColor("#975A16"));
+                            content.Item().PaddingTop(12).Background(ParseColor("#FFF3CD"))
+                                .Border(1).BorderColor(ParseColor("#FFC107"))
+                                .Padding(8).Text("⚠ Esta cotización requiere autorización por ser mayor a $500,000 MXN")
+                                .FontSize(8.5f).FontColor(ParseColor("#856404"));
                         }
                     });
 
-                    // ─── PIE DE PÁGINA ───
+                    // ─── PIE DE PÁGINA PROFESIONAL ───
                     page.Footer().Element(footer =>
                     {
-                        footer.AlignCenter().Text(text =>
+                        footer.Column(ft =>
                         {
-                            text.Span($"{empresa.NombreComercial} - Página ").FontSize(8).FontColor(colorGris);
-                            text.CurrentPageNumber();
-                            text.Span(" de ").FontSize(8).FontColor(colorGris);
-                            text.TotalPages();
+                            ft.Item().PaddingBottom(3).LineHorizontal(0.5f).LineColor(colorBordeSuave);
+                            ft.Item().Row(r =>
+                            {
+                                r.RelativeItem().Text(empresa.NombreComercial)
+                                    .FontSize(7.5f).FontColor(colorGris);
+                                r.ConstantItem(120).AlignRight().Text(text =>
+                                {
+                                    text.Span("Pág. ").FontSize(7.5f).FontColor(colorGris);
+                                    text.CurrentPageNumber().FontSize(7.5f).FontColor(colorGris);
+                                    text.Span(" de ").FontSize(7.5f).FontColor(colorGris);
+                                    text.TotalPages().FontSize(7.5f).FontColor(colorGris);
+                                });
+                            });
                         });
                     });
                 });
             }).GeneratePdf();
         }
 
-        private static QuestPDF.Infrastructure.Color ParseColor(string hex)
+        private static Color ParseColor(string hex)
         {
-            if (string.IsNullOrEmpty(hex))
-                hex = "#3B82F6";
-
-            if (hex.StartsWith("#"))
-                hex = hex.Substring(1);
-
+            if (string.IsNullOrEmpty(hex)) hex = "#3B82F6";
+            if (hex.StartsWith("#")) hex = hex.Substring(1);
             if (hex.Length == 6)
             {
                 var r = Convert.ToByte(hex.Substring(0, 2), 16);
                 var g = Convert.ToByte(hex.Substring(2, 2), 16);
                 var b = Convert.ToByte(hex.Substring(4, 2), 16);
-                return QuestPDF.Infrastructure.Color.FromRGB(r, g, b);
+                return Color.FromRGB(r, g, b);
             }
-
-            return QuestPDF.Infrastructure.Color.FromRGB(59, 130, 246);
+            return Color.FromRGB(59, 130, 246);
         }
     }
 }

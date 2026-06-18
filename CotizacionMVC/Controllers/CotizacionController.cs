@@ -2,30 +2,48 @@
 using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Models.Enums;
 using CotizacionMVC.Servicios;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Controllers
 {
+    [Authorize] // Solo usuarios autenticados pueden acceder a este controlador
     public class CotizacionController : Controller
     {
         private readonly ApplicationDbContext _contextoBaseDatos;
-        private readonly IDocumento _documentoService; 
+        private readonly IDocumento _documentoService;
+        private readonly UserManager<Usuario> _userManager;
 
         // Constructor actualizado
-        public CotizacionController(ApplicationDbContext contextoBaseDatos, IDocumento documentoService)
+        public CotizacionController(
+            ApplicationDbContext contextoBaseDatos,
+            IDocumento documentoService,
+            UserManager<Usuario> userManager)
         {
             _contextoBaseDatos = contextoBaseDatos;
-            _documentoService = documentoService;  
+            _documentoService = documentoService;
+            _userManager = userManager;
         }
 
         // GET: Cotizacion/Indice
         public async Task<IActionResult> Indice()
         {
-            var cotizaciones = await _contextoBaseDatos.Cotizaciones
+            var usuarioActual = await _userManager.GetUserAsync(User);
+
+            IQueryable<Cotizacion> query = _contextoBaseDatos.Cotizaciones
                 .Include(c => c.Cliente)
                 .Include(c => c.Empresa)
-                .Include(c => c.Vendedor)
+                .Include(c => c.Vendedor);
+
+            // Si NO es Administrador, solo ve sus cotizaciones
+            if (!User.IsInRole("Administrador"))
+            {
+                query = query.Where(c => c.VendedorId == usuarioActual!.Id);
+            }
+
+            var cotizaciones = await query
                 .OrderByDescending(c => c.FechaCreacion)
                 .ToListAsync();
 
@@ -83,7 +101,6 @@ namespace CotizacionMVC.Controllers
             string equipos,
             string instalaciones)
         {
-            // 🔥 SOLUCCIÓN AL JSON: CaseInsensitive activado para que mapee sin importar mayúsculas/minúsculas
             var opcionesJson = new System.Text.Json.JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -123,16 +140,12 @@ namespace CotizacionMVC.Controllers
                 return RedirectToAction(nameof(Crear));
             }
 
-            var nombreVendedor = User.Identity?.Name ?? "Vendedor";
-            var vendedor = await _contextoBaseDatos.Usuarios
-                .FirstOrDefaultAsync(u => u.NombreCompleto == nombreVendedor);
-
+            // Obtener el vendedor autenticado (el usuario actual)
+            var vendedor = await _userManager.GetUserAsync(User);
             if (vendedor == null)
             {
-                var correoTemporal = $"{nombreVendedor.Replace(" ", ".").ToLower()}@sistema.local";
-                vendedor = new Usuario(nombreVendedor, correoTemporal, RolUsuario.Vendedor);
-                _contextoBaseDatos.Usuarios.Add(vendedor);
-                await _contextoBaseDatos.SaveChangesAsync();
+                TempData["MensajeError"] = "Debe iniciar sesión para crear cotizaciones";
+                return RedirectToAction("Login", "Autenticacion");
             }
 
             var numeroCotizacion = await GenerarNumeroCotizacion();
@@ -216,8 +229,7 @@ namespace CotizacionMVC.Controllers
             // Persistencia normal en BD
             await _contextoBaseDatos.SaveChangesAsync();
 
-            // 🔥 SOLUCIÓN AL TRACKING: Desacoplamos la entidad y sus colecciones recién guardadas de la caché local de EF.
-            // Esto obliga a que la posterior redirección a 'Detalles' haga un query limpio e hidrate correctamente los catálogos (Equipo e Instalacion).
+
             _contextoBaseDatos.Entry(cotizacion).State = EntityState.Detached;
 
             foreach (var item in cotizacion.ItemsEquipos)
@@ -232,18 +244,18 @@ namespace CotizacionMVC.Controllers
             TempData["MensajeExito"] = $"Cotización {numeroCotizacion} creada exitosamente";
             return RedirectToAction(nameof(Detalles), new { id = cotizacion.Id });
         }
+
         // GET: Cotizacion/DescargarPdf/5
         [HttpGet]
         public async Task<IActionResult> DescargarPdf(Guid id)
         {
-            // 🔥 CORRECCIÓN 1: Usamos AsNoTracking() para obligar a EF a traer los datos reales y actualizados de la BD
             var cotizacion = await _contextoBaseDatos.Cotizaciones
                 .AsNoTracking()
                 .Include(c => c.Cliente)
                 .Include(c => c.Empresa)
                 .Include(c => c.Vendedor)
                 .Include(c => c.ItemsEquipos)
-                    .ThenInclude(i => i.Equipo) // Hidrata la marca, modelo, etc.
+                    .ThenInclude(i => i.Equipo)
                 .Include(c => c.ItemsInstalacion)
                     .ThenInclude(i => i.Instalacion)
                 .FirstOrDefaultAsync(c => c.Id == id);
@@ -251,7 +263,6 @@ namespace CotizacionMVC.Controllers
             if (cotizacion == null)
                 return NotFound("Cotización no encontrada");
 
-            // 🔥 CORRECCIÓN 2: Validar que el archivo físico exista Y NO ESTÉ VACÍO (0 bytes) por pruebas previas erróneas
             if (!string.IsNullOrEmpty(cotizacion.RutaPdf))
             {
                 var rutaExistente = Path.Combine(Directory.GetCurrentDirectory(), cotizacion.RutaPdf);
@@ -280,7 +291,6 @@ namespace CotizacionMVC.Controllers
             // Guardar ruta en BD
             var rutaRelativa = $"wwwroot/pdf/cotizaciones/{nombreArchivo}";
 
-            // 🔥 CORRECCIÓN 3: Al usar AsNoTracking, debemos adjuntar (Attach) la entidad para poder actualizar solo la ruta
             _contextoBaseDatos.Cotizaciones.Attach(cotizacion);
             cotizacion.GuardarRutaPdf(rutaRelativa);
             await _contextoBaseDatos.SaveChangesAsync();
@@ -409,8 +419,6 @@ namespace CotizacionMVC.Controllers
             }
         }
 
-       
-
         // ==================== MÉTODOS AUXILIARES PRIVADOS ====================
 
         private async Task<Empresa?> ObtenerEmpresaActual()
@@ -440,9 +448,6 @@ namespace CotizacionMVC.Controllers
 
             return $"{prefijo}-{numero:D4}";
         }
-
-        // ❌ ELIMINADO: private async Task<byte[]> GenerarPdfCotizacion(...)
-        // ❌ ELIMINADO: private static QuestPDF.Infrastructure.Color ParseColor(...)
     }
 
     // Estas clases pueden moverse a Models/ViewModels/

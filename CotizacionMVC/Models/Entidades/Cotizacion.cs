@@ -197,8 +197,6 @@ namespace CotizacionMVC.Models.Entidades
         // Cambiado de private a public para que ItemCotizacion e ItemInstalacion puedan usarlo
         public decimal ObtenerTipoCambioActual()
         {
-            // Este valor vendrá de un servicio externo
-            // Por ahora retornamos un valor por defecto
             return 20.50m;
         }
 

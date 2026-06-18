@@ -9,9 +9,9 @@ namespace CotizacionMVC.Models.Entidades
         public Guid Id { get; private set; }
         public string Nombre { get; private set; }
         public Contacto Contacto { get; private set; }
-        public Direccion? Direccion { get; private set; }  // ← Puede ser null (dirección opcional)
+        public Direccion? Direccion { get; private set; }  
         public DateTime FechaRegistro { get; private set; }
-        public string? Observaciones { get; private set; }  // ← Puede ser null
+        public string? Observaciones { get; private set; }
 
         public IReadOnlyCollection<Cotizacion> Cotizaciones => _cotizaciones.AsReadOnly();
 

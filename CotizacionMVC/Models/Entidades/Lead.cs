@@ -74,9 +74,7 @@ namespace CotizacionMVC.Models.Entidades
             if (vendedor == null)
                 throw new ArgumentNullException(nameof(vendedor));
 
-            if (vendedor.Rol != RolUsuario.Vendedor)
-                throw new InvalidOperationException("Solo se pueden asignar vendedores a un lead");
-
+            // Eliminamos la validación del rol; eso se comprueba en el controlador o aplicación
             if (VendedorAsignadoId.HasValue)
                 throw new InvalidOperationException("Este lead ya tiene un vendedor asignado");
 
