@@ -4,7 +4,7 @@
     {
         public Guid Id { get; private set; }
         public string Concepto { get; private set; }
-        public string? Descripcion { get; private set; }  // ← Puede ser null
+        public string? Descripcion { get; private set; }  
         public decimal CostoUnitario { get; private set; }
         public string Categoria { get; private set; }
         public bool Activo { get; private set; }

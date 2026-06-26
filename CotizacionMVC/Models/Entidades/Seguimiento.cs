@@ -15,7 +15,7 @@ namespace CotizacionMVC.Models.Entidades
         public DateTime FechaCreacion { get; private set; }
         public DateTime? FechaCompletado { get; private set; }
         public EstadoSeguimiento Estado { get; private set; }
-        public string? Comentarios { get; private set; }  // ← Puede ser null
+        public string? Comentarios { get; private set; }  
         public MedioContacto MedioContacto { get; private set; }
 
         // Constructor protegido para EF Core
@@ -81,7 +81,6 @@ namespace CotizacionMVC.Models.Entidades
                    FechaProgramada.Date <= DateTime.UtcNow.Date;
         }
 
-        // Método para actualizar la fecha programada (útil para reprogramar)
         public void Reprogramar(DateTime nuevaFecha)
         {
             if (Estado == EstadoSeguimiento.Completado)
@@ -93,7 +92,6 @@ namespace CotizacionMVC.Models.Entidades
             FechaProgramada = nuevaFecha.Date;
         }
 
-        // Método para agregar o actualizar comentarios
         public void ActualizarComentarios(string comentarios)
         {
             Comentarios = comentarios?.Trim();

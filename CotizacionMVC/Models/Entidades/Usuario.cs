@@ -4,7 +4,6 @@ namespace CotizacionMVC.Models.Entidades
 {
     public class Usuario : IdentityUser<Guid>
     {
-        // Propiedades personalizadas adicionales
         public string NombreCompleto { get; private set; }
         public bool Activo { get; private set; }
         public DateTime FechaRegistro { get; private set; }
@@ -22,7 +21,7 @@ namespace CotizacionMVC.Models.Entidades
         private Usuario() { }
 
         public Usuario(string nombreCompleto, string correoElectronico)
-            : base(correoElectronico)  // UserName se establece con el correo
+            : base(correoElectronico)  
         {
             Id = Guid.NewGuid();
             NombreCompleto = nombreCompleto;
@@ -31,7 +30,6 @@ namespace CotizacionMVC.Models.Entidades
             FechaRegistro = DateTime.UtcNow;
         }
 
-        // Métodos de dominio (se mantienen sin cambios)
         public void EstablecerContrasenia(string contraseniaHash)
         {
             PasswordHash = contraseniaHash;
@@ -48,14 +46,13 @@ namespace CotizacionMVC.Models.Entidades
 
         public bool PuedeVerCotizacion(Cotizacion cotizacion)
         {
-            // Nota: la comprobación de rol ahora usará Identity, pero podemos conservar la lógica
             if (cotizacion == null) return false;
             // El nombre del rol se manejará como string; podemos convertir el enum si es necesario,
             // pero es más sencillo consultar los roles de Identity directamente en el controlador.
             // Podemos mantener este método usando el Rol "Administrador" como string.
             // Más tarde lo adaptaremos.
-            // Por ahora dejemos la lógica que ya tenías:
-            return cotizacion.VendedorId == Id; // (ajustaremos cuando tengamos roles)
+           
+            return cotizacion.VendedorId == Id; 
         }
 
         public bool PuedeVerEmpresa(Empresa empresa)

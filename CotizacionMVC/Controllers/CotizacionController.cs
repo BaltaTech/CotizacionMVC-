@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Controllers
 {
-    [Authorize] // Solo usuarios autenticados pueden acceder a este controlador
+    [Authorize] 
     public class CotizacionController : Controller
     {
         private readonly ApplicationDbContext _contextoBaseDatos;

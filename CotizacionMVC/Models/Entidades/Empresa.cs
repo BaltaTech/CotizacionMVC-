@@ -10,20 +10,20 @@ namespace CotizacionMVC.Models.Entidades
 
         public Guid Id { get; private set; }
         public string NombreComercial { get; private set; }
-        public string? NombreLegal { get; private set; }  // ← Puede ser null
+        public string? NombreLegal { get; private set; }  
         public string Slug { get; private set; }
         public bool EsExclusivaTrane { get; private set; }
         public string MonedaBase { get; private set; }
         public decimal UtilidadEmpresaPorcentaje { get; private set; }
         public decimal UtilidadVendedorPorcentaje { get; private set; }
-        public string? LogoUrl { get; private set; }  // ← Puede ser null hasta configurar
-        public string? ColorPrimario { get; private set; }  // ← Puede ser null hasta configurar
-        public string? ColorSecundario { get; private set; }  // ← Puede ser null hasta configurar
-        public string? PlantillaPdfNombre { get; private set; }  // ← Puede ser null hasta configurar
-        public string? TelefonoContacto { get; private set; }  // ← Puede ser null
-        public string? CorreoContacto { get; private set; }  // ← Puede ser null
-        public string? SitioWeb { get; private set; }  // ← Puede ser null
-        public string? Eslogan { get; private set; }  // ← Puede ser null hasta configurar
+        public string? LogoUrl { get; private set; }  
+        public string? ColorPrimario { get; private set; }  
+        public string? ColorSecundario { get; private set; }   
+        public string? PlantillaPdfNombre { get; private set; }     
+        public string? TelefonoContacto { get; private set; }  
+        public string? CorreoContacto { get; private set; }  
+        public string? SitioWeb { get; private set; }  
+        public string? Eslogan { get; private set; }  
         public bool Activa { get; private set; }
         public DateTime FechaCreacion { get; private set; }
 

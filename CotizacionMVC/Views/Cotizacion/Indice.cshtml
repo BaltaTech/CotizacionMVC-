@@ -44,7 +44,7 @@
                     <tr>
                         <th>N° Cotización</th>
                         <th>Cliente</th>
-                        <th>Vendedor</th>           <!-- NUEVA COLUMNA -->
+                        <th>Vendedor</th>           
                         <th>Empresa</th>
                         <th>Fecha</th>
                         <th>Total</th>
@@ -58,7 +58,7 @@
                         <tr>
                             <td><strong>@cotizacion.NumeroCotizacion</strong></td>
                             <td>@cotizacion.Cliente?.Nombre</td>
-                            <td>@cotizacion.Vendedor?.NombreCompleto</td>   <!-- NUEVA CELDA -->
+                            <td>@cotizacion.Vendedor?.NombreCompleto</td>   
                             <td>@cotizacion.Empresa?.NombreComercial</td>
                             <td>@cotizacion.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy")</td>
                             <td>@cotizacion.Total.ToString()</td>

@@ -194,7 +194,6 @@ namespace CotizacionMVC.Models.Entidades
             RequiereAutorizacion = totalEnMxn.Monto > 500000;
         }
 
-        // Cambiado de private a public para que ItemCotizacion e ItemInstalacion puedan usarlo
         public decimal ObtenerTipoCambioActual()
         {
             return 20.50m;
@@ -234,11 +233,6 @@ namespace CotizacionMVC.Models.Entidades
         {
             
             RutaPdf = ruta;
-        }
-
-        
-       
-
-
+        }            
     }
 }

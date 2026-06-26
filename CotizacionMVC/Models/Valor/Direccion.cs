@@ -5,11 +5,11 @@ namespace CotizacionMVC.Models.Valor
     public class Direccion
     {
         public string Calle { get; private set; }
-        public string? NumeroExterior { get; private set; }  // ← Puede ser null
-        public string? NumeroInterior { get; private set; }  // ← Puede ser null
+        public string? NumeroExterior { get; private set; }  
+        public string? NumeroInterior { get; private set; }  
         public string Colonia { get; private set; }
         public string Ciudad { get; private set; }
-        public string? Estado { get; private set; }  // ← Puede ser null
+        public string? Estado { get; private set; } 
         public string CodigoPostal { get; private set; }
 
         // Constructor privado para EF Core
@@ -107,7 +107,6 @@ namespace CotizacionMVC.Models.Valor
             return DireccionCompleta();
         }
 
-        // Método para validar si la dirección está completa
         public bool EsCompleta()
         {
             return !string.IsNullOrWhiteSpace(Calle) &&

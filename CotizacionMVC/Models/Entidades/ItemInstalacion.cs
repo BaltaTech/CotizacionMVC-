@@ -8,9 +8,9 @@ namespace CotizacionMVC.Models.Entidades
         public Guid CotizacionId { get; private set; }
         public virtual Cotizacion Cotizacion { get; private set; }
         public Guid? InstalacionId { get; private set; }
-        public virtual Instalacion? Instalacion { get; private set; }  // ← Puede ser null si es personalizado
+        public virtual Instalacion? Instalacion { get; private set; }  
         public string Concepto { get; private set; }
-        public string? Descripcion { get; private set; }  // ← Puede ser null
+        public string? Descripcion { get; private set; }  
         public int Cantidad { get; private set; }
         public Dinero CostoUnitario { get; private set; }
         public Dinero Subtotal { get; private set; }
@@ -52,7 +52,7 @@ namespace CotizacionMVC.Models.Entidades
             Concepto = concepto.Trim();
             Descripcion = descripcion?.Trim();
             Cantidad = cantidad;
-            CostoUnitario = new Dinero(costoUnitario, "MXN"); // Las instalaciones siempre en MXN
+            CostoUnitario = new Dinero(costoUnitario, "MXN"); 
 
             // Convertir a la moneda de la cotización si es necesario
             var costoEnMonedaCotizacion = cotizacion.Empresa.MonedaBase == "MXN"
@@ -68,7 +68,6 @@ namespace CotizacionMVC.Models.Entidades
             }
         }
 
-        // Método para actualizar la cantidad
         public void ActualizarCantidad(int nuevaCantidad)
         {
             if (nuevaCantidad <= 0)
@@ -83,7 +82,6 @@ namespace CotizacionMVC.Models.Entidades
             Subtotal = costoEnMonedaCotizacion.Multiplicar(Cantidad);
         }
 
-        // Método para actualizar el costo unitario
         public void ActualizarCostoUnitario(decimal nuevoCostoUnitario)
         {
             if (nuevoCostoUnitario < 0)
@@ -98,7 +96,6 @@ namespace CotizacionMVC.Models.Entidades
             Subtotal = costoEnMonedaCotizacion.Multiplicar(Cantidad);
         }
 
-        // Método para obtener la descripción mostrable
         public string ObtenerDescripcionMostrable()
         {
             if (!string.IsNullOrWhiteSpace(Descripcion))
@@ -107,7 +104,6 @@ namespace CotizacionMVC.Models.Entidades
             return Concepto;
         }
 
-        // Método para saber si es una instalación predefinida o personalizada
         public bool EsPredefinida()
         {
             return InstalacionId.HasValue && Instalacion != null;

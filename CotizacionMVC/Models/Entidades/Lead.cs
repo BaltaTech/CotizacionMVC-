@@ -8,16 +8,16 @@ namespace CotizacionMVC.Models.Entidades
         public Guid EmpresaId { get; private set; }
         public virtual Empresa Empresa { get; private set; }
         public Guid? VendedorAsignadoId { get; private set; }
-        public virtual Usuario? VendedorAsignado { get; private set; }  // ← Puede ser null hasta asignar
+        public virtual Usuario? VendedorAsignado { get; private set; }  
         public string NombreContacto { get; private set; }
-        public string? Telefono { get; private set; }  // ← Puede ser null
-        public string? CorreoElectronico { get; private set; }  // ← Puede ser null
-        public string? EmpresaCliente { get; private set; }  // ← Puede ser null
+        public string? Telefono { get; private set; }  
+        public string? CorreoElectronico { get; private set; }  
+        public string? EmpresaCliente { get; private set; }  
         public CategoriaLead Categoria { get; private set; }
         public string Origen { get; private set; }
         public DateTime FechaCreacion { get; private set; }
         public DateTime? FechaAsignacion { get; private set; }
-        public string? ComentariosInternos { get; private set; }  // ← Puede ser null
+        public string? ComentariosInternos { get; private set; }   
 
         // Constructor protegido para EF Core
         protected Lead()
@@ -74,7 +74,6 @@ namespace CotizacionMVC.Models.Entidades
             if (vendedor == null)
                 throw new ArgumentNullException(nameof(vendedor));
 
-            // Eliminamos la validación del rol; eso se comprueba en el controlador o aplicación
             if (VendedorAsignadoId.HasValue)
                 throw new InvalidOperationException("Este lead ya tiene un vendedor asignado");
 
@@ -106,13 +105,11 @@ namespace CotizacionMVC.Models.Entidades
                 EmpresaCliente = empresaCliente.Trim();
         }
 
-        // Método para verificar si el lead tiene vendedor asignado
         public bool TieneVendedorAsignado()
         {
             return VendedorAsignadoId.HasValue && VendedorAsignado != null;
         }
 
-        // Método para obtener el medio de contacto principal
         public string ObtenerMedioContactoPrincipal()
         {
             if (!string.IsNullOrWhiteSpace(Telefono))
@@ -122,7 +119,6 @@ namespace CotizacionMVC.Models.Entidades
             return "Sin medio de contacto";
         }
 
-        // Método para saber si el lead está caliente (alta probabilidad)
         public bool EsLeadCaliente()
         {
             return Categoria == CategoriaLead.Caliente || Categoria == CategoriaLead.Calificado;

@@ -120,4 +120,7 @@ async Task SeedRolesAndAdminAsync(IServiceProvider serviceProvider)
             await userManager.AddToRoleAsync(admin, "Administrador");
         }
     }
+
+
+
 }

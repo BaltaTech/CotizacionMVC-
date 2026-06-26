@@ -14,7 +14,7 @@ namespace CotizacionMVC.Models.Entidades
         public Dinero Subtotal { get; private set; }
         public decimal UtilidadEmpresaPorcentaje { get; private set; }
         public decimal UtilidadVendedorPorcentaje { get; private set; }
-        public string? DescripcionPersonalizada { get; private set; }  // ← Puede ser null
+        public string? DescripcionPersonalizada { get; private set; }  
 
         // Constructor protegido para EF Core
         protected ItemCotizacion()

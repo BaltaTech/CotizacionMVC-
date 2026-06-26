@@ -69,13 +69,11 @@ namespace CotizacionMVC.Controllers
                     return NotFound($"No se encontró la empresa con ID {id}");
                 }
 
-                // Actualizar solo los campos permitidos
                 empresaExistente.ActualizarUtilidades(
                     empresa.UtilidadEmpresaPorcentaje,
                     empresa.UtilidadVendedorPorcentaje
                 );
 
-                // Actualizar datos de contacto
                 empresaExistente.ActualizarContacto(empresa.TelefonoContacto, empresa.CorreoContacto);
 
                 // Actualizar identidad visual

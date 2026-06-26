@@ -8,7 +8,6 @@ namespace CotizacionMVC.Data
     public class ApplicationDbContext : IdentityDbContext<Usuario, IdentityRole<Guid>, Guid>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> opciones) : base(opciones) { }
-
         public DbSet<Empresa> Empresas { get; set; }
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<Cotizacion> Cotizaciones { get; set; }
@@ -18,8 +17,6 @@ namespace CotizacionMVC.Data
         public DbSet<ItemInstalacion> ItemsInstalacion { get; set; }
         public DbSet<Seguimiento> Seguimientos { get; set; }
         public DbSet<Lead> Leads { get; set; }
-
-        // Añade temporalmente esta línea para solucionar el error "Usuarios"
         public DbSet<Usuario> Usuarios { get; set; }
 
         protected override void OnModelCreating(ModelBuilder constructorModelos)
@@ -85,8 +82,6 @@ namespace CotizacionMVC.Data
 
             });
         }
-
-
 
         private void ConfigurarCliente(ModelBuilder constructorModelos)
         {
@@ -196,10 +191,8 @@ namespace CotizacionMVC.Data
                     dinero.Property(d => d.Monto).HasPrecision(18, 2);
                     dinero.Property(d => d.Moneda).HasMaxLength(3);
                 });
-
             });
         }
-
         private void ConfigurarEquipo(ModelBuilder constructorModelos)
         {
             constructorModelos.Entity<Equipo>(entidad =>
@@ -231,7 +224,6 @@ namespace CotizacionMVC.Data
                     .HasMaxLength(3);
             });
         }
-
         private void ConfigurarItemCotizacion(ModelBuilder constructorModelos)
         {
             constructorModelos.Entity<ItemCotizacion>(entidad =>
