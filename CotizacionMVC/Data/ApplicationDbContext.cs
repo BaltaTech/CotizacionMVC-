@@ -97,6 +97,42 @@ namespace CotizacionMVC.Data
                 entidad.Property(c => c.Observaciones)
                     .HasMaxLength(1000);
 
+                // ========== NUEVOS CAMPOS (FUERA de OwnsOne) ==========
+                entidad.Property(c => c.Estado)
+                    .HasConversion<int>()
+                    .IsRequired();
+
+                entidad.Property(c => c.Origen)
+                    .HasConversion<int>()
+                    .IsRequired();
+
+                entidad.Property(c => c.VendedorAsignadoId)
+                    .IsRequired(false);
+
+                entidad.Property(c => c.RegistradoPorId)
+                    .IsRequired();
+
+                entidad.Property(c => c.FechaAsignacion)
+                    .IsRequired(false);
+
+                entidad.Property(c => c.FechaCotizacion)
+                    .IsRequired(false);
+
+                entidad.Property(c => c.MotivoNoCotizable)
+                    .HasConversion<int>()
+                    .IsRequired(false);
+
+                entidad.Property(c => c.ComentarioNoCotizable)
+                    .HasMaxLength(500);
+
+                entidad.Property(c => c.Folio)
+                     .IsRequired()
+                     .HasMaxLength(20);
+
+                entidad.HasIndex(c => c.Folio)
+                    .IsUnique();
+                //  
+
                 entidad.OwnsOne(c => c.Contacto, contacto =>
                 {
                     contacto.Property(c => c.Telefono)
@@ -135,7 +171,6 @@ namespace CotizacionMVC.Data
                     direccion.Property(d => d.CodigoPostal)
                         .HasMaxLength(10);
                 });
-
             });
         }
 

@@ -1,30 +1,45 @@
-﻿using CotizacionMVC.Data;
+﻿using CotizacionMVC.Data.Repositorios.Interfaces;
 using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Models.Enums;
 using CotizacionMVC.Servicios;
+using CotizacionMVC.Servicios.Aplicacion;
+using CotizacionMVC.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Controllers
 {
-    [Authorize] 
+    [Authorize]
     public class CotizacionController : Controller
     {
-        private readonly ApplicationDbContext _contextoBaseDatos;
+        private readonly ICotizacionRepository _cotizacionRepo;
+        private readonly IClienteRepository _clienteRepo;
+        private readonly IEquipoRepository _equipoRepo;
+        private readonly IInstalacionRepository _instalacionRepo;
+        private readonly IEmpresaRepository _empresaRepo;
         private readonly IDocumento _documentoService;
         private readonly UserManager<Usuario> _userManager;
+        private readonly CotizacionServicio _cotizacionServicio;
 
-        // Constructor actualizado
         public CotizacionController(
-            ApplicationDbContext contextoBaseDatos,
+            ICotizacionRepository cotizacionRepo,
+            IClienteRepository clienteRepo,
+            IEquipoRepository equipoRepo,
+            IInstalacionRepository instalacionRepo,
+            IEmpresaRepository empresaRepo,
             IDocumento documentoService,
-            UserManager<Usuario> userManager)
+            UserManager<Usuario> userManager,
+            CotizacionServicio cotizacionServicio)
         {
-            _contextoBaseDatos = contextoBaseDatos;
+            _cotizacionRepo = cotizacionRepo;
+            _clienteRepo = clienteRepo;
+            _equipoRepo = equipoRepo;
+            _instalacionRepo = instalacionRepo;
+            _empresaRepo = empresaRepo;
             _documentoService = documentoService;
             _userManager = userManager;
+            _cotizacionServicio = cotizacionServicio;
         }
 
         // GET: Cotizacion/Indice
@@ -32,20 +47,16 @@ namespace CotizacionMVC.Controllers
         {
             var usuarioActual = await _userManager.GetUserAsync(User);
 
-            IQueryable<Cotizacion> query = _contextoBaseDatos.Cotizaciones
-                .Include(c => c.Cliente)
-                .Include(c => c.Empresa)
-                .Include(c => c.Vendedor);
+            IEnumerable<Cotizacion> cotizaciones;
 
-            // Si NO es Administrador, solo ve sus cotizaciones
-            if (!User.IsInRole("Administrador"))
+            if (User.IsInRole("Administrador"))
             {
-                query = query.Where(c => c.VendedorId == usuarioActual!.Id);
+                cotizaciones = await _cotizacionRepo.ObtenerTodasConRelacionesAsync();
             }
-
-            var cotizaciones = await query
-                .OrderByDescending(c => c.FechaCreacion)
-                .ToListAsync();
+            else
+            {
+                cotizaciones = await _cotizacionRepo.ObtenerPorVendedorAsync(usuarioActual!.Id);
+            }
 
             return View(cotizaciones);
         }
@@ -56,15 +67,7 @@ namespace CotizacionMVC.Controllers
             if (id == null)
                 return NotFound("No se proporcionó un identificador de cotización");
 
-            var cotizacion = await _contextoBaseDatos.Cotizaciones
-                .Include(c => c.Cliente)
-                .Include(c => c.Empresa)
-                .Include(c => c.Vendedor)
-                .Include(c => c.ItemsEquipos)
-                    .ThenInclude(i => i.Equipo)
-                .Include(c => c.ItemsInstalacion)
-                    .ThenInclude(i => i.Instalacion)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var cotizacion = await _cotizacionRepo.ObtenerCompletaPorIdAsync(id.Value);
 
             if (cotizacion == null)
                 return NotFound($"No se encontró la cotización con ID {id}");
@@ -75,18 +78,9 @@ namespace CotizacionMVC.Controllers
         // GET: Cotizacion/Crear
         public async Task<IActionResult> Crear()
         {
-            ViewBag.Clientes = await _contextoBaseDatos.Clientes
-                .OrderBy(c => c.Nombre)
-                .ToListAsync();
-
-            ViewBag.Equipos = await _contextoBaseDatos.Equipos
-                .Where(e => e.Activo)
-                .OrderBy(e => e.Marca)
-                .ToListAsync();
-
-            ViewBag.Instalaciones = await _contextoBaseDatos.Instalaciones
-                .Where(i => i.Activo)
-                .ToListAsync();
+            ViewBag.Clientes = await _clienteRepo.ObtenerTodosOrdenadosAsync();
+            ViewBag.Equipos = await _equipoRepo.ObtenerTodosOrdenadosAsync();
+            ViewBag.Instalaciones = await _instalacionRepo.ObtenerActivasAsync();
 
             return View();
         }
@@ -101,46 +95,10 @@ namespace CotizacionMVC.Controllers
             string equipos,
             string instalaciones)
         {
-            var opcionesJson = new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
+            // 1. Deserializar JSON
+            var (listaEquipos, listaInstalaciones) = DeserializarItems(equipos, instalaciones);
 
-            var listaEquipos = string.IsNullOrEmpty(equipos)
-                ? new List<ItemCotizacionJson>()
-                : System.Text.Json.JsonSerializer.Deserialize<List<ItemCotizacionJson>>(equipos, opcionesJson);
-
-            var listaInstalaciones = string.IsNullOrEmpty(instalaciones)
-                ? new List<ItemInstalacionJson>()
-                : System.Text.Json.JsonSerializer.Deserialize<List<ItemInstalacionJson>>(instalaciones, opcionesJson);
-
-            if (clienteId == Guid.Empty)
-            {
-                TempData["MensajeError"] = "Debe seleccionar un cliente";
-                return RedirectToAction(nameof(Crear));
-            }
-
-            if (listaEquipos == null || !listaEquipos.Any())
-            {
-                TempData["MensajeError"] = "Debe agregar al menos un equipo";
-                return RedirectToAction(nameof(Crear));
-            }
-
-            var cliente = await _contextoBaseDatos.Clientes.FindAsync(clienteId);
-            if (cliente == null)
-            {
-                TempData["MensajeError"] = "Cliente no encontrado";
-                return RedirectToAction(nameof(Crear));
-            }
-
-            var empresa = await ObtenerEmpresaActual();
-            if (empresa == null)
-            {
-                TempData["MensajeError"] = "No hay empresa activa";
-                return RedirectToAction(nameof(Crear));
-            }
-
-            // Obtener el vendedor autenticado (el usuario actual)
+            // 2. Obtener vendedor autenticado
             var vendedor = await _userManager.GetUserAsync(User);
             if (vendedor == null)
             {
@@ -148,117 +106,45 @@ namespace CotizacionMVC.Controllers
                 return RedirectToAction("Login", "Autenticacion");
             }
 
-            var numeroCotizacion = await GenerarNumeroCotizacion();
-
-            Cotizacion cotizacion;
-            try
+            // 3. Obtener empresa actual
+            var empresa = await ObtenerEmpresaActual();
+            if (empresa == null)
             {
-                cotizacion = new Cotizacion(
-                    numeroCotizacion,
-                    cliente,
-                    empresa,
-                    vendedor,
-                    areaMetrosCuadrados,
-                    condicionesPago ?? ""
-                );
-            }
-            catch (ArgumentException ex)
-            {
-                TempData["MensajeError"] = ex.Message;
+                TempData["MensajeError"] = "No hay empresa activa";
                 return RedirectToAction(nameof(Crear));
             }
 
-            _contextoBaseDatos.Cotizaciones.Add(cotizacion);
-
-            foreach (var eq in listaEquipos)
+            // 4. Preparar solicitud para el caso de uso
+            var solicitud = new SolicitudCrearCotizacion
             {
-                var equipo = await _contextoBaseDatos.Equipos.FindAsync(eq.EquipoId);
-                if (equipo == null) continue;
+                ClienteId = clienteId,
+                EmpresaId = empresa.Id,
+                Vendedor = vendedor,
+                AreaMetrosCuadrados = areaMetrosCuadrados,
+                CondicionesPago = condicionesPago,
+                Equipos = listaEquipos,
+                Instalaciones = listaInstalaciones
+            };
 
-                try
-                {
-                    cotizacion.AgregarEquipo(
-                        equipo,
-                        eq.Cantidad,
-                        empresa.UtilidadEmpresaPorcentaje,
-                        empresa.UtilidadVendedorPorcentaje,
-                        null
-                    );
-                }
-                catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
-                {
-                    TempData["MensajeError"] = ex.Message;
-                    return RedirectToAction(nameof(Crear));
-                }
+            // 5. Ejecutar caso de uso
+            var resultado = await _cotizacionServicio.CrearCotizacionAsync(solicitud);
+
+            // 6. Manejar resultado
+            if (!resultado.Exitoso)
+            {
+                TempData["MensajeError"] = resultado.MensajeError;
+                return RedirectToAction(nameof(Crear));
             }
 
-            foreach (var inst in listaInstalaciones)
-            {
-                try
-                {
-                    if (inst.InstalacionId.HasValue)
-                    {
-                        var instalacion = await _contextoBaseDatos.Instalaciones
-                            .FindAsync(inst.InstalacionId.Value);
-
-                        if (instalacion != null)
-                            cotizacion.AgregarInstalacionPredefinida(instalacion, inst.Cantidad);
-                    }
-                    else
-                    {
-                        cotizacion.AgregarInstalacion(
-                            inst.Concepto,
-                            inst.Descripcion ?? "",
-                            inst.Cantidad,
-                            inst.CostoUnitario
-                        );
-                    }
-                }
-                catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
-                {
-                    TempData["MensajeError"] = ex.Message;
-                    return RedirectToAction(nameof(Crear));
-                }
-            }
-
-            var itemsCount = cotizacion.ItemsEquipos.Count;
-            var instCount = cotizacion.ItemsInstalacion.Count;
-            Console.WriteLine($"DEBUG CREAR: ItemsEquipos en memoria: {itemsCount}, ItemsInstalacion: {instCount}");
-            TempData["DebugItems"] = $"Equipos: {itemsCount}, Instalaciones: {instCount}";
-
-            // Persistencia normal en BD
-            await _contextoBaseDatos.SaveChangesAsync();
-
-
-            _contextoBaseDatos.Entry(cotizacion).State = EntityState.Detached;
-
-            foreach (var item in cotizacion.ItemsEquipos)
-            {
-                _contextoBaseDatos.Entry(item).State = EntityState.Detached;
-            }
-            foreach (var inst in cotizacion.ItemsInstalacion)
-            {
-                _contextoBaseDatos.Entry(inst).State = EntityState.Detached;
-            }
-
-            TempData["MensajeExito"] = $"Cotización {numeroCotizacion} creada exitosamente";
-            return RedirectToAction(nameof(Detalles), new { id = cotizacion.Id });
+            TempData["MensajeExito"] = $"Cotización {resultado.Cotizacion!.NumeroCotizacion} creada exitosamente";
+            return RedirectToAction(nameof(Detalles), new { id = resultado.Cotizacion.Id });
         }
 
         // GET: Cotizacion/DescargarPdf/5
         [HttpGet]
         public async Task<IActionResult> DescargarPdf(Guid id)
         {
-            var cotizacion = await _contextoBaseDatos.Cotizaciones
-                .AsNoTracking()
-                .Include(c => c.Cliente)
-                .Include(c => c.Empresa)
-                .Include(c => c.Vendedor)
-                .Include(c => c.ItemsEquipos)
-                    .ThenInclude(i => i.Equipo)
-                .Include(c => c.ItemsInstalacion)
-                    .ThenInclude(i => i.Instalacion)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var cotizacion = await _cotizacionRepo.ObtenerCompletaPorIdAsync(id);
 
             if (cotizacion == null)
                 return NotFound("Cotización no encontrada");
@@ -276,10 +162,8 @@ namespace CotizacionMVC.Controllers
                 }
             }
 
-            // Si llegó aquí, generará el PDF con los datos frescos del AsNoTracking()
             var pdfBytes = _documentoService.Generar(cotizacion);
 
-            // Guardar archivo
             var carpeta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "pdf", "cotizaciones");
             if (!Directory.Exists(carpeta))
                 Directory.CreateDirectory(carpeta);
@@ -288,12 +172,9 @@ namespace CotizacionMVC.Controllers
             var rutaCompleta = Path.Combine(carpeta, nombreArchivo);
             await System.IO.File.WriteAllBytesAsync(rutaCompleta, pdfBytes);
 
-            // Guardar ruta en BD
             var rutaRelativa = $"wwwroot/pdf/cotizaciones/{nombreArchivo}";
-
-            _contextoBaseDatos.Cotizaciones.Attach(cotizacion);
             cotizacion.GuardarRutaPdf(rutaRelativa);
-            await _contextoBaseDatos.SaveChangesAsync();
+            _cotizacionRepo.Update(cotizacion);
 
             return File(pdfBytes, _documentoService.TipoContenido, nombreArchivo);
         }
@@ -303,10 +184,7 @@ namespace CotizacionMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Editar(Guid id, Guid clienteId, decimal areaMetrosCuadrados, string condicionesPago)
         {
-            var cotizacion = await _contextoBaseDatos.Cotizaciones
-                .Include(c => c.ItemsEquipos)
-                .Include(c => c.ItemsInstalacion)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var cotizacion = await _cotizacionRepo.ObtenerConItemsAsync(id);
 
             if (cotizacion == null)
                 return NotFound();
@@ -317,7 +195,7 @@ namespace CotizacionMVC.Controllers
                 return RedirectToAction(nameof(Indice));
             }
 
-            var cliente = await _contextoBaseDatos.Clientes.FindAsync(clienteId);
+            var cliente = await _clienteRepo.GetByIdAsync(clienteId);
             if (cliente == null)
             {
                 TempData["MensajeError"] = "Cliente no encontrado";
@@ -334,7 +212,7 @@ namespace CotizacionMVC.Controllers
                 return RedirectToAction(nameof(Editar), new { id });
             }
 
-            await _contextoBaseDatos.SaveChangesAsync();
+            _cotizacionRepo.Update(cotizacion);
 
             TempData["MensajeExito"] = $"Cotización {cotizacion.NumeroCotizacion} actualizada";
             return RedirectToAction(nameof(Detalles), new { id });
@@ -346,9 +224,7 @@ namespace CotizacionMVC.Controllers
             if (id == null)
                 return NotFound();
 
-            var cotizacion = await _contextoBaseDatos.Cotizaciones
-                .Include(c => c.Cliente)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var cotizacion = await _cotizacionRepo.ObtenerConClienteAsync(id.Value);
 
             if (cotizacion == null)
                 return NotFound();
@@ -361,10 +237,7 @@ namespace CotizacionMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EliminarConfirmado(Guid id)
         {
-            var cotizacion = await _contextoBaseDatos.Cotizaciones
-                .Include(c => c.ItemsEquipos)
-                .Include(c => c.ItemsInstalacion)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var cotizacion = await _cotizacionRepo.ObtenerConItemsAsync(id);
 
             if (cotizacion == null)
                 return NotFound();
@@ -375,11 +248,7 @@ namespace CotizacionMVC.Controllers
                 return RedirectToAction(nameof(Indice));
             }
 
-            _contextoBaseDatos.ItemsCotizacion.RemoveRange(cotizacion.ItemsEquipos);
-            _contextoBaseDatos.ItemsInstalacion.RemoveRange(cotizacion.ItemsInstalacion);
-            _contextoBaseDatos.Cotizaciones.Remove(cotizacion);
-
-            await _contextoBaseDatos.SaveChangesAsync();
+            _cotizacionRepo.Delete(cotizacion);
 
             TempData["MensajeExito"] = $"Cotización {cotizacion.NumeroCotizacion} eliminada";
             return RedirectToAction(nameof(Indice));
@@ -403,14 +272,14 @@ namespace CotizacionMVC.Controllers
         [HttpPost]
         public async Task<IActionResult> CambiarEstado(Guid cotizacionId, EstadoCotizacion nuevoEstado)
         {
-            var cotizacion = await _contextoBaseDatos.Cotizaciones.FindAsync(cotizacionId);
+            var cotizacion = await _cotizacionRepo.GetByIdAsync(cotizacionId);
             if (cotizacion == null)
                 return Json(new { success = false, message = "Cotización no encontrada" });
 
             try
             {
                 cotizacion.CambiarEstado(nuevoEstado);
-                await _contextoBaseDatos.SaveChangesAsync();
+                _cotizacionRepo.Update(cotizacion);
                 return Json(new { success = true, nuevoEstado = nuevoEstado.ToString() });
             }
             catch (Exception ex)
@@ -425,44 +294,31 @@ namespace CotizacionMVC.Controllers
         {
             var empresaIdString = HttpContext.Session.GetString("EmpresaActivaId");
             if (string.IsNullOrEmpty(empresaIdString))
-                return await _contextoBaseDatos.Empresas.FirstOrDefaultAsync(e => e.Activa);
+                return await _empresaRepo.ObtenerActivaAsync();
 
             var empresaId = Guid.Parse(empresaIdString);
-            return await _contextoBaseDatos.Empresas.FindAsync(empresaId);
+            return await _empresaRepo.GetByIdAsync(empresaId);
         }
 
-        private async Task<string> GenerarNumeroCotizacion()
+        private (List<ItemCotizacionJson>, List<ItemInstalacionJson>) DeserializarItems(
+            string equipos, string instalaciones)
         {
-            string prefijo = "COT";
-            var ultimaCotizacion = await _contextoBaseDatos.Cotizaciones
-                .OrderByDescending(c => c.NumeroCotizacion)
-                .FirstOrDefaultAsync();
-
-            int numero = 1;
-            if (ultimaCotizacion != null)
+            var opcionesJson = new System.Text.Json.JsonSerializerOptions
             {
-                var partes = ultimaCotizacion.NumeroCotizacion.Split('-');
-                if (partes.Length == 2 && int.TryParse(partes[1], out int ultimoNumero))
-                    numero = ultimoNumero + 1;
-            }
+                PropertyNameCaseInsensitive = true
+            };
 
-            return $"{prefijo}-{numero:D4}";
+            var listaEquipos = string.IsNullOrEmpty(equipos)
+                ? new List<ItemCotizacionJson>()
+                : System.Text.Json.JsonSerializer.Deserialize<List<ItemCotizacionJson>>(equipos, opcionesJson)
+                  ?? new List<ItemCotizacionJson>();
+
+            var listaInstalaciones = string.IsNullOrEmpty(instalaciones)
+                ? new List<ItemInstalacionJson>()
+                : System.Text.Json.JsonSerializer.Deserialize<List<ItemInstalacionJson>>(instalaciones, opcionesJson)
+                  ?? new List<ItemInstalacionJson>();
+
+            return (listaEquipos, listaInstalaciones);
         }
-    }
-
-    // Estas clases pueden moverse a Models/ViewModels/
-    public class ItemCotizacionJson
-    {
-        public Guid EquipoId { get; set; }
-        public int Cantidad { get; set; }
-    }
-
-    public class ItemInstalacionJson
-    {
-        public Guid? InstalacionId { get; set; }
-        public string Concepto { get; set; } = string.Empty;
-        public string? Descripcion { get; set; }
-        public int Cantidad { get; set; }
-        public decimal CostoUnitario { get; set; }
     }
 }
