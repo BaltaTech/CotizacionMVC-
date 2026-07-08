@@ -5,103 +5,259 @@
 @inject UserManager<CotizacionMVC.Models.Entidades.Usuario> UserManager
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - CotizacionMVC</title>
+    <title>@ViewData["Title"] - HVAC Pro</title>
+    
+    @* Bootstrap *@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    
+    @* Font Awesome *@
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    @* Estilos personalizados *@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CotizacionMVC.styles.css" asp-append-version="true" />
+    
     @await RenderSectionAsync("Styles", required: false)
+    
+    <style>
+        :root {
+            --rojo-hvac: #C8102E;
+            --rojo-oscuro: #A00D25;
+            --rojo-claro: #E63946;
+            --blanco: #FFFFFF;
+        }
+
+        body {
+            background: #F8F9FA;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        .navbar-hvac {
+            background: linear-gradient(135deg, var(--rojo-hvac) 0%, var(--rojo-oscuro) 100%) !important;
+            box-shadow: 0 4px 20px rgba(200, 16, 46, 0.3);
+        }
+
+        .navbar-hvac .navbar-brand {
+            color: white !important;
+            font-weight: 700;
+            font-size: 1.3rem;
+        }
+
+        .navbar-hvac .nav-link {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            margin: 0 2px;
+        }
+
+        .navbar-hvac .nav-link:hover {
+            color: white !important;
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .badge-notificacion {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.6rem;
+            background: #FFD700 !important;
+            color: #C8102E !important;
+        }
+
+        .btn-empresa {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-empresa:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+        }
+
+        .footer-hvac {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: rgba(255, 255, 255, 0.7);
+            padding: 1rem 0;
+            font-size: 0.85rem;
+        }
+
+        /* Toast de notificación */
+        .toast-notificacion {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-left: 4px solid #28a745;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            padding: 15px 20px;
+            border-radius: 8px;
+            z-index: 99999;
+            min-width: 300px;
+            max-width: 400px;
+        }
+
+        @@keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @@keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        .snowflake-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .snowflake {
+            position: absolute;
+            color: rgba(200, 16, 46, 0.08);
+            animation: snowflake linear infinite;
+        }
+
+        @@keyframes snowflake {
+            0% { transform: translateY(-10px) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: var(--rojo-hvac); border-radius: 4px; }
+    </style>
 </head>
 <body>
 
     @if (SignInManager.IsSignedIn(User))
     {
-        var empresaActivaNombre = Context.Session.GetString("EmpresaActivaNombre") ?? "CotizacionMVC";
+        var empresaActivaNombre = Context.Session.GetString("EmpresaActivaNombre") ?? "HVAC Pro";
 
         <header>
-            <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-                <div class="container-fluid">
-                    <a class="navbar-brand" asp-controller="Home" asp-action="Index">
-                        <i class="fas fa-snowflake"></i> @empresaActivaNombre
+            <nav class="navbar navbar-expand-lg navbar-hvac">
+                <div class="container-fluid px-4">
+                    <a class="navbar-brand d-flex align-items-center" asp-controller="Home" asp-action="Index">
+                        <i class="fas fa-wind fa-lg me-2"></i>
+                        <span>@empresaActivaNombre</span>
                     </a>
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
-                        <span class="navbar-toggler-icon"></span>
+
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarHVAC" 
+                            style="border-color: rgba(255,255,255,0.5);">
+                        <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
                     </button>
-                    <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                        <ul class="navbar-nav flex-grow-1">
+
+                    <div class="collapse navbar-collapse" id="navbarHVAC">
+                        <ul class="navbar-nav me-auto">
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Home" asp-action="Index">Inicio</a>
+                                <a class="nav-link" asp-controller="Home" asp-action="Index">
+                                    <i class="fas fa-home"></i> Inicio
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Equipo" asp-action="Indice">Catálogo de Equipos</a>
+                                <a class="nav-link" asp-controller="Equipo" asp-action="Indice">
+                                    <i class="fas fa-tools"></i> Equipos
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Cliente" asp-action="Indice">Clientes</a>
+                                <a class="nav-link" asp-controller="Cliente" asp-action="Indice">
+                                    <i class="fas fa-address-book"></i> Clientes
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Cotizacion" asp-action="Indice">Cotizaciones</a>
+                                <a class="nav-link" asp-controller="Cotizacion" asp-action="Indice">
+                                    <i class="fas fa-file-invoice-dollar"></i> Cotizaciones
+                                </a>
                             </li>
+                            @if (User.IsInRole("Administrador") || User.IsInRole("Recepcion"))
+                            {
+                                <li class="nav-item position-relative">
+                                    <a class="nav-link" asp-controller="Recepcion" asp-action="Indice">
+                                        <i class="fas fa-headset"></i> Recepción
+                                        <span class="badge badge-notificacion rounded-pill" id="badgePendientes" style="display:none;">0</span>
+                                    </a>
+                                </li>
+                            }
                             @if (User.IsInRole("Administrador"))
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-controller="Empresa" asp-action="Indice">Empresas</a>
+                                    <a class="nav-link" asp-controller="Empresa" asp-action="Indice">
+                                        <i class="fas fa-building"></i> Empresas
+                                    </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-controller="Usuarios" asp-action="Indice">
+                                    <a class="nav-link" asp-controller="Usuarios" asp-action="Indice">
                                         <i class="fas fa-users-cog"></i> Usuarios
                                     </a>
                                 </li>
                             }
                         </ul>
-                        <ul class="navbar-nav ms-auto me-3">
+
+                        <div class="d-flex align-items-center">
                             @{
                                 var usuarioActual = await UserManager.GetUserAsync(User);
                                 var roles = await UserManager.GetRolesAsync(usuarioActual!);
                                 var rolActual = roles.FirstOrDefault() ?? "Usuario";
                             }
-                            <li class="nav-item">
-                                <span class="nav-link text-dark">
-                                    <i class="fas fa-user-circle"></i> Hola, <strong>@usuarioActual!.NombreCompleto</strong>
-                                    <span class="badge bg-primary ms-1">@rolActual</span>
-                                </span>
-                            </li>
-                        </ul>
+                            
+                            <div class="text-white me-3 d-none d-lg-block">
+                                <small style="opacity: 0.7;">
+                                    <i class="far fa-user-circle me-1"></i>@usuarioActual!.NombreCompleto
+                                </small>
+                                <span class="badge bg-white text-danger ms-1">@rolActual</span>
+                            </div>
 
-                        <div class="dropdown ms-auto">
-                            <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-building"></i> @empresaActivaNombre
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><span class="dropdown-header text-muted">Cambiar a:</span></li>
-                                <li>
-                                    <form asp-controller="Empresa" asp-action="CambiarEmpresaActiva" method="post">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="empresaId" value="d7b0a6c5-e8c8-4b7e-a390-176813056c15" />
-                                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                                        <button type="submit" class="dropdown-item">🔷 Aire y Clima</button>
-                                    </form>
-                                </li>
-                                <li>
-                                    <form asp-controller="Empresa" asp-action="CambiarEmpresaActiva" method="post">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="empresaId" value="3a7f3e5b-4d3b-407e-8003-094b20c006ee" />
-                                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                                        <button type="submit" class="dropdown-item">🌐 Air and Weather</button>
-                                    </form>
-                                </li>
-                                <li><hr class="dropdown-divider" /></li>
-                                <li>
-                                    <form asp-controller="Autenticacion" asp-action="Logout" method="post">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="dropdown-item text-danger">
-                                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-                                        </button>
-                                    </form>
-                                </li>
-                            </ul>
+                            <div class="dropdown">
+                                <button class="btn btn-empresa dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="far fa-building me-1"></i> @empresaActivaNombre
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow">
+                                    <li><h6 class="dropdown-header">Cambiar Empresa</h6></li>
+                                    <li>
+                                        <form asp-controller="Empresa" asp-action="CambiarEmpresaActiva" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="empresaId" value="d7b0a6c5-e8c8-4b7e-a390-176813056c15" />
+                                            <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                                            <button type="submit" class="dropdown-item">
+                                                ❄️ Aire y Clima
+                                            </button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        <form asp-controller="Empresa" asp-action="CambiarEmpresaActiva" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="empresaId" value="3a7f3e5b-4d3b-407e-8003-094b20c006ee" />
+                                            <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                                            <button type="submit" class="dropdown-item">
+                                                🌐 Air and Weather
+                                            </button>
+                                        </form>
+                                    </li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li>
+                                        <form asp-controller="Autenticacion" asp-action="Logout" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -109,22 +265,51 @@
         </header>
     }
 
-    <div class="container">
-        <main role="main" class="pb-3">
+    @* Contenido principal *@
+    <div class="container-fluid px-4 py-3">
+        <main role="main">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - CotizacionMVC
+    @* Footer *@
+    <footer class="footer-hvac mt-auto">
+        <div class="container-fluid px-4 text-center">
+            <i class="fas fa-temperature-low me-2"></i> 
+            &copy; 2026 HVAC Pro - Sistema de Cotizaciones
         </div>
     </footer>
 
+    @* Copos de nieve *@
+    <div class="snowflake-container" id="snowflakes"></div>
+
+    @* Scripts *@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    
+    @* SignalR *@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+    
+    @* Notificaciones *@
+    <script src="~/js/notificaciones.js" asp-append-version="true"></script>
+    
     <script src="~/js/site.js" asp-append-version="true"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
+
+    @* Copos de nieve animados *@
+    <script>
+        const emojis = ['❄', '❅', '❆', '✦', '✧'];
+        const container = document.getElementById('snowflakes');
+        for (let i = 0; i < 15; i++) {
+            const flake = document.createElement('span');
+            flake.className = 'snowflake';
+            flake.innerHTML = emojis[Math.floor(Math.random() * emojis.length)];
+            flake.style.left = Math.random() * 100 + '%';
+            flake.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            flake.style.animationDelay = Math.random() * 15 + 's';
+            flake.style.fontSize = (Math.random() * 15 + 10) + 'px';
+            container.appendChild(flake);
+        }
+    </script>
 </body>
 </html>

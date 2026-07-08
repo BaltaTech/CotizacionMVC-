@@ -1,6 +1,12 @@
-﻿using CotizacionMVC.Models.Entidades;
+﻿using CotizacionMVC.Data;
+using CotizacionMVC.Data.CargaDatos;
+using CotizacionMVC.Data.Repositorios.Implementaciones;
+using CotizacionMVC.Data.Repositorios.Interfaces;
+using CotizacionMVC.Hubs;
+using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Servicios;
-using CotizacionMVC.Data;
+using CotizacionMVC.Servicios.Aplicacion;
+using CotizacionMVC.Servicios.Infraestructura;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
@@ -18,7 +24,26 @@ builder.Services.AddControllersWithViews(config =>
     config.Filters.Add(new AuthorizeFilter(policy));
 });
 
+// ========== SignalR ==========
+
+builder.Services.AddSignalR();
+
+// ========== Servicios de infraestructura ==========
+builder.Services.AddScoped<NotificacionServicio>();
+
+
+// ========== Servicios de aplicación ==========
 builder.Services.AddScoped<IDocumento, PdfCotizacion>();
+builder.Services.AddScoped<CotizacionServicio>();
+
+// ========== Repositorios ==========
+builder.Services.AddScoped<ICotizacionRepository, CotizacionRepository>();
+builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
+builder.Services.AddScoped<IEquipoRepository, EquipoRepository>();
+builder.Services.AddScoped<IInstalacionRepository, InstalacionRepository>();
+builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
+builder.Services.AddScoped<RecepcionServicio>(); //
+
 
 // Registrar el DbContext con PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(opciones =>
@@ -62,11 +87,11 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-// ========== Sembrar roles y usuario administrador inicial ==========
+// ========== Cargar datos iniciales (roles y admin) ==========
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    await SeedRolesAndAdminAsync(services);
+    var servicios = scope.ServiceProvider;
+    await CargadorDatosIniciales.CargarAsync(servicios);
 }
 
 // Configure the HTTP request pipeline.
@@ -81,7 +106,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// ==========  primero autenticación, luego autorización ==========
+// ========== Primero autenticación, luego autorización ==========
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -91,36 +116,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Autenticacion}/{action=Login}/{id?}");
 
+app.MapHub<NotificacionHub>("/notificacionHub");
+
+
 app.Run();
-
-
-// ========== Método local para inicializar roles y administrador ==========
-async Task SeedRolesAndAdminAsync(IServiceProvider serviceProvider)
-{
-    var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
-    var userManager = serviceProvider.GetRequiredService<UserManager<Usuario>>();
-
-    // Crear roles si no existen
-    string[] roles = { "Administrador", "Vendedor" };
-    foreach (var rol in roles)
-    {
-        if (!await roleManager.RoleExistsAsync(rol))
-            await roleManager.CreateAsync(new IdentityRole<Guid>(rol));
-    }
-
-    // Crear un usuario administrador por defecto (solo si no existe)
-    var adminEmail = "admin@empresa.com";
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
-    if (adminUser == null)
-    {
-        var admin = new Usuario("Administrador Principal", adminEmail);
-        var result = await userManager.CreateAsync(admin, "Admin123!"); // contraseña inicial (cámbiala después)
-        if (result.Succeeded)
-        {
-            await userManager.AddToRoleAsync(admin, "Administrador");
-        }
-    }
-
-
-
-}
