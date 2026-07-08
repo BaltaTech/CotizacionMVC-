@@ -3,6 +3,7 @@ using System;
 using CotizacionMVC.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CotizacionMVC.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260708202114_CamposRecepcionCliente")]
+    partial class CamposRecepcionCliente
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -43,10 +46,6 @@ namespace CotizacionMVC.Migrations
 
                     b.Property<DateTime>("FechaRegistro")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Folio")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<int?>("MotivoNoCotizable")
                         .HasColumnType("integer");
@@ -721,10 +720,12 @@ namespace CotizacionMVC.Migrations
                                 .HasColumnType("uuid");
 
                             b1.Property<string>("Calle")
+                                .IsRequired()
                                 .HasMaxLength(200)
                                 .HasColumnType("character varying(200)");
 
                             b1.Property<string>("Ciudad")
+                                .IsRequired()
                                 .HasMaxLength(200)
                                 .HasColumnType("character varying(200)");
 
@@ -734,6 +735,7 @@ namespace CotizacionMVC.Migrations
                                 .HasColumnType("character varying(10)");
 
                             b1.Property<string>("Colonia")
+                                .IsRequired()
                                 .HasMaxLength(200)
                                 .HasColumnType("character varying(200)");
 
