@@ -1,0 +1,243 @@
+﻿@model List<CotizacionMVC.Models.Entidades.Cliente>
+
+@{
+    ViewData["Title"] = "Panel de Recepción";
+    var totalClientes = Model.Count;
+    var pendientesAsignar = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCliente.SinAsignar);
+    var pendientesCotizar = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Asignado || c.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Contactado);
+    var cotizados = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Cotizado);
+    var noCotizables = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCliente.NoCotizable);
+}
+
+<div class="container-fluid px-4">
+    
+    @* ========== CABECERA ========== *@
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm">
+                <div>
+                    <h4 class="mb-0" style="color: #C8102E;">
+                        <i class="fas fa-headset me-2"></i>Panel de Recepción
+                    </h4>
+                    <small class="text-muted">Registro de clientes entrantes</small>
+                </div>
+                <a asp-action="Registrar" class="btn btn-danger">
+                    <i class="fas fa-plus-circle me-1"></i> Nuevo Cliente
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @* ========== TARJETAS DE RESUMEN ========== *@
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #C8102E, #E63946);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-2" style="opacity: 0.8;">Total Clientes</h6>
+                            <h1 class="display-4 fw-bold mb-0">@totalClientes</h1>
+                        </div>
+                        <i class="fas fa-users fa-3x" style="opacity: 0.3;"></i>
+                    </div>
+                    <small style="opacity: 0.7;">Registrados en el sistema</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #FF6B35, #F7931E);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-2" style="opacity: 0.8;">Pendientes Asignar</h6>
+                            <h1 class="display-4 fw-bold mb-0">@pendientesAsignar</h1>
+                        </div>
+                        <i class="fas fa-user-clock fa-3x" style="opacity: 0.3;"></i>
+                    </div>
+                    <small style="opacity: 0.7;">Sin vendedor asignado</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #1A73E8, #4285F4);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-2" style="opacity: 0.8;">Pendientes Cotizar</h6>
+                            <h1 class="display-4 fw-bold mb-0">@pendientesCotizar</h1>
+                        </div>
+                        <i class="fas fa-file-invoice fa-3x" style="opacity: 0.3;"></i>
+                    </div>
+                    <small style="opacity: 0.7;">Esperando cotización</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #343A40, #495057);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-2" style="opacity: 0.8;">No Cotizables</h6>
+                            <h1 class="display-4 fw-bold mb-0">@noCotizables</h1>
+                        </div>
+                        <i class="fas fa-ban fa-3x" style="opacity: 0.3;"></i>
+                    </div>
+                    <small style="opacity: 0.7;">No se puede cotizar</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ========== TABLA DE CLIENTES ========== *@
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+            <div>
+                <i class="fas fa-list-ul me-2" style="color: #C8102E;"></i>
+                <strong style="color: #C8102E;">Clientes Registrados</strong>
+                <span class="badge bg-danger ms-2">@totalClientes</span>
+            </div>
+            <div class="input-group input-group-sm" style="width: 250px;">
+                <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" placeholder="Buscar cliente..." id="buscarCliente">
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="tablaClientes">
+                    <thead style="background: linear-gradient(135deg, #C8102E, #E63946); color: white;">
+                        <tr>
+                            <th class="ps-3">Folio</th>
+                            <th>Nombre</th>
+                            <th>Teléfono</th>
+                            <th>Origen</th>
+                            <th>Estado</th>
+                            <th>Vendedor</th>
+                            <th>Fecha</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Any())
+                        {
+                            foreach (var cliente in Model)
+                            {
+                                var estadoBadge = cliente.Estado switch
+                                {
+                                    CotizacionMVC.Models.Enums.EstadoCliente.SinAsignar => ("warning", "Sin Asignar"),
+                                    CotizacionMVC.Models.Enums.EstadoCliente.Asignado => ("info", "Asignado"),
+                                    CotizacionMVC.Models.Enums.EstadoCliente.Contactado => ("primary", "Contactado"),
+                                    CotizacionMVC.Models.Enums.EstadoCliente.Cotizado => ("success", "Cotizado"),
+                                    CotizacionMVC.Models.Enums.EstadoCliente.NoCotizable => ("danger", "No Cotizable"),
+                                    CotizacionMVC.Models.Enums.EstadoCliente.Cerrado => ("dark", "Cerrado"),
+                                    _ => ("secondary", cliente.Estado.ToString())
+                                };
+
+                                <tr class="cliente-row">
+                                    <td class="ps-3">
+                                        <span class="badge bg-light text-dark border">@cliente.Folio</span>
+                                    </td>
+                                    <td>
+                                        <strong>@cliente.Nombre</strong>
+                                        @if (!string.IsNullOrWhiteSpace(cliente.Observaciones))
+                                        {
+                                            <br /><small class="text-muted">@cliente.Observaciones</small>
+                                        }
+                                    </td>
+                                    <td>@cliente.Contacto.Telefono</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">@cliente.Origen</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-@estadoBadge.Item1">@estadoBadge.Item2</span>
+                                    </td>
+                                    <td>
+                                        @if (cliente.VendedorAsignadoId.HasValue)
+                                        {
+                                            <span class="text-success">
+                                                <i class="fas fa-check-circle me-1"></i>Asignado
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-warning">
+                                                <i class="fas fa-clock me-1"></i>Sin asignar
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <small>@cliente.FechaRegistro.ToString("dd/MM/yyyy")</small>
+                                        <br /><small class="text-muted">@cliente.FechaRegistro.ToString("HH:mm")</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="#" class="btn btn-outline-secondary" title="Ver detalle" data-bs-toggle="tooltip">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            @if (cliente.Estado == CotizacionMVC.Models.Enums.EstadoCliente.SinAsignar)
+                                            {
+                                                <a href="#" class="btn btn-outline-warning" title="Asignar vendedor" data-bs-toggle="tooltip">
+                                                    <i class="fas fa-user-plus"></i>
+                                                </a>
+                                            }
+                                            <a href="#" class="btn btn-outline-danger" title="Marcar no cotizable" data-bs-toggle="tooltip">
+                                                <i class="fas fa-times-circle"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-5">
+                                    <div class="text-muted">
+                                        <i class="fas fa-clipboard-list fa-4x mb-3" style="opacity: 0.3;"></i>
+                                        <h5>No hay clientes registrados</h5>
+                                        <p class="mb-3">Comience registrando su primer cliente entrante</p>
+                                        <a asp-action="Registrar" class="btn btn-danger">
+                                            <i class="fas fa-plus-circle me-1"></i> Registrar Cliente
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                <i class="fas fa-sync-alt me-1"></i> Actualizado: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+            </small>
+            <small class="text-muted">
+                Mostrando @Model.Count cliente(s)
+            </small>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Activar tooltips
+            $('[data-bs-toggle="tooltip"]').tooltip();
+
+            // Buscar en la tabla
+            $('#buscarCliente').on('keyup', function() {
+                var value = $(this).val().toLowerCase();
+                $('#tablaClientes tbody tr').filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+                });
+            });
+
+            // Actualizar cada 60 segundos
+            setInterval(function() {
+                location.reload();
+            }, 60000);
+        });
+    </script>
+}

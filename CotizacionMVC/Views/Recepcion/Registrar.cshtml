@@ -1,0 +1,249 @@
+﻿@model CotizacionMVC.ViewModels.Recepcion.RegistrarClienteViewModel
+
+@{
+    ViewData["Title"] = "Registrar Cliente";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="bi bi-person-plus"></i> Registrar Cliente
+            </h4>
+            <hr />
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <form asp-action="Registrar" method="post" id="formRegistrarCliente">
+                @Html.AntiForgeryToken()
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger">
+                        <ul>
+                            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                            {
+                                <li>@error.ErrorMessage</li>
+                            }
+                        </ul>
+                    </div>
+                }
+
+                @* DATOS DEL CLIENTE *@
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <i class="bi bi-person"></i> Datos del Cliente
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="EmpresaId" class="form-label">Empresa <span class="text-danger">*</span></label>
+                                <select asp-for="EmpresaId" class="form-select" required>
+                                    <option value="">-- Seleccione Empresa --</option>
+                                    @if (ViewBag.Empresas != null)
+                                    {
+                                        foreach (var empresa in ViewBag.Empresas)
+                                        {
+                                            <option value="@empresa.Id">@empresa.NombreComercial</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="EmpresaId" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Origen" class="form-label">Origen <span class="text-danger">*</span></label>
+                                <select asp-for="Origen" class="form-select">
+                                    <option value="">-- Seleccione Origen --</option>
+                                    <option value="1">Llamada</option>
+                                    <option value="2">WhatsApp</option>
+                                    <option value="5">Formulario</option>
+                                    <option value="6">Referencia</option>
+                                </select>
+                                <span asp-validation-for="Origen" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
+                                <input asp-for="Nombre" class="form-control" placeholder="Nombre completo" required />
+                                <span asp-validation-for="Nombre" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Telefono" class="form-label">Teléfono <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input asp-for="Telefono" class="form-control" placeholder="55-1234-5678" required />
+                                    <button type="button" class="btn btn-outline-secondary" id="btnBuscarCliente">
+                                        <i class="bi bi-search"></i> Buscar
+                                    </button>
+                                </div>
+                                <span asp-validation-for="Telefono" class="text-danger"></span>
+                                <div id="resultadoBusqueda" class="mt-2"></div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Correo" class="form-label">Correo Electrónico</label>
+                                <input asp-for="Correo" class="form-control" placeholder="correo@ejemplo.com" />
+                                <span asp-validation-for="Correo" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="EmpresaCliente" class="form-label">Empresa del Cliente</label>
+                                <input asp-for="EmpresaCliente" class="form-control" placeholder="Nombre de la empresa" />
+                                <span asp-validation-for="EmpresaCliente" class="text-danger"></span>
+                            </div>
+
+                            @* CÓDIGO POSTAL (NUEVO CAMPO PRINCIPAL) *@
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CodigoPostal" class="form-label">Código Postal <span class="text-danger">*</span></label>
+                                <input asp-for="CodigoPostal" class="form-control" placeholder="Ej. 03100" maxlength="10" required />
+                                <small class="text-muted">Con el CP validamos cobertura y ubicación</small>
+                                <span asp-validation-for="CodigoPostal" class="text-danger"></span>
+                            </div>
+
+                            @* CIUDAD (AHORA OPCIONAL) *@
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Ciudad" class="form-label">Ciudad</label>
+                                <input asp-for="Ciudad" class="form-control" placeholder="Opcional" />
+                                <span asp-validation-for="Ciudad" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* PRODUCTO *@
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <i class="bi bi-box"></i> Producto que Busca
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ProductoBusca" class="form-label">Producto <span class="text-danger">*</span></label>
+                                <select asp-for="ProductoBusca" class="form-select" required>
+                                    <option value="">-- Seleccione Producto --</option>
+                                    <option value="Minisplit 1-5 TR">Minisplit (1-5 TR)</option>
+                                    <option value="Paquete 5-10 TR">Paquete (5-10 TR)</option>
+                                    <option value="Sistema VRV/VRF">Sistema VRV / VRF</option>
+                                    <option value="Rooftop">Rooftop</option>
+                                    <option value="Chiller">Chiller</option>
+                                    <option value="Ductos y Difusores">Ductos y Difusores</option>
+                                    <option value="Instalación Eléctrica">Instalación Eléctrica</option>
+                                    <option value="Mantenimiento">Mantenimiento</option>
+                                    <option value="Compresores">Compresores</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                                <span asp-validation-for="ProductoBusca" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="Comentarios" class="form-label">Comentarios / Observaciones</label>
+                                <textarea asp-for="Comentarios" class="form-control" rows="3"
+                                          placeholder="Información adicional..."></textarea>
+                                <span asp-validation-for="Comentarios" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* ASIGNACIÓN *@
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                        <i class="bi bi-person-check"></i> Asignación de Vendedor
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input asp-for="AsignarAhora" class="form-check-input" type="checkbox" id="chkAsignarAhora" />
+                            <label asp-for="AsignarAhora" class="form-check-label">Asignar vendedor ahora</label>
+                        </div>
+
+                        <div id="seccionVendedor" style="display: none;">
+                            <div class="col-md-6">
+                                <label asp-for="VendedorAsignadoId" class="form-label">Vendedor</label>
+                                <select asp-for="VendedorAsignadoId" class="form-select">
+                                    <option value="">-- Seleccione Vendedor --</option>
+                                    @if (ViewBag.Vendedores != null)
+                                    {
+                                        foreach (var vendedor in ViewBag.Vendedores)
+                                        {
+                                            <option value="@vendedor.Id">@vendedor.NombreCompleto</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="VendedorAsignadoId" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* BOTONES *@
+                <div class="mb-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-check-circle"></i> Guardar Cliente
+                    </button>
+                    <a href="#" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        @* PANEL LATERAL *@
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <i class="bi bi-clock-history"></i> Últimos Registros
+                </div>
+                <div class="card-body" id="ultimosRegistros">
+                    <p class="text-muted">Cargando...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    
+    <script>
+        $(document).ready(function() {
+            
+            $('#chkAsignarAhora').change(function() {
+                if ($(this).is(':checked')) {
+                    $('#seccionVendedor').slideDown();
+                } else {
+                    $('#seccionVendedor').slideUp();
+                }
+            });
+
+            $('#btnBuscarCliente').click(function() {
+                var telefono = $('#Telefono').val();
+                if (!telefono) {
+                    alert('Ingrese un número de teléfono para buscar');
+                    return;
+                }
+
+                $.get('/Recepcion/BuscarCliente', { telefono: telefono }, function(data) {
+                    if (data && data.length > 0) {
+                        var html = '<div class="alert alert-warning"><strong>¡Cliente existente!</strong><ul>';
+                        $.each(data, function(i, cliente) {
+                            html += '<li>' + cliente.nombre + ' - ' + cliente.telefono;
+                            if (cliente.correo) html += ' (' + cliente.correo + ')';
+                            html += '</li>';
+                        });
+                        html += '</ul></div>';
+                        $('#resultadoBusqueda').html(html);
+                    } else {
+                        $('#resultadoBusqueda').html('<div class="alert alert-success">Cliente nuevo</div>');
+                    }
+                });
+            });
+
+            $('#ultimosRegistros').html('<p class="text-muted">Próximamente: últimos clientes registrados</p>');
+        });
+    </script>
+}

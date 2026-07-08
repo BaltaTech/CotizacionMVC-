@@ -4,55 +4,41 @@ namespace CotizacionMVC.Models.Valor
 {
     public class Direccion
     {
-        public string Calle { get; private set; }
-        public string? NumeroExterior { get; private set; }  
-        public string? NumeroInterior { get; private set; }  
-        public string Colonia { get; private set; }
-        public string Ciudad { get; private set; }
-        public string? Estado { get; private set; } 
+        public string? Calle { get; private set; }
+        public string? NumeroExterior { get; private set; }
+        public string? NumeroInterior { get; private set; }
+        public string? Colonia { get; private set; }
+        public string? Ciudad { get; private set; }
+        public string? Estado { get; private set; }
         public string CodigoPostal { get; private set; }
 
         // Constructor privado para EF Core
         private Direccion()
         {
-            Calle = null!;
-            Colonia = null!;
-            Ciudad = null!;
             CodigoPostal = null!;
-            NumeroExterior = null;
-            NumeroInterior = null;
-            Estado = null;
         }
 
         public Direccion(
-            string calle,
+            string? calle,
             string? numeroExterior,
-            string colonia,
-            string ciudad,
+            string? colonia,
+            string? ciudad,
             string? estado,
             string codigoPostal,
             string? numeroInterior = null)
         {
-            if (string.IsNullOrWhiteSpace(calle))
-                throw new ArgumentException("La calle es obligatoria", nameof(calle));
-
-            if (string.IsNullOrWhiteSpace(colonia))
-                throw new ArgumentException("La colonia es obligatoria", nameof(colonia));
-
-            if (string.IsNullOrWhiteSpace(ciudad))
-                throw new ArgumentException("La ciudad es obligatoria", nameof(ciudad));
-
+            // Solo el CÓDIGO POSTAL es obligatorio
             if (string.IsNullOrWhiteSpace(codigoPostal))
                 throw new ArgumentException("El código postal es obligatorio", nameof(codigoPostal));
 
             if (!EsCodigoPostalValido(codigoPostal))
                 throw new ArgumentException("El código postal debe tener 5 dígitos");
 
-            Calle = calle.Trim();
+            Calle = calle?.Trim();
             NumeroExterior = numeroExterior?.Trim();
             NumeroInterior = numeroInterior?.Trim();
-            Colonia = colonia.Trim();
-            Ciudad = ciudad.Trim();
+            Colonia = colonia?.Trim();
+            Ciudad = ciudad?.Trim();
             Estado = estado?.Trim();
             CodigoPostal = codigoPostal.Trim();
         }
@@ -64,42 +50,52 @@ namespace CotizacionMVC.Models.Valor
 
         public string DireccionCompleta()
         {
-            var direccion = Calle;
+            var partes = new List<string>();
 
-            // Agregar número exterior si existe
-            if (!string.IsNullOrWhiteSpace(NumeroExterior))
-                direccion += $" {NumeroExterior}";
-            else
-                direccion += " S/N";
+            // Calle y número
+            if (!string.IsNullOrWhiteSpace(Calle))
+            {
+                var calleNumero = Calle;
+                if (!string.IsNullOrWhiteSpace(NumeroExterior))
+                    calleNumero += $" {NumeroExterior}";
+                if (!string.IsNullOrWhiteSpace(NumeroInterior))
+                    calleNumero += $" Int. {NumeroInterior}";
+                partes.Add(calleNumero);
+            }
 
-            // Agregar número interior si existe
-            if (!string.IsNullOrWhiteSpace(NumeroInterior))
-                direccion += $" Int. {NumeroInterior}";
+            if (!string.IsNullOrWhiteSpace(Colonia))
+                partes.Add(Colonia);
 
-            direccion += $", {Colonia}, {Ciudad}";
+            if (!string.IsNullOrWhiteSpace(Ciudad))
+                partes.Add(Ciudad);
 
-            // Agregar estado si existe
             if (!string.IsNullOrWhiteSpace(Estado))
-                direccion += $", {Estado}";
+                partes.Add(Estado);
 
-            direccion += $", CP {CodigoPostal}";
-            return direccion;
+            partes.Add($"CP {CodigoPostal}");
+
+            return string.Join(", ", partes);
         }
 
         public string DireccionCorta()
         {
-            var direccion = Calle;
+            var partes = new List<string>();
 
-            if (!string.IsNullOrWhiteSpace(NumeroExterior))
-                direccion += $" {NumeroExterior}";
-            else
-                direccion += " S/N";
+            if (!string.IsNullOrWhiteSpace(Calle))
+            {
+                var calleNumero = Calle;
+                if (!string.IsNullOrWhiteSpace(NumeroExterior))
+                    calleNumero += $" {NumeroExterior}";
+                partes.Add(calleNumero);
+            }
 
-            if (!string.IsNullOrWhiteSpace(NumeroInterior))
-                direccion += $" Int. {NumeroInterior}";
+            if (!string.IsNullOrWhiteSpace(Colonia))
+                partes.Add(Colonia);
 
-            direccion += $", {Colonia}";
-            return direccion;
+            if (!string.IsNullOrWhiteSpace(Ciudad))
+                partes.Add(Ciudad);
+
+            return string.Join(", ", partes);
         }
 
         public override string ToString()
@@ -113,6 +109,14 @@ namespace CotizacionMVC.Models.Valor
                    !string.IsNullOrWhiteSpace(Colonia) &&
                    !string.IsNullOrWhiteSpace(Ciudad) &&
                    !string.IsNullOrWhiteSpace(CodigoPostal);
+        }
+
+        /// <summary>
+        /// Indica si la dirección tiene solo datos básicos (registro telefónico)
+        /// </summary>
+        public bool EsParcial()
+        {
+            return !string.IsNullOrWhiteSpace(CodigoPostal) && !EsCompleta();
         }
     }
 }

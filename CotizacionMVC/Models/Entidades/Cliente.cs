@@ -1,4 +1,5 @@
-﻿using CotizacionMVC.Models.Valor;
+﻿using CotizacionMVC.Models.Enums;
+using CotizacionMVC.Models.Valor;
 
 namespace CotizacionMVC.Models.Entidades
 {
@@ -12,6 +13,17 @@ namespace CotizacionMVC.Models.Entidades
         public DateTime FechaRegistro { get; private set; }
         public string? Observaciones { get; private set; }
         public IReadOnlyCollection<Cotizacion> Cotizaciones => _cotizaciones.AsReadOnly();
+        // Agregar usando: using CotizacionMVC.Models.Enums;
+        public OrigenCliente Origen { get; private set; }
+        public Guid? VendedorAsignadoId { get; private set; }
+        public Guid RegistradoPorId { get; private set; }
+        public DateTime? FechaAsignacion { get; private set; }
+        public DateTime? FechaCotizacion { get; private set; }
+        public MotivoNoCotizable? MotivoNoCotizable { get; private set; }
+        public string? ComentarioNoCotizable { get; private set; }
+        public EstadoCliente Estado { get; private set; }
+        public string Folio { get; private set; }
+
 
 
         // Constructor protegido para EF Core
@@ -21,6 +33,7 @@ namespace CotizacionMVC.Models.Entidades
             Contacto = null!;
             Direccion = null;
             Observaciones = null;
+            Folio = null!;
         }
         public Cliente(string nombre, Contacto contacto)
         {
@@ -56,7 +69,8 @@ namespace CotizacionMVC.Models.Entidades
         // Método para verificar si el cliente tiene dirección registrada
         public bool TieneDireccion()
         {
-            return Direccion != null && Direccion.EsCompleta();
+            return Direccion != null &&
+                       !string.IsNullOrWhiteSpace(Direccion.CodigoPostal);
         }
         public string ObtenerDireccionMostrable()
         {
@@ -72,6 +86,66 @@ namespace CotizacionMVC.Models.Entidades
         public bool TieneContacto()
         {
             return Contacto.TieneMedioDeContacto();
+        }
+
+        public void AsignarVendedor(Guid vendedorId)
+        {
+            VendedorAsignadoId = vendedorId;
+            Estado = EstadoCliente.Asignado;
+            FechaAsignacion = DateTime.UtcNow;
+        }
+
+        public void Contactar()
+        {
+            Estado = EstadoCliente.Contactado;
+        }
+
+        public void MarcarCotizado()
+        {
+            Estado = EstadoCliente.Cotizado;
+            FechaCotizacion = DateTime.UtcNow;
+        }
+
+        public void MarcarNoCotizable(MotivoNoCotizable motivo, string? comentario = null)
+        {
+            Estado = EstadoCliente.NoCotizable;
+            MotivoNoCotizable = motivo;
+            ComentarioNoCotizable = comentario?.Trim();
+        }
+
+        public void ReasignarVendedor(Guid nuevoVendedorId)
+        {
+            VendedorAsignadoId = nuevoVendedorId;
+            FechaAsignacion = DateTime.UtcNow;
+        }
+
+        public void ConfigurarRegistro(OrigenCliente origen, Guid registradoPorId)
+        {
+            if (registradoPorId == Guid.Empty)
+                throw new ArgumentException("El ID de quien registra es obligatorio");
+
+            Origen = origen;
+            RegistradoPorId = registradoPorId;
+
+            // Si ya tiene vendedor, mantener el estado Asignado
+            // Si no tiene vendedor, dejarlo como SinAsignar
+            if (VendedorAsignadoId.HasValue)
+                Estado = EstadoCliente.Asignado;
+            else
+                Estado = EstadoCliente.SinAsignar;
+        }
+
+        public void MarcarPendienteAsignar()
+        {
+            Estado = EstadoCliente.SinAsignar;
+        }
+
+        public void AsignarFolio(string folio)
+        {
+            if (string.IsNullOrWhiteSpace(folio))
+                throw new ArgumentException("El folio es obligatorio");
+
+            Folio = folio;
         }
     }
 }
