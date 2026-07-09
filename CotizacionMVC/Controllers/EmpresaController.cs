@@ -105,6 +105,21 @@ namespace CotizacionMVC.Controllers
             }
         }
 
+        // POST: Empresa/CambiarEmpresaActiva/Todas
+        [HttpPost]
+        public IActionResult VerTodasLasEmpresas(string? returnUrl = null)
+        {
+            HttpContext.Session.Remove("EmpresaActivaId");
+            HttpContext.Session.Remove("EmpresaActivaNombre");
+            HttpContext.Session.Remove("EmpresaActivaSlug");
+            HttpContext.Session.Remove("EmpresaEsExclusivaTrane");
+            HttpContext.Session.Remove("EmpresaColorPrimario");
+            HttpContext.Session.Remove("EmpresaColorSecundario");
+
+            TempData["MensajeExito"] = "Viendo todas las empresas";
+            return RedirectToLocal(returnUrl);
+        }
+
         // POST: Empresa/CambiarEmpresaActiva
         // Cualquier usuario autenticado - Cambia la empresa activa en sesión
         [HttpPost]
@@ -129,6 +144,8 @@ namespace CotizacionMVC.Controllers
             HttpContext.Session.SetString("EmpresaActivaNombre", empresa.NombreComercial);
             HttpContext.Session.SetString("EmpresaActivaSlug", empresa.Slug);
             HttpContext.Session.SetString("EmpresaEsExclusivaTrane", empresa.EsExclusivaTrane.ToString());
+            HttpContext.Session.SetString("EmpresaColorPrimario", empresa.ColorPrimario ?? "#C8102E");
+            HttpContext.Session.SetString("EmpresaColorSecundario", empresa.ColorSecundario ?? "#FFFFFF");
 
             TempData["MensajeExito"] = $"Ahora estás trabajando en: {empresa.NombreComercial}";
             return RedirectToLocal(returnUrl);
@@ -140,7 +157,6 @@ namespace CotizacionMVC.Controllers
 
             if (string.IsNullOrEmpty(empresaIdString))
             {
-                // Si no hay empresa en sesión, obtener la primera activa
                 var primeraEmpresa = await _contextoBaseDatos.Empresas
                     .FirstOrDefaultAsync(e => e.Activa);
 
@@ -150,6 +166,8 @@ namespace CotizacionMVC.Controllers
                     HttpContext.Session.SetString("EmpresaActivaNombre", primeraEmpresa.NombreComercial);
                     HttpContext.Session.SetString("EmpresaActivaSlug", primeraEmpresa.Slug);
                     HttpContext.Session.SetString("EmpresaEsExclusivaTrane", primeraEmpresa.EsExclusivaTrane.ToString());
+                    HttpContext.Session.SetString("EmpresaColorPrimario", primeraEmpresa.ColorPrimario ?? "#C8102E");
+                    HttpContext.Session.SetString("EmpresaColorSecundario", primeraEmpresa.ColorSecundario ?? "#FFFFFF");
                     return primeraEmpresa;
                 }
 
@@ -161,7 +179,6 @@ namespace CotizacionMVC.Controllers
 
             if (empresa == null || !empresa.Activa)
             {
-                // La empresa guardada en sesión ya no es válida
                 HttpContext.Session.Remove("EmpresaActivaId");
                 return await ObtenerEmpresaActual();
             }
@@ -182,5 +199,7 @@ namespace CotizacionMVC.Controllers
             }
             return RedirectToAction("Indice", "Equipo");
         }
+
+
     }
 }

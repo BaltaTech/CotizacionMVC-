@@ -25,12 +25,10 @@ builder.Services.AddControllersWithViews(config =>
 });
 
 // ========== SignalR ==========
-
 builder.Services.AddSignalR();
 
 // ========== Servicios de infraestructura ==========
 builder.Services.AddScoped<NotificacionServicio>();
-
 
 // ========== Servicios de aplicación ==========
 builder.Services.AddScoped<IDocumento, PdfCotizacion>();
@@ -42,12 +40,13 @@ builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
 builder.Services.AddScoped<IEquipoRepository, EquipoRepository>();
 builder.Services.AddScoped<IInstalacionRepository, InstalacionRepository>();
 builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
-builder.Services.AddScoped<RecepcionServicio>(); //
-
 
 // Registrar el DbContext con PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(opciones =>
     opciones.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// ========== Recepción (después del DbContext) ==========
+builder.Services.AddScoped<RecepcionServicio>();
 
 // ========== Configuración de Identity ==========
 builder.Services.AddIdentity<Usuario, IdentityRole<Guid>>(opciones =>
@@ -117,6 +116,5 @@ app.MapControllerRoute(
     pattern: "{controller=Autenticacion}/{action=Login}/{id?}");
 
 app.MapHub<NotificacionHub>("/notificacionHub");
-
 
 app.Run();

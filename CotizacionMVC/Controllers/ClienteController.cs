@@ -59,12 +59,6 @@ namespace CotizacionMVC.Controllers
             return View(cliente);
         }
 
-        // GET: Cliente/Crear
-        public IActionResult Crear()
-        {
-            return View();
-        }
-
         // POST: Cliente/Crear
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -85,14 +79,12 @@ namespace CotizacionMVC.Controllers
         {
             bool hayErrores = false;
 
-            // Validar nombre obligatorio
             if (string.IsNullOrWhiteSpace(nombre))
             {
                 ModelState.AddModelError("nombre", "El nombre del cliente es obligatorio");
                 hayErrores = true;
             }
 
-            // Validar que tenga al menos un medio de contacto
             bool tieneTelefono = !string.IsNullOrWhiteSpace(telefono);
             bool tieneMovil = !string.IsNullOrWhiteSpace(telefonoMovil);
             bool tieneCorreo = !string.IsNullOrWhiteSpace(correo);

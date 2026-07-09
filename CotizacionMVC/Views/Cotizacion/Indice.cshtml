@@ -1,93 +1,327 @@
 ﻿@model IEnumerable<CotizacionMVC.Models.Entidades.Cotizacion>
 
 @{
-    ViewData["Title"] = "Cotizaciones";
+    ViewData["Title"] = "Panel de Ventas";
+    var total = Model.Count();
+    var activas = Model.Count(c => c.Estado != CotizacionMVC.Models.Enums.EstadoCotizacion.Cerrada
+                                && c.Estado != CotizacionMVC.Models.Enums.EstadoCotizacion.Perdida);
+    var enviadas = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCotizacion.CotizacionEnviada);
+    var aceptadas = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCotizacion.Aceptada);
+    var cerradas = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCotizacion.Cerrada);
+    var totalMonto = Model.Sum(c => c.Total.Monto);
+
+    var leads = ViewBag.Leads as List<CotizacionMVC.Models.Entidades.Lead> ?? new List<CotizacionMVC.Models.Entidades.Lead>();
+    var leadsPendientes = leads.Count(l => l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Asignado || l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Contactado);
 }
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-file-invoice"></i> Cotizaciones</h1>
-        <a asp-action="Crear" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Nueva Cotización
-        </a>
+<div class="container-fluid px-4 py-3">
+    
+    @* ========== CABECERA ========== *@
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm">
+                <div>
+                    <h4 class="mb-0" style="color: var(--color-primario, #C8102E);">
+                        <i class="fas fa-briefcase me-2"></i>Panel de Ventas
+                    </h4>
+                    <small class="text-muted">Oportunidades y Cotizaciones</small>
+                </div>
+                <div>
+                    <a asp-action="Crear" class="btn btn-outline-danger me-2">
+                        <i class="fas fa-plus-circle me-1"></i> Nueva Cotización
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
+    @* ========== TARJETAS KPI ========== *@
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, var(--color-primario, #C8102E), var(--color-primario-oscuro, #A00D25));">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-2" style="opacity: 0.8;">Oportunidades</h6>
+                            <h1 class="display-4 fw-bold mb-0">@leads.Count</h1>
+                        </div>
+                        <i class="fas fa-lightbulb fa-3x" style="opacity: 0.3;"></i>
+                    </div>
+                    <small style="opacity: 0.7;">@leadsPendientes pendientes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #FF6B35, #F7931E);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-2" style="opacity: 0.8;">Cotizaciones Activas</h6>
+                            <h1 class="display-4 fw-bold mb-0">@activas</h1>
+                        </div>
+                        <i class="fas fa-spinner fa-3x" style="opacity: 0.3;"></i>
+                    </div>
+                    <small style="opacity: 0.7;">En proceso</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #1A73E8, #4285F4);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-2" style="opacity: 0.8;">Total Cotizaciones</h6>
+                            <h1 class="display-4 fw-bold mb-0">@total</h1>
+                        </div>
+                        <i class="fas fa-file-invoice fa-3x" style="opacity: 0.3;"></i>
+                    </div>
+                    <small style="opacity: 0.7;">@totalMonto.ToString("C") MXN</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #28A745, #20C997);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-2" style="opacity: 0.8;">Cerradas</h6>
+                            <h1 class="display-4 fw-bold mb-0">@cerradas</h1>
+                        </div>
+                        <i class="fas fa-check-double fa-3x" style="opacity: 0.3;"></i>
+                    </div>
+                    <small style="opacity: 0.7;">Completadas</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ========== MENSAJES ========== *@
     @if (TempData["MensajeExito"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle"></i> @TempData["MensajeExito"]
+        <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i> @TempData["MensajeExito"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
-
     @if (TempData["MensajeError"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle"></i> @TempData["MensajeError"]
+        <div class="alert alert-danger border-0 shadow-sm alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i> @TempData["MensajeError"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
-    @if (!Model.Any())
+    @* ========== OPORTUNIDADES (LEADS) ========== *@
+    @if (leads.Any())
     {
-        <div class="alert alert-info text-center">
-            <i class="fas fa-info-circle"></i> No hay cotizaciones registradas.
-            <br />
-            <a asp-action="Crear" class="btn btn-primary mt-2">Crear la primera cotización</a>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-bottom py-3">
+                <div>
+                    <i class="fas fa-lightbulb me-2" style="color: #FF6B35;"></i>
+                    <strong style="color: #FF6B35;">Mis Oportunidades</strong>
+                    <span class="badge bg-warning ms-2">@leads.Count</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead style="background: linear-gradient(135deg, #FF6B35, #F7931E); color: white;">
+                            <tr>
+                                <th class="ps-3">Cliente</th>
+                                <th>Producto</th>
+                                <th>Empresa</th>
+                                <th>Estado</th>
+                                <th>Fecha</th>
+                                <th class="text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var lead in leads)
+                            {
+                                string colorEstado, iconoEstado, textoEstado;
+                                switch (lead.Estado)
+                                {
+                                    case CotizacionMVC.Models.Enums.EstadoCliente.SinAsignar:
+                                        colorEstado = "secondary"; iconoEstado = "fa-clock"; textoEstado = "Sin Asignar"; break;
+                                    case CotizacionMVC.Models.Enums.EstadoCliente.Asignado:
+                                        colorEstado = "warning"; iconoEstado = "fa-user-check"; textoEstado = "Asignado"; break;
+                                    case CotizacionMVC.Models.Enums.EstadoCliente.Contactado:
+                                        colorEstado = "info"; iconoEstado = "fa-phone-alt"; textoEstado = "Contactado"; break;
+                                    case CotizacionMVC.Models.Enums.EstadoCliente.Cotizado:
+                                        colorEstado = "primary"; iconoEstado = "fa-file-invoice"; textoEstado = "Cotizado"; break;
+                                    case CotizacionMVC.Models.Enums.EstadoCliente.NoCotizable:
+                                        colorEstado = "danger"; iconoEstado = "fa-ban"; textoEstado = "No Cotizable"; break;
+                                    case CotizacionMVC.Models.Enums.EstadoCliente.Cerrado:
+                                        colorEstado = "success"; iconoEstado = "fa-check-circle"; textoEstado = "Cerrado"; break;
+                                    default:
+                                        colorEstado = "secondary"; iconoEstado = "fa-circle"; textoEstado = lead.Estado.ToString(); break;
+                                }
+
+                                <tr class="align-middle">
+                                    <td class="ps-3">
+                                        <strong>@(lead.Cliente?.Nombre ?? lead.NombreContacto)</strong>
+                                        <br><small class="text-muted">@lead.Telefono</small>
+                                    </td>
+                                    <td><span class="badge bg-light text-dark">@(lead.ProductoBusca ?? "Sin producto")</span></td>
+                                    <td><small>@lead.Empresa?.NombreComercial</small></td>
+                                    <td><span class="badge bg-@colorEstado"><i class="fas @iconoEstado me-1"></i>@textoEstado</span></td>
+                                    <td><small>@(lead.FechaAsignacion?.ToString("dd/MM/yyyy") ?? lead.FechaCreacion.ToString("dd/MM/yyyy"))</small></td>
+                                    <td class="text-center">
+                                        <a asp-action="Crear" asp-route-leadId="@lead.Id" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-plus-circle me-1"></i> Cotizar
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>N° Cotización</th>
-                        <th>Cliente</th>
-                        <th>Vendedor</th>           
-                        <th>Empresa</th>
-                        <th>Fecha</th>
-                        <th>Total</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var cotizacion in Model)
-                    {
-                        <tr>
-                            <td><strong>@cotizacion.NumeroCotizacion</strong></td>
-                            <td>@cotizacion.Cliente?.Nombre</td>
-                            <td>@cotizacion.Vendedor?.NombreCompleto</td>   
-                            <td>@cotizacion.Empresa?.NombreComercial</td>
-                            <td>@cotizacion.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy")</td>
-                            <td>@cotizacion.Total.ToString()</td>
-                            <td>
-                                @{
-                                    var porcentaje = cotizacion.ObtenerPorcentajeEstado();
-                                    string colorBadge = porcentaje >= 90 ? "success" : (porcentaje >= 50 ? "warning" : "info");
-                                }
-                                <span class="badge bg-@colorBadge">@porcentaje% - @cotizacion.Estado</span>
-                            </td>
-                            <td>
-                                <a asp-action="Detalles" asp-route-id="@cotizacion.Id" class="btn btn-sm btn-info" title="Detalles">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                @if (cotizacion.PuedeSerModificada())
-                                {
-                                    <a asp-action="Editar" asp-route-id="@cotizacion.Id" class="btn btn-sm btn-warning" title="Editar">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body text-center py-4">
+                <i class="fas fa-lightbulb fa-3x mb-2" style="opacity: 0.2; color: #FF6B35;"></i>
+                <h6 class="text-muted">No tienes oportunidades asignadas</h6>
+                <small class="text-muted">Recepcion te asignará clientes para cotizar</small>
+            </div>
         </div>
     }
+
+    @* ========== TABLA DE COTIZACIONES ========== *@
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+            <div>
+                <i class="fas fa-list-ul me-2" style="color: var(--color-primario, #C8102E);"></i>
+                <strong style="color: var(--color-primario, #C8102E);">Cotizaciones</strong>
+                <span class="badge bg-danger ms-2">@total</span>
+            </div>
+            <div class="input-group input-group-sm" style="width: 280px;">
+                <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" placeholder="Buscar cotización..." id="buscarCotizacion">
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-file-invoice fa-5x mb-3" style="opacity: 0.2; color: var(--color-primario, #C8102E);"></i>
+                    <h5 class="text-muted">No hay cotizaciones registradas</h5>
+                    <a asp-action="Crear" class="btn btn-danger mt-2">
+                        <i class="fas fa-plus-circle me-2"></i> Nueva Cotización
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="tablaCotizaciones">
+                        <thead style="background: linear-gradient(135deg, var(--color-primario, #C8102E), var(--color-primario-oscuro, #A00D25)); color: white;">
+                            <tr>
+                                <th class="ps-3">N°</th>
+                                <th>Cliente</th>
+                                <th>Empresa</th>
+                                <th>Fecha</th>
+                                <th class="text-end">Total</th>
+                                <th class="text-center">Estado</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var cotizacion in Model)
+                            {
+                                var porcentaje = cotizacion.ObtenerPorcentajeEstado();
+                                string colorBadge, iconoEstado, textoEstado;
+                                switch (cotizacion.Estado)
+                                {
+                                    case CotizacionMVC.Models.Enums.EstadoCotizacion.InformacionSolicitada:
+                                        colorBadge = "info"; iconoEstado = "fa-search"; textoEstado = "Info. Solicitada"; break;
+                                    case CotizacionMVC.Models.Enums.EstadoCotizacion.CotizacionEnviada:
+                                        colorBadge = "primary"; iconoEstado = "fa-paper-plane"; textoEstado = "Enviada"; break;
+                                    case CotizacionMVC.Models.Enums.EstadoCotizacion.PreguntaInstalacion:
+                                        colorBadge = "warning"; iconoEstado = "fa-tools"; textoEstado = "Consulta Inst."; break;
+                                    case CotizacionMVC.Models.Enums.EstadoCotizacion.NegociandoPrecio:
+                                        colorBadge = "warning"; iconoEstado = "fa-comments-dollar"; textoEstado = "Negociando"; break;
+                                    case CotizacionMVC.Models.Enums.EstadoCotizacion.FechaTentativa:
+                                        colorBadge = "info"; iconoEstado = "fa-calendar-check"; textoEstado = "Fecha Tent."; break;
+                                    case CotizacionMVC.Models.Enums.EstadoCotizacion.Aceptada:
+                                        colorBadge = "success"; iconoEstado = "fa-check-circle"; textoEstado = "Aceptada"; break;
+                                    case CotizacionMVC.Models.Enums.EstadoCotizacion.PagoAnticipo:
+                                        colorBadge = "success"; iconoEstado = "fa-money-bill-wave"; textoEstado = "Pago Ant."; break;
+                                    case CotizacionMVC.Models.Enums.EstadoCotizacion.Cerrada:
+                                        colorBadge = "dark"; iconoEstado = "fa-check-double"; textoEstado = "Cerrada"; break;
+                                    case CotizacionMVC.Models.Enums.EstadoCotizacion.Perdida:
+                                        colorBadge = "danger"; iconoEstado = "fa-times-circle"; textoEstado = "Perdida"; break;
+                                    default:
+                                        colorBadge = "secondary"; iconoEstado = "fa-circle"; textoEstado = cotizacion.Estado.ToString(); break;
+                                }
+
+                                <tr class="align-middle">
+                                    <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">@cotizacion.NumeroCotizacion</span></td>
+                                    <td>
+                                        <strong>@cotizacion.Cliente?.Nombre</strong>
+                                        @if (cotizacion.Cliente?.Contacto?.Telefono != null)
+                                        {
+                                            <br><small class="text-muted"><i class="fas fa-phone-alt me-1"></i>@cotizacion.Cliente.Contacto.Telefono</small>
+                                        }
+                                    </td>
+                                    <td><span class="badge bg-light text-dark">@cotizacion.Empresa?.NombreComercial</span></td>
+                                    <td><small>@cotizacion.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy")</small></td>
+                                    <td class="text-end"><strong>@cotizacion.Total.ToString()</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-@colorBadge py-2 px-3"><i class="fas @iconoEstado me-1"></i>@textoEstado</span>
+                                        <div class="progress mt-1" style="height: 4px;"><div class="progress-bar bg-@colorBadge" style="width: @porcentaje%;"></div></div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <a asp-action="Detalles" asp-route-id="@cotizacion.Id" class="btn btn-outline-secondary" title="Ver" data-bs-toggle="tooltip"><i class="fas fa-eye"></i></a>
+                                            <a asp-action="DescargarPdf" asp-route-id="@cotizacion.Id" class="btn btn-outline-danger" title="PDF" data-bs-toggle="tooltip"><i class="fas fa-file-pdf"></i></a>
+                                            @if (cotizacion.PuedeSerModificada())
+                                            {
+                                                <a asp-action="Editar" asp-route-id="@cotizacion.Id" class="btn btn-outline-warning" title="Editar" data-bs-toggle="tooltip"><i class="fas fa-edit"></i></a>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+        @if (Model.Any())
+        {
+            <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+                <small class="text-muted"><i class="fas fa-sync-alt me-1"></i> Actualizado: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</small>
+                <small class="text-muted">Mostrando @total cotización(es)</small>
+            </div>
+        }
+    </div>
 </div>
 
 @section Styles {
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        .card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.12) !important; }
+        .table-hover tbody tr:hover { background-color: rgba(200, 16, 46, 0.04) !important; }
+        .btn-danger { background: linear-gradient(135deg, var(--color-primario, #C8102E), var(--color-primario-oscuro, #A00D25)); border: none; transition: all 0.3s ease; }
+        .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(200, 16, 46, 0.3); }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('[data-bs-toggle="tooltip"]').tooltip();
+            $('#buscarCotizacion').on('keyup', function() {
+                var value = $(this).val().toLowerCase();
+                $('#tablaCotizaciones tbody tr').filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+                });
+            });
+        });
+    </script>
 }

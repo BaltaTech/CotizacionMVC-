@@ -8,18 +8,27 @@ namespace CotizacionMVC.Models.Entidades
         public Guid EmpresaId { get; private set; }
         public virtual Empresa Empresa { get; private set; }
         public Guid? VendedorAsignadoId { get; private set; }
-        public virtual Usuario? VendedorAsignado { get; private set; }  
+        public virtual Usuario? VendedorAsignado { get; private set; }
+        public Guid? ClienteId { get; private set; }
+        public virtual Cliente? Cliente { get; private set; }
         public string NombreContacto { get; private set; }
-        public string? Telefono { get; private set; }  
-        public string? CorreoElectronico { get; private set; }  
-        public string? EmpresaCliente { get; private set; }  
+        public string? Telefono { get; private set; }
+        public string? CorreoElectronico { get; private set; }
+        public string? EmpresaCliente { get; private set; }
         public CategoriaLead Categoria { get; private set; }
         public string Origen { get; private set; }
         public DateTime FechaCreacion { get; private set; }
         public DateTime? FechaAsignacion { get; private set; }
-        public string? ComentariosInternos { get; private set; }   
+        public string? ComentariosInternos { get; private set; }
 
-        // Constructor protegido para EF Core
+        // ========== NUEVOS CAMPOS ==========
+        public string? ProductoBusca { get; private set; }
+        public EstadoCliente Estado { get; private set; }
+        public MotivoNoCotizable? MotivoNoCotizable { get; private set; }
+        public string? ComentarioNoCotizable { get; private set; }
+        public DateTime? FechaContacto { get; private set; }
+        public DateTime? FechaCotizacion { get; private set; }
+
         protected Lead()
         {
             Empresa = null!;
@@ -30,6 +39,9 @@ namespace CotizacionMVC.Models.Entidades
             EmpresaCliente = null;
             ComentariosInternos = null;
             VendedorAsignado = null;
+            Cliente = null;
+            ProductoBusca = null;
+            ComentarioNoCotizable = null;
         }
 
         public Lead(
@@ -64,10 +76,16 @@ namespace CotizacionMVC.Models.Entidades
             Categoria = categoria;
             Origen = origen.Trim();
             FechaCreacion = DateTime.UtcNow;
+            Estado = EstadoCliente.SinAsignar;
             EmpresaCliente = null;
             ComentariosInternos = null;
             VendedorAsignado = null;
+            Cliente = null;
+            ProductoBusca = null;
+            ComentarioNoCotizable = null;
         }
+
+        // ========== MÉTODOS EXISTENTES ==========
 
         public void AsignarVendedor(Usuario vendedor)
         {
@@ -80,6 +98,7 @@ namespace CotizacionMVC.Models.Entidades
             VendedorAsignado = vendedor;
             VendedorAsignadoId = vendedor.Id;
             FechaAsignacion = DateTime.UtcNow;
+            Estado = EstadoCliente.Asignado;
         }
 
         public void ActualizarCategoria(CategoriaLead nuevaCategoria)
@@ -122,6 +141,64 @@ namespace CotizacionMVC.Models.Entidades
         public bool EsLeadCaliente()
         {
             return Categoria == CategoriaLead.Caliente || Categoria == CategoriaLead.Calificado;
+        }
+
+        // ========== NUEVOS MÉTODOS ==========
+
+        public void VincularCliente(Cliente cliente)
+        {
+            if (cliente == null)
+                throw new ArgumentNullException(nameof(cliente));
+
+            Cliente = cliente;
+            ClienteId = cliente.Id;
+        }
+
+        public void EstablecerProducto(string productoBusca)
+        {
+            if (string.IsNullOrWhiteSpace(productoBusca))
+                throw new ArgumentException("El producto es obligatorio");
+
+            ProductoBusca = productoBusca.Trim();
+        }
+
+        public void MarcarContactado()
+        {
+            Estado = EstadoCliente.Contactado;
+            FechaContacto = DateTime.UtcNow;
+        }
+
+        public void MarcarCotizado()
+        {
+            Estado = EstadoCliente.Cotizado;
+            FechaCotizacion = DateTime.UtcNow;
+        }
+
+        public void MarcarNoCotizable(MotivoNoCotizable motivo, string? comentario = null)
+        {
+            Estado = EstadoCliente.NoCotizable;
+            MotivoNoCotizable = motivo;
+            ComentarioNoCotizable = comentario?.Trim();
+        }
+
+        public void MarcarCerrado()
+        {
+            Estado = EstadoCliente.Cerrado;
+        }
+
+        public void MarcarPerdido()
+        {
+            Estado = EstadoCliente.Perdido;
+        }
+
+        public void ReasignarVendedor(Usuario nuevoVendedor)
+        {
+            if (nuevoVendedor == null)
+                throw new ArgumentNullException(nameof(nuevoVendedor));
+
+            VendedorAsignado = nuevoVendedor;
+            VendedorAsignadoId = nuevoVendedor.Id;
+            FechaAsignacion = DateTime.UtcNow;
         }
     }
 }

@@ -4,42 +4,83 @@
     ViewData["Title"] = "Registrar Cliente";
 }
 
-<div class="container-fluid">
-    <div class="row">
+<div class="container-fluid px-4 py-3">
+    
+    @* ========== CABECERA ========== *@
+    <div class="row mb-4">
         <div class="col-12">
-            <h4 class="mb-3">
-                <i class="bi bi-person-plus"></i> Registrar Cliente
-            </h4>
-            <hr />
+            <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm">
+                <div>
+                    <h4 class="mb-0" style="color: #C8102E;">
+                        <i class="fas fa-user-plus me-2"></i>Registrar Nuevo Cliente
+                    </h4>
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>Complete los datos del cliente entrante
+                    </small>
+                </div>
+                <a asp-action="Indice" class="btn btn-outline-danger">
+                    <i class="fas fa-arrow-left me-1"></i> Volver al Panel
+                </a>
+            </div>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-md-8">
+        @* ========== FORMULARIO PRINCIPAL ========== *@
+        <div class="col-lg-8">
             <form asp-action="Registrar" method="post" id="formRegistrarCliente">
                 @Html.AntiForgeryToken()
 
+                @* Validaciones *@
                 @if (!ViewData.ModelState.IsValid)
                 {
-                    <div class="alert alert-danger">
-                        <ul>
-                            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                            {
-                                <li>@error.ErrorMessage</li>
-                            }
-                        </ul>
+                    <div class="alert alert-danger border-0 shadow-sm animate__animated animate__shakeX">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                            <div>
+                                <strong>Corrija los siguientes errores:</strong>
+                                <ul class="mb-0 mt-1">
+                                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                    {
+                                        <li>@error.ErrorMessage</li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 }
 
-                @* DATOS DEL CLIENTE *@
-                <div class="card mb-3">
-                    <div class="card-header bg-primary text-white">
-                        <i class="bi bi-person"></i> Datos del Cliente
+                @* Mensaje de cliente duplicado *@
+                @if (TempData["ClienteExistenteNombre"] != null)
+                {
+                    <div class="alert alert-warning border-0 shadow-sm animate__animated animate__pulse">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-copy fa-2x me-3"></i>
+                            <div>
+                                <strong>¡Cliente ya registrado!</strong>
+                                <p class="mb-0">
+                                    @TempData["ClienteExistenteNombre"] - Folio: 
+                                    <span class="badge bg-dark">@TempData["ClienteExistenteFolio"]</span>
+                                    - Fecha: @TempData["ClienteExistenteFecha"]
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="EmpresaId" class="form-label">Empresa <span class="text-danger">*</span></label>
+                }
+
+                @* DATOS DE LA EMPRESA *@
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header py-3" style="background: linear-gradient(135deg, #C8102E, #E63946);">
+                        <h5 class="mb-0 text-white">
+                            <i class="fas fa-building me-2"></i>Datos de la Empresa
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="EmpresaId" class="form-label fw-bold small text-uppercase text-muted">
+                                    Empresa <span class="text-danger">*</span>
+                                </label>
                                 <select asp-for="EmpresaId" class="form-select" required>
                                     <option value="">-- Seleccione Empresa --</option>
                                     @if (ViewBag.Empresas != null)
@@ -50,120 +91,205 @@
                                         }
                                     }
                                 </select>
-                                <span asp-validation-for="EmpresaId" class="text-danger"></span>
+                                <span asp-validation-for="EmpresaId" class="text-danger small"></span>
                             </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="Origen" class="form-label">Origen <span class="text-danger">*</span></label>
+                            <div class="col-md-6">
+                                <label asp-for="Origen" class="form-label fw-bold small text-uppercase text-muted">
+                                    Origen <span class="text-danger">*</span>
+                                </label>
                                 <select asp-for="Origen" class="form-select">
                                     <option value="">-- Seleccione Origen --</option>
-                                    <option value="1">Llamada</option>
-                                    <option value="2">WhatsApp</option>
-                                    <option value="5">Formulario</option>
-                                    <option value="6">Referencia</option>
+                                    <option value="1">📞 Llamada</option>
+                                    <option value="2">💬 WhatsApp</option>
+                                    <option value="5">🌐 Formulario Web</option>
+                                    <option value="6">🤝 Referencia</option>
                                 </select>
-                                <span asp-validation-for="Origen" class="text-danger"></span>
+                                <span asp-validation-for="Origen" class="text-danger small"></span>
                             </div>
+                        </div>
+                    </div>
+                </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="Nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
-                                <input asp-for="Nombre" class="form-control" placeholder="Nombre completo" required />
-                                <span asp-validation-for="Nombre" class="text-danger"></span>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="Telefono" class="form-label">Teléfono <span class="text-danger">*</span></label>
+                @* DATOS DEL CLIENTE *@
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header py-3" style="background: linear-gradient(135deg, #C8102E, #E63946);">
+                        <h5 class="mb-0 text-white">
+                            <i class="fas fa-user me-2"></i>Información del Cliente
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label asp-for="Nombre" class="form-label fw-bold small text-uppercase text-muted">
+                                    Nombre Completo <span class="text-danger">*</span>
+                                </label>
                                 <div class="input-group">
-                                    <input asp-for="Telefono" class="form-control" placeholder="55-1234-5678" required />
-                                    <button type="button" class="btn btn-outline-secondary" id="btnBuscarCliente">
-                                        <i class="bi bi-search"></i> Buscar
+                                    <span class="input-group-text bg-white border-end-0">
+                                        <i class="fas fa-user text-muted"></i>
+                                    </span>
+                                    <input asp-for="Nombre" class="form-control border-start-0" 
+                                           placeholder="Ej. Juan Pérez García" required />
+                                </div>
+                                <span asp-validation-for="Nombre" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label asp-for="EmpresaCliente" class="form-label fw-bold small text-uppercase text-muted">
+                                    Empresa del Cliente
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0">
+                                        <i class="fas fa-briefcase text-muted"></i>
+                                    </span>
+                                    <input asp-for="EmpresaCliente" class="form-control border-start-0" 
+                                           placeholder="Opcional" />
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="Telefono" class="form-label fw-bold small text-uppercase text-muted">
+                                    Teléfono <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0">
+                                        <i class="fas fa-phone text-muted"></i>
+                                    </span>
+                                    <input asp-for="Telefono" class="form-control border-start-0" 
+                                           placeholder="55-1234-5678" required id="inputTelefono" />
+                                    <button type="button" class="btn btn-outline-danger" id="btnBuscarCliente"
+                                            data-bs-toggle="tooltip" title="Verificar si ya existe">
+                                        <i class="fas fa-search"></i>
                                     </button>
                                 </div>
-                                <span asp-validation-for="Telefono" class="text-danger"></span>
+                                <span asp-validation-for="Telefono" class="text-danger small"></span>
                                 <div id="resultadoBusqueda" class="mt-2"></div>
                             </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="Correo" class="form-label">Correo Electrónico</label>
-                                <input asp-for="Correo" class="form-control" placeholder="correo@ejemplo.com" />
-                                <span asp-validation-for="Correo" class="text-danger"></span>
+                            <div class="col-md-6">
+                                <label asp-for="Correo" class="form-label fw-bold small text-uppercase text-muted">
+                                    Correo Electrónico
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0">
+                                        <i class="fas fa-envelope text-muted"></i>
+                                    </span>
+                                    <input asp-for="Correo" class="form-control border-start-0" 
+                                           placeholder="correo@ejemplo.com" />
+                                </div>
+                                <span asp-validation-for="Correo" class="text-danger small"></span>
                             </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="EmpresaCliente" class="form-label">Empresa del Cliente</label>
-                                <input asp-for="EmpresaCliente" class="form-control" placeholder="Nombre de la empresa" />
-                                <span asp-validation-for="EmpresaCliente" class="text-danger"></span>
+                            <div class="col-md-4">
+                                <label asp-for="CodigoPostal" class="form-label fw-bold small text-uppercase text-muted">
+                                    Código Postal <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0">
+                                        <i class="fas fa-map-pin text-danger"></i>
+                                    </span>
+                                    <input asp-for="CodigoPostal" class="form-control border-start-0" 
+                                           placeholder="Ej. 03100" maxlength="10" required />
+                                </div>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>Validamos cobertura
+                                </small>
+                                <span asp-validation-for="CodigoPostal" class="text-danger small"></span>
                             </div>
 
-                            @* CÓDIGO POSTAL (NUEVO CAMPO PRINCIPAL) *@
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="CodigoPostal" class="form-label">Código Postal <span class="text-danger">*</span></label>
-                                <input asp-for="CodigoPostal" class="form-control" placeholder="Ej. 03100" maxlength="10" required />
-                                <small class="text-muted">Con el CP validamos cobertura y ubicación</small>
-                                <span asp-validation-for="CodigoPostal" class="text-danger"></span>
+                            <div class="col-md-4">
+                                <label asp-for="Ciudad" class="form-label fw-bold small text-uppercase text-muted">
+                                    Ciudad
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0">
+                                        <i class="fas fa-city text-muted"></i>
+                                    </span>
+                                    <input asp-for="Ciudad" class="form-control border-start-0" 
+                                           placeholder="Opcional" />
+                                </div>
+                                <span asp-validation-for="Ciudad" class="text-danger small"></span>
                             </div>
 
-                            @* CIUDAD (AHORA OPCIONAL) *@
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="Ciudad" class="form-label">Ciudad</label>
-                                <input asp-for="Ciudad" class="form-control" placeholder="Opcional" />
-                                <span asp-validation-for="Ciudad" class="text-danger"></span>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <div class="form-check form-switch w-100">
+                                    <div class="p-3 bg-light rounded-3 border w-100">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <span class="fw-bold small text-uppercase text-muted">
+                                                <i class="fas fa-snowflake text-danger me-1"></i>Cliente Frío
+                                            </span>
+                                            <input class="form-check-input ms-2" type="checkbox" id="clienteFrio"
+                                                   style="width: 45px; height: 24px; cursor: pointer;">
+                                        </div>
+                                        <small class="text-muted">Cliente potencial HVAC</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 @* PRODUCTO *@
-                <div class="card mb-3">
-                    <div class="card-header bg-info text-white">
-                        <i class="bi bi-box"></i> Producto que Busca
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header py-3" style="background: linear-gradient(135deg, #C8102E, #E63946);">
+                        <h5 class="mb-0 text-white">
+                            <i class="fas fa-box me-2"></i>Producto de Interés
+                        </h5>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="ProductoBusca" class="form-label">Producto <span class="text-danger">*</span></label>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="ProductoBusca" class="form-label fw-bold small text-uppercase text-muted">
+                                    Producto <span class="text-danger">*</span>
+                                </label>
                                 <select asp-for="ProductoBusca" class="form-select" required>
                                     <option value="">-- Seleccione Producto --</option>
-                                    <option value="Minisplit 1-5 TR">Minisplit (1-5 TR)</option>
-                                    <option value="Paquete 5-10 TR">Paquete (5-10 TR)</option>
-                                    <option value="Sistema VRV/VRF">Sistema VRV / VRF</option>
-                                    <option value="Rooftop">Rooftop</option>
-                                    <option value="Chiller">Chiller</option>
-                                    <option value="Ductos y Difusores">Ductos y Difusores</option>
-                                    <option value="Instalación Eléctrica">Instalación Eléctrica</option>
-                                    <option value="Mantenimiento">Mantenimiento</option>
-                                    <option value="Compresores">Compresores</option>
-                                    <option value="Otro">Otro</option>
+                                    <option value="Minisplit 1-5 TR">❄️ Minisplit (1-5 TR)</option>
+                                    <option value="Paquete 5-10 TR">📦 Paquete (5-10 TR)</option>
+                                    <option value="Sistema VRV/VRF">🏢 Sistema VRV / VRF</option>
+                                    <option value="Rooftop">🏗️ Rooftop</option>
+                                    <option value="Chiller">🧊 Chiller</option>
+                                    <option value="Ductos y Difusores">💨 Ductos y Difusores</option>
+                                    <option value="Instalación Eléctrica">⚡ Instalación Eléctrica</option>
+                                    <option value="Mantenimiento">🔧 Mantenimiento</option>
+                                    <option value="Compresores">⚙️ Compresores</option>
+                                    <option value="Otro">📋 Otro</option>
                                 </select>
-                                <span asp-validation-for="ProductoBusca" class="text-danger"></span>
+                                <span asp-validation-for="ProductoBusca" class="text-danger small"></span>
                             </div>
 
-                            <div class="col-md-12 mb-3">
-                                <label asp-for="Comentarios" class="form-label">Comentarios / Observaciones</label>
+                            <div class="col-md-12">
+                                <label asp-for="Comentarios" class="form-label fw-bold small text-uppercase text-muted">
+                                    Comentarios / Observaciones
+                                </label>
                                 <textarea asp-for="Comentarios" class="form-control" rows="3"
-                                          placeholder="Información adicional..."></textarea>
-                                <span asp-validation-for="Comentarios" class="text-danger"></span>
+                                          placeholder="Información adicional sobre lo que busca el cliente..."></textarea>
+                                <span asp-validation-for="Comentarios" class="text-danger small"></span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                @* ASIGNACIÓN *@
-                <div class="card mb-3">
-                    <div class="card-header bg-success text-white">
-                        <i class="bi bi-person-check"></i> Asignación de Vendedor
+                @* ASIGNACIÓN DE VENDEDOR *@
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header py-3" style="background: linear-gradient(135deg, #C8102E, #E63946);">
+                        <h5 class="mb-0 text-white">
+                            <i class="fas fa-user-check me-2"></i>Asignación de Vendedor
+                        </h5>
                     </div>
-                    <div class="card-body">
-                        <div class="form-check mb-3">
-                            <input asp-for="AsignarAhora" class="form-check-input" type="checkbox" id="chkAsignarAhora" />
-                            <label asp-for="AsignarAhora" class="form-check-label">Asignar vendedor ahora</label>
+                    <div class="card-body p-4">
+                        <div class="form-check form-switch mb-3">
+                            <input asp-for="AsignarAhora" class="form-check-input" type="checkbox" 
+                                   id="chkAsignarAhora" style="width: 50px; height: 25px; cursor: pointer;">
+                            <label asp-for="AsignarAhora" class="form-check-label fw-bold ms-2">
+                                Asignar vendedor ahora mismo
+                            </label>
                         </div>
 
                         <div id="seccionVendedor" style="display: none;">
-                            <div class="col-md-6">
-                                <label asp-for="VendedorAsignadoId" class="form-label">Vendedor</label>
+                            <div class="col-md-8">
                                 <select asp-for="VendedorAsignadoId" class="form-select">
-                                    <option value="">-- Seleccione Vendedor --</option>
+                                    <option value="">-- Seleccione un Vendedor --</option>
                                     @if (ViewBag.Vendedores != null)
                                     {
                                         foreach (var vendedor in ViewBag.Vendedores)
@@ -172,37 +298,179 @@
                                         }
                                     }
                                 </select>
-                                <span asp-validation-for="VendedorAsignadoId" class="text-danger"></span>
+                                <span asp-validation-for="VendedorAsignadoId" class="text-danger small"></span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 @* BOTONES *@
-                <div class="mb-4">
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="bi bi-check-circle"></i> Guardar Cliente
+                <div class="d-flex gap-2 mb-5">
+                    <button type="submit" class="btn btn-danger btn-lg px-4 shadow-sm">
+                        <i class="fas fa-save me-2"></i>Guardar Cliente
                     </button>
-                    <a href="#" class="btn btn-secondary btn-lg">
-                        <i class="bi bi-x-circle"></i> Cancelar
+                    <a asp-action="Indice" class="btn btn-outline-secondary btn-lg px-4">
+                        <i class="fas fa-times me-2"></i>Cancelar
                     </a>
+                    <button type="reset" class="btn btn-outline-danger btn-lg px-4 ms-auto">
+                        <i class="fas fa-undo me-2"></i>Limpiar Formulario
+                    </button>
                 </div>
             </form>
         </div>
 
-        @* PANEL LATERAL *@
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header bg-secondary text-white">
-                    <i class="bi bi-clock-history"></i> Últimos Registros
+        @* ========== PANEL LATERAL ========== *@
+        <div class="col-lg-4">
+            
+            @* TARJETA DE CLIMA *@
+            <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #C8102E, #E63946);">
+                <div class="card-body text-white text-center py-4">
+                    <i class="fas fa-temperature-low fa-3x mb-3" style="opacity: 0.5;"></i>
+                    <h5>HVAC Pro</h5>
+                    <p class="mb-0 small" style="opacity: 0.8;">
+                        Sistema de Recepción de Clientes
+                    </p>
+                    <hr style="border-color: rgba(255,255,255,0.3);">
+                    <div class="d-flex justify-content-around">
+                        <div>
+                            <i class="fas fa-snowflake fa-2x mb-2"></i>
+                            <br><small>Enfriamiento</small>
+                        </div>
+                        <div>
+                            <i class="fas fa-fire fa-2x mb-2"></i>
+                            <br><small>Calefacción</small>
+                        </div>
+                        <div>
+                            <i class="fas fa-wind fa-2x mb-2"></i>
+                            <br><small>Ventilación</small>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body" id="ultimosRegistros">
-                    <p class="text-muted">Cargando...</p>
+            </div>
+
+            @* ÚLTIMOS REGISTROS *@
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header py-3" style="background: linear-gradient(135deg, #C8102E, #E63946);">
+                    <h5 class="mb-0 text-white">
+                        <i class="fas fa-history me-2"></i>Últimos Registros
+                    </h5>
+                </div>
+                <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                    <div id="ultimosRegistros" class="p-3">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-danger" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p class="text-muted mt-2 mb-0">Cargando registros...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* CONSEJOS *@
+            <div class="card border-0 shadow-sm">
+                <div class="card-header py-3 bg-white border-bottom">
+                    <h5 class="mb-0" style="color: #C8102E;">
+                        <i class="fas fa-lightbulb me-2"></i>Consejos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-3 pb-3 border-bottom">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>Verifique el teléfono antes de guardar</small>
+                        </li>
+                        <li class="mb-3 pb-3 border-bottom">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>Asigne vendedor para seguimiento inmediato</small>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>El CP es obligatorio para validar cobertura</small>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Styles {
+    <style>
+        .form-control:focus, .form-select:focus {
+            border-color: #C8102E;
+            box-shadow: 0 0 0 0.2rem rgba(200, 16, 46, 0.15);
+        }
+
+        .form-check-input:checked {
+            background-color: #C8102E;
+            border-color: #C8102E;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #C8102E, #E63946);
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #A00D25, #C8102E);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(200, 16, 46, 0.3);
+        }
+
+        .btn-outline-danger {
+            color: #C8102E;
+            border-color: #C8102E;
+        }
+
+        .btn-outline-danger:hover {
+            background-color: #C8102E;
+            color: white;
+        }
+
+        .card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+        }
+
+        #ultimosRegistros::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #ultimosRegistros::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        #ultimosRegistros::-webkit-scrollbar-thumb {
+            background: #C8102E;
+            border-radius: 3px;
+        }
+
+        .form-switch .form-check-input:checked {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+
+        @@keyframes shakeX {
+            from, to { transform: translate3d(0, 0, 0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate3d(-5px, 0, 0); }
+            20%, 40%, 60%, 80% { transform: translate3d(5px, 0, 0); }
+        }
+
+        .animate__animated {
+            animation-duration: 0.5s;
+        }
+
+        .animate__shakeX {
+            animation-name: shakeX;
+        }
+    </style>
+}
 
 @section Scripts {
     @{
@@ -212,38 +480,128 @@
     <script>
         $(document).ready(function() {
             
+            // Tooltips
+            $('[data-bs-toggle="tooltip"]').tooltip();
+
+            // Mostrar/ocultar sección vendedor
             $('#chkAsignarAhora').change(function() {
                 if ($(this).is(':checked')) {
-                    $('#seccionVendedor').slideDown();
+                    $('#seccionVendedor').slideDown(300);
                 } else {
-                    $('#seccionVendedor').slideUp();
+                    $('#seccionVendedor').slideUp(300);
                 }
             });
 
+            // Buscar cliente por teléfono
             $('#btnBuscarCliente').click(function() {
-                var telefono = $('#Telefono').val();
+                var telefono = $('#inputTelefono').val();
                 if (!telefono) {
-                    alert('Ingrese un número de teléfono para buscar');
+                    mostrarAlertaBusqueda('warning', 'Ingrese un número de teléfono para buscar');
                     return;
                 }
 
+                var btn = $(this);
+                btn.prop('disabled', true);
+                btn.html('<i class="fas fa-spinner fa-spin"></i>');
+
                 $.get('/Recepcion/BuscarCliente', { telefono: telefono }, function(data) {
                     if (data && data.length > 0) {
-                        var html = '<div class="alert alert-warning"><strong>¡Cliente existente!</strong><ul>';
+                        var html = '<div class="alert alert-warning border-0 shadow-sm animate__animated animate__fadeIn">';
+                        html += '<div class="d-flex align-items-center">';
+                        html += '<i class="fas fa-exclamation-triangle fa-2x me-3"></i>';
+                        html += '<div>';
+                        html += '<strong>¡Cliente ya registrado!</strong>';
+                        html += '<ul class="mb-0 mt-1">';
                         $.each(data, function(i, cliente) {
-                            html += '<li>' + cliente.nombre + ' - ' + cliente.telefono;
-                            if (cliente.correo) html += ' (' + cliente.correo + ')';
+                            html += '<li><strong>' + cliente.nombre + '</strong> - 📱 ' + cliente.telefono;
+                            if (cliente.correo) html += ' - ✉️ ' + cliente.correo;
                             html += '</li>';
                         });
-                        html += '</ul></div>';
+                        html += '</ul></div></div></div>';
                         $('#resultadoBusqueda').html(html);
                     } else {
-                        $('#resultadoBusqueda').html('<div class="alert alert-success">Cliente nuevo</div>');
+                        $('#resultadoBusqueda').html(
+                            '<div class="alert alert-success border-0 shadow-sm animate__animated animate__fadeIn">' +
+                            '<i class="fas fa-check-circle me-2"></i>' +
+                            '<strong>Cliente nuevo</strong> - No se encontraron registros con este teléfono' +
+                            '</div>'
+                        );
                     }
+                }).fail(function() {
+                    mostrarAlertaBusqueda('danger', 'Error al buscar cliente');
+                }).always(function() {
+                    btn.prop('disabled', false);
+                    btn.html('<i class="fas fa-search"></i>');
                 });
             });
 
-            $('#ultimosRegistros').html('<p class="text-muted">Próximamente: últimos clientes registrados</p>');
+            // Cargar últimos registros
+            cargarUltimosRegistros();
+
+            // Efecto de nieve en el panel lateral
+            crearEfectoNieve();
         });
+
+        function mostrarAlertaBusqueda(tipo, mensaje) {
+            var iconos = {
+                warning: '⚠️',
+                danger: '❌',
+                success: '✅'
+            };
+            $('#resultadoBusqueda').html(
+                '<div class="alert alert-' + tipo + ' border-0 shadow-sm">' +
+                '<strong>' + (iconos[tipo] || '') + ' ' + mensaje + '</strong>' +
+                '</div>'
+            );
+        }
+
+        function cargarUltimosRegistros() {
+            $.get('/Recepcion/UltimosRegistros', function(data) {
+                if (data && data.length > 0) {
+                    var html = '';
+                    $.each(data, function(i, cliente) {
+                        var badgeColor = getBadgeColor(cliente.estado);
+                        html += '<div class="border-bottom pb-2 mb-2">';
+                        html += '<div class="d-flex justify-content-between align-items-start">';
+                        html += '<div>';
+                        html += '<strong style="font-size: 0.9rem;">' + cliente.nombre + '</strong>';
+                        html += '<br><small class="text-muted">📱 ' + (cliente.telefono || 'N/A') + '</small>';
+                        html += '<br><span class="badge bg-' + badgeColor + ' mt-1" style="font-size: 0.7rem;">' + cliente.estado + '</span>';
+                        html += '</div>';
+                        html += '<small class="text-muted">' + cliente.fecha + '</small>';
+                        html += '</div></div>';
+                    });
+                    $('#ultimosRegistros').html(html);
+                } else {
+                    $('#ultimosRegistros').html(
+                        '<div class="text-center py-3">' +
+                        '<i class="fas fa-clipboard-list fa-3x text-muted mb-2" style="opacity: 0.3;"></i>' +
+                        '<p class="text-muted mb-0">No hay registros aún</p>' +
+                        '</div>'
+                    );
+                }
+            }).fail(function() {
+                $('#ultimosRegistros').html(
+                    '<div class="alert alert-danger m-3">Error al cargar registros</div>'
+                );
+            });
+        }
+
+        function getBadgeColor(estado) {
+            var colores = {
+                'SinAsignar': 'warning',
+                'Asignado': 'info',
+                'Contactado': 'primary',
+                'Cotizado': 'success',
+                'NoCotizable': 'danger',
+                'Cerrado': 'dark'
+            };
+            return colores[estado] || 'secondary';
+        }
+
+        function crearEfectoNieve() {
+            // Pequeño efecto decorativo (opcional)
+            console.log('❄️ HVAC Pro - Recepción de Clientes');
+        }
     </script>
 }

@@ -147,7 +147,7 @@ namespace CotizacionMVC.Models.Entidades
             if (nuevoEstado == EstadoCotizacion.Aceptada ||
                 nuevoEstado == EstadoCotizacion.PagoAnticipo ||
                 nuevoEstado == EstadoCotizacion.Cerrada ||
-                nuevoEstado == EstadoCotizacion.Cancelada)
+                nuevoEstado == EstadoCotizacion.Perdida)
             {
                 // La cotización queda congelada
             }
@@ -164,7 +164,7 @@ namespace CotizacionMVC.Models.Entidades
                 throw new InvalidOperationException($"No se puede cambiar del estado {estadoActual} a {nuevoEstado} (solo se puede avanzar)");
 
             // No se puede modificar una cotización cerrada o cancelada
-            if (estadoActual == EstadoCotizacion.Cerrada || estadoActual == EstadoCotizacion.Cancelada)
+            if (estadoActual == EstadoCotizacion.Cerrada || estadoActual == EstadoCotizacion.Perdida)
                 throw new InvalidOperationException($"No se puede modificar una cotización {estadoActual}");
 
             // No se puede modificar una cotización aceptada
@@ -204,7 +204,7 @@ namespace CotizacionMVC.Models.Entidades
             return Estado != EstadoCotizacion.Aceptada &&
                    Estado != EstadoCotizacion.PagoAnticipo &&
                    Estado != EstadoCotizacion.Cerrada &&
-                   Estado != EstadoCotizacion.Cancelada;
+                   Estado != EstadoCotizacion.Perdida;
         }
 
         public int ObtenerPorcentajeEstado()

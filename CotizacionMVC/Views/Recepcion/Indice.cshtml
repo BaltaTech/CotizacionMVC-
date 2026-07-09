@@ -2,11 +2,12 @@
 
 @{
     ViewData["Title"] = "Panel de Recepción";
+    var leads = ViewBag.Leads as List<CotizacionMVC.Models.Entidades.Lead> ?? new List<CotizacionMVC.Models.Entidades.Lead>();
     var totalClientes = Model.Count;
-    var pendientesAsignar = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCliente.SinAsignar);
-    var pendientesCotizar = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Asignado || c.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Contactado);
-    var cotizados = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Cotizado);
-    var noCotizables = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCliente.NoCotizable);
+    var pendientesAsignar = leads.Count(l => l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.SinAsignar);
+    var pendientesCotizar = leads.Count(l => l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Asignado || l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Contactado);
+    var cotizados = leads.Count(l => l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Cotizado);
+    var noCotizables = leads.Count(l => l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.NoCotizable);
 }
 
 <div class="container-fluid px-4">
@@ -91,131 +92,136 @@
         </div>
     </div>
 
-    @* ========== TABLA DE CLIENTES ========== *@
-    <div class="card border-0 shadow-sm">
+    @* ========== ÚLTIMOS REGISTROS ========== *@
+    <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
             <div>
-                <i class="fas fa-list-ul me-2" style="color: #C8102E;"></i>
-                <strong style="color: #C8102E;">Clientes Registrados</strong>
-                <span class="badge bg-danger ms-2">@totalClientes</span>
+                <i class="fas fa-clock me-2" style="color: #C8102E;"></i>
+                <strong style="color: #C8102E;">Últimos Registros</strong>
+                <span class="badge bg-danger ms-2" id="contadorUltimos">0</span>
             </div>
-            <div class="input-group input-group-sm" style="width: 250px;">
-                <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
-                <input type="text" class="form-control" placeholder="Buscar cliente..." id="buscarCliente">
-            </div>
+            <button class="btn btn-sm btn-outline-danger" id="btnRefrescarUltimos" title="Refrescar">
+                <i class="fas fa-sync-alt"></i> Refrescar
+            </button>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0" id="tablaClientes">
+                <table class="table table-hover mb-0" id="tablaUltimosRegistros">
                     <thead style="background: linear-gradient(135deg, #C8102E, #E63946); color: white;">
                         <tr>
                             <th class="ps-3">Folio</th>
                             <th>Nombre</th>
                             <th>Teléfono</th>
                             <th>Origen</th>
+                            <th>Producto</th>
                             <th>Estado</th>
                             <th>Vendedor</th>
                             <th>Fecha</th>
                             <th class="text-center">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @if (Model.Any())
-                        {
-                            foreach (var cliente in Model)
-                            {
-                                var estadoBadge = cliente.Estado switch
-                                {
-                                    CotizacionMVC.Models.Enums.EstadoCliente.SinAsignar => ("warning", "Sin Asignar"),
-                                    CotizacionMVC.Models.Enums.EstadoCliente.Asignado => ("info", "Asignado"),
-                                    CotizacionMVC.Models.Enums.EstadoCliente.Contactado => ("primary", "Contactado"),
-                                    CotizacionMVC.Models.Enums.EstadoCliente.Cotizado => ("success", "Cotizado"),
-                                    CotizacionMVC.Models.Enums.EstadoCliente.NoCotizable => ("danger", "No Cotizable"),
-                                    CotizacionMVC.Models.Enums.EstadoCliente.Cerrado => ("dark", "Cerrado"),
-                                    _ => ("secondary", cliente.Estado.ToString())
-                                };
-
-                                <tr class="cliente-row">
-                                    <td class="ps-3">
-                                        <span class="badge bg-light text-dark border">@cliente.Folio</span>
-                                    </td>
-                                    <td>
-                                        <strong>@cliente.Nombre</strong>
-                                        @if (!string.IsNullOrWhiteSpace(cliente.Observaciones))
-                                        {
-                                            <br /><small class="text-muted">@cliente.Observaciones</small>
-                                        }
-                                    </td>
-                                    <td>@cliente.Contacto.Telefono</td>
-                                    <td>
-                                        <span class="badge bg-light text-dark">@cliente.Origen</span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-@estadoBadge.Item1">@estadoBadge.Item2</span>
-                                    </td>
-                                    <td>
-                                        @if (cliente.VendedorAsignadoId.HasValue)
-                                        {
-                                            <span class="text-success">
-                                                <i class="fas fa-check-circle me-1"></i>Asignado
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-warning">
-                                                <i class="fas fa-clock me-1"></i>Sin asignar
-                                            </span>
-                                        }
-                                    </td>
-                                    <td>
-                                        <small>@cliente.FechaRegistro.ToString("dd/MM/yyyy")</small>
-                                        <br /><small class="text-muted">@cliente.FechaRegistro.ToString("HH:mm")</small>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="#" class="btn btn-outline-secondary" title="Ver detalle" data-bs-toggle="tooltip">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            @if (cliente.Estado == CotizacionMVC.Models.Enums.EstadoCliente.SinAsignar)
-                                            {
-                                                <a href="#" class="btn btn-outline-warning" title="Asignar vendedor" data-bs-toggle="tooltip">
-                                                    <i class="fas fa-user-plus"></i>
-                                                </a>
-                                            }
-                                            <a href="#" class="btn btn-outline-danger" title="Marcar no cotizable" data-bs-toggle="tooltip">
-                                                <i class="fas fa-times-circle"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="8" class="text-center py-5">
-                                    <div class="text-muted">
-                                        <i class="fas fa-clipboard-list fa-4x mb-3" style="opacity: 0.3;"></i>
-                                        <h5>No hay clientes registrados</h5>
-                                        <p class="mb-3">Comience registrando su primer cliente entrante</p>
-                                        <a asp-action="Registrar" class="btn btn-danger">
-                                            <i class="fas fa-plus-circle me-1"></i> Registrar Cliente
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
+                    <tbody id="tbodyUltimosRegistros">
+                        <tr>
+                            <td colspan="9" class="text-center py-3">
+                                <div class="spinner-border text-danger" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Cargando últimos registros...</p>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
-        <div class="card-footer bg-white d-flex justify-content-between align-items-center">
-            <small class="text-muted">
-                <i class="fas fa-sync-alt me-1"></i> Actualizado: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
-            </small>
-            <small class="text-muted">
-                Mostrando @Model.Count cliente(s)
-            </small>
+    </div>
+
+    @* ========== MODAL VER DETALLE ========== *@
+    <div class="modal fade" id="modalDetalleCliente" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #C8102E, #E63946); color: white;">
+                    <h5 class="modal-title"><i class="fas fa-user-circle me-2"></i>Detalle del Cliente</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalDetalleContenido">
+                    <div class="text-center py-4"><div class="spinner-border text-danger"></div><p class="mt-2">Cargando...</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ========== MODAL ASIGNAR VENDEDOR ========== *@
+    <div class="modal fade" id="modalAsignarVendedor" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #FF6B35, #F7931E); color: white;">
+                    <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Asignar Vendedor</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formAsignarVendedor">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="clienteIdAsignar" name="clienteId" />
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cliente</label>
+                            <input type="text" class="form-control" id="nombreClienteAsignar" readonly />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Vendedor *</label>
+                            <select id="vendedorId" name="vendedorId" class="form-select" required>
+                                <option value="">-- Seleccione un vendedor --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning"><i class="fas fa-check-circle me-1"></i> Asignar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @* ========== MODAL NO COTIZABLE ========== *@
+    <div class="modal fade" id="modalNoCotizable" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #343A40, #495057); color: white;">
+                    <h5 class="modal-title"><i class="fas fa-times-circle me-2"></i>Marcar No Cotizable</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formNoCotizable">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="clienteIdNoCotizable" name="clienteId" />
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cliente</label>
+                            <input type="text" class="form-control" id="nombreClienteNoCotizable" readonly />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Motivo *</label>
+                            <select id="motivoNoCotizable" name="motivo" class="form-select" required>
+                                <option value="">-- Seleccione un motivo --</option>
+                                <option value="FueraDeZona">Fuera de zona de cobertura</option>
+                                <option value="PresupuestoInsuficiente">Presupuesto insuficiente</option>
+                                <option value="NoContesta">No contesta / No responde</option>
+                                <option value="YaCotizadoOtroProveedor">Ya cotizó con otro proveedor</option>
+                                <option value="DatosIncorrectos">Datos de contacto incorrectos</option>
+                                <option value="NoInteresado">No está interesado</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Comentario (opcional)</label>
+                            <textarea id="comentarioNoCotizable" name="comentario" class="form-control" rows="3" placeholder="Agregue un comentario..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger"><i class="fas fa-ban me-1"></i> Marcar</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -223,21 +229,173 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            // Activar tooltips
-            $('[data-bs-toggle="tooltip"]').tooltip();
+            cargarUltimosRegistros();
 
-            // Buscar en la tabla
-            $('#buscarCliente').on('keyup', function() {
-                var value = $(this).val().toLowerCase();
-                $('#tablaClientes tbody tr').filter(function() {
-                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+            $('#btnRefrescarUltimos').click(function() {
+                cargarUltimosRegistros();
+                const icon = $(this).find('i');
+                icon.addClass('fa-spin');
+                setTimeout(() => icon.removeClass('fa-spin'), 1000);
+            });
+
+            setInterval(cargarUltimosRegistros, 60000);
+
+            $(document).on('click', '.btn-ver-detalle', function() {
+                const id = $(this).data('id');
+                cargarDetalleCliente(id);
+                $('#modalDetalleCliente').modal('show');
+            });
+
+            $(document).on('click', '.btn-asignar-vendedor', function() {
+                const id = $(this).data('id');
+                const nombre = $(this).data('nombre');
+                $('#clienteIdAsignar').val(id);
+                $('#nombreClienteAsignar').val(nombre);
+                cargarVendedores();
+                $('#modalAsignarVendedor').modal('show');
+            });
+
+            $('#formAsignarVendedor').submit(function(e) {
+                e.preventDefault();
+                const clienteId = $('#clienteIdAsignar').val();
+                const vendedorId = $('#vendedorId').val();
+                if (!vendedorId) { alert('Seleccione un vendedor'); return; }
+                $.ajax({
+                    url: '/Recepcion/AsignarVendedor',
+                    type: 'POST',
+                    data: {
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val(),
+                        clienteId: clienteId,
+                        vendedorId: vendedorId
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert('Vendedor asignado exitosamente');
+                            $('#modalAsignarVendedor').modal('hide');
+                            cargarUltimosRegistros();
+                        } else {
+                            alert(response.message || 'Error al asignar vendedor');
+                        }
+                    },
+                    error: function() { alert('Error de conexión'); }
                 });
             });
 
-            // Actualizar cada 60 segundos
-            setInterval(function() {
-                location.reload();
-            }, 60000);
+            $(document).on('click', '.btn-no-cotizable', function() {
+                const id = $(this).data('id');
+                const nombre = $(this).data('nombre');
+                $('#clienteIdNoCotizable').val(id);
+                $('#nombreClienteNoCotizable').val(nombre);
+                $('#modalNoCotizable').modal('show');
+            });
+
+            $('#formNoCotizable').submit(function(e) {
+                e.preventDefault();
+                const clienteId = $('#clienteIdNoCotizable').val();
+                const motivo = $('#motivoNoCotizable').val();
+                const comentario = $('#comentarioNoCotizable').val();
+                if (!motivo) { alert('Seleccione un motivo'); return; }
+                $.ajax({
+                    url: '/Recepcion/MarcarNoCotizable',
+                    type: 'POST',
+                    data: {
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val(),
+                        clienteId: clienteId,
+                        motivo: motivo,
+                        comentario: comentario
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert('Cliente marcado como no cotizable');
+                            $('#modalNoCotizable').modal('hide');
+                            $('#motivoNoCotizable').val('');
+                            $('#comentarioNoCotizable').val('');
+                            cargarUltimosRegistros();
+                        } else {
+                            alert(response.message || 'Error');
+                        }
+                    },
+                    error: function() { alert('Error de conexión'); }
+                });
+            });
         });
+
+        function cargarUltimosRegistros() {
+            $.ajax({
+                url: '/Recepcion/UltimosRegistros',
+                type: 'GET',
+                success: function(data) { renderizarTablaUltimos(data); },
+                error: function() {
+                    $('#tbodyUltimosRegistros').html('<tr><td colspan="9" class="text-center text-danger py-3"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar los registros</td></tr>');
+                }
+            });
+        }
+
+        function renderizarTablaUltimos(clientes) {
+            const tbody = $('#tbodyUltimosRegistros');
+            $('#contadorUltimos').text(clientes.length);
+            if (!clientes || clientes.length === 0) {
+                tbody.html('<tr><td colspan="9" class="text-center py-5"><div class="text-muted"><i class="fas fa-clipboard-list fa-4x mb-3" style="opacity: 0.3;"></i><h5>No hay clientes registrados</h5></div></td></tr>');
+                return;
+            }
+            let html = '';
+            clientes.forEach(function(cliente) {
+                const estadoBadge = getEstadoBadge(cliente.estado);
+                const producto = cliente.observaciones ? (cliente.observaciones.split('Producto: ')[1]?.split(' |')[0] || 'N/A') : 'N/A';
+                const tieneVendedor = cliente.vendedorAsignadoId != null;
+                html += `<tr>
+                    <td class="ps-3"><span class="badge bg-light text-dark border">${cliente.folio}</span></td>
+                    <td><strong>${cliente.nombre}</strong></td>
+                    <td>${cliente.telefono || 'N/A'}</td>
+                    <td><span class="badge bg-light text-dark">${cliente.origen}</span></td>
+                    <td><small class="text-muted">${producto}</small></td>
+                    <td><span class="badge bg-${estadoBadge.color}">${estadoBadge.texto}</span></td>
+                    <td>${tieneVendedor ? '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Asignado</span>' : '<span class="text-warning"><i class="fas fa-clock me-1"></i>Sin asignar</span>'}</td>
+                    <td><small>${cliente.fecha}</small></td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary btn-ver-detalle" data-id="${cliente.id}" title="Ver detalle"><i class="fas fa-eye"></i></button>
+                            ${!tieneVendedor && cliente.estado === 'SinAsignar' ? `<button class="btn btn-outline-warning btn-asignar-vendedor" data-id="${cliente.id}" data-nombre="${cliente.nombre}" title="Asignar vendedor"><i class="fas fa-user-plus"></i></button>` : ''}
+                            <button class="btn btn-outline-danger btn-no-cotizable" data-id="${cliente.id}" data-nombre="${cliente.nombre}" title="Marcar no cotizable"><i class="fas fa-times-circle"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            tbody.html(html);
+        }
+
+        function getEstadoBadge(estado) {
+            const estados = {
+                'SinAsignar': { color: 'warning', texto: 'Sin Asignar' },
+                'Asignado': { color: 'info', texto: 'Asignado' },
+                'Contactado': { color: 'primary', texto: 'Contactado' },
+                'Cotizado': { color: 'success', texto: 'Cotizado' },
+                'NoCotizable': { color: 'danger', texto: 'No Cotizable' },
+                'Cerrado': { color: 'dark', texto: 'Cerrado' }
+            };
+            return estados[estado] || { color: 'secondary', texto: estado };
+        }
+
+        function cargarDetalleCliente(id) {
+            $.ajax({
+                url: '/Recepcion/VerDetalles/' + id,
+                type: 'GET',
+                success: function(data) { $('#modalDetalleContenido').html(data); },
+                error: function() { $('#modalDetalleContenido').html('<div class="alert alert-danger">Error al cargar los detalles</div>'); }
+            });
+        }
+
+        function cargarVendedores() {
+            $.ajax({
+                url: '/Recepcion/ObtenerVendedores',
+                type: 'GET',
+                success: function(data) {
+                    let options = '<option value="">-- Seleccione un vendedor --</option>';
+                    data.forEach(function(v) { options += `<option value="${v.id}">${v.nombreCompleto} (${v.email})</option>`; });
+                    $('#vendedorId').html(options);
+                },
+                error: function() { alert('Error al cargar vendedores'); }
+            });
+        }
     </script>
 }

@@ -3,6 +3,11 @@
     var clientes = ViewBag.Clientes as List<CotizacionMVC.Models.Entidades.Cliente> ?? new List<CotizacionMVC.Models.Entidades.Cliente>();
     var equipos = ViewBag.Equipos as List<CotizacionMVC.Models.Entidades.Equipo> ?? new List<CotizacionMVC.Models.Entidades.Equipo>();
     var instalaciones = ViewBag.Instalaciones as List<CotizacionMVC.Models.Entidades.Instalacion> ?? new List<CotizacionMVC.Models.Entidades.Instalacion>();
+    
+    var clientePreseleccionado = ViewBag.ClientePreseleccionado as CotizacionMVC.Models.Entidades.Cliente;
+    var empresaForzada = ViewBag.EmpresaForzada as CotizacionMVC.Models.Entidades.Empresa;
+    var leadId = ViewBag.LeadId as Guid?;
+    var leadProducto = ViewBag.LeadProducto as string;
 }
 
 <div class="container mt-4">
@@ -14,19 +19,98 @@
             <form id="formCotizacion" method="post">
                 @Html.AntiForgeryToken()
 
-                <!-- Cliente -->
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <label class="form-label fw-bold">Cliente *</label>
-                        <select id="clienteId" name="clienteId" class="form-select" required>
-                            <option value="">-- Seleccione un cliente --</option>
-                            @foreach (var cliente in clientes)
-                            {
-                                <option value="@cliente.Id">@cliente.Nombre - @cliente.Contacto.Telefono</option>
-                            }
-                        </select>
+                @if (clientePreseleccionado != null && empresaForzada != null)
+                {
+                    @* ========== MODO LEAD: Cliente y empresa fijos ========== *@
+                    <input type="hidden" name="clienteId" value="@clientePreseleccionado.Id" />
+                    <input type="hidden" name="leadId" value="@leadId" />
+
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card bg-light border">
+                                <div class="card-body py-3">
+                                    <small class="text-muted text-uppercase fw-bold">Cliente</small>
+                                    <h5 class="mb-0 mt-1"><i class="fas fa-user me-2"></i>@clientePreseleccionado.Nombre</h5>
+                                    <small class="text-muted"><i class="fas fa-phone-alt me-1"></i>@clientePreseleccionado.Contacto.Telefono</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light border">
+                                <div class="card-body py-3">
+                                    <small class="text-muted text-uppercase fw-bold">Empresa</small>
+                                    <h5 class="mb-0 mt-1" style="color: @empresaForzada.ColorPrimario;">
+                                        <i class="fas fa-building me-2"></i>@empresaForzada.NombreComercial
+                                    </h5>
+                                    <small class="text-muted">@empresaForzada.Eslogan</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light border">
+                                <div class="card-body py-3">
+                                    <small class="text-muted text-uppercase fw-bold">Producto Solicitado</small>
+                                    <h5 class="mb-0 mt-1"><i class="fas fa-box me-2"></i>@(leadProducto ?? "No especificado")</h5>
+                                    <small class="text-muted">Desde oportunidad asignada</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                }
+                else
+                {
+                    @* ========== MODO NORMAL: Dropdown de clientes ========== *@
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold">
+                                Cliente *
+                                <small class="text-muted ms-2" id="clienteCount"></small>
+                            </label>
+                            <select id="clienteId" name="clienteId" class="form-select" required size="8"
+                                    style="font-family: monospace; font-size: 0.9rem;">
+                                <option value="">-- Seleccione un cliente --</option>
+                                @foreach (var cliente in clientes)
+                                {
+                                    var productoBusca = "";
+                                    if (!string.IsNullOrWhiteSpace(cliente.Observaciones))
+                                    {
+                                        var partes = cliente.Observaciones.Split("Producto: ");
+                                        if (partes.Length > 1)
+                                            productoBusca = partes[1].Split(" |")[0];
+                                    }
+                                    var fechaAsignacion = cliente.VendedorAsignadoId.HasValue
+                                        ? cliente.FechaRegistro.ToString("dd/MM/yyyy")
+                                        : "Sin asignar";
+                                    var estadoTexto = cliente.Estado switch
+                                    {
+                                        CotizacionMVC.Models.Enums.EstadoCliente.Asignado => "✅",
+                                        CotizacionMVC.Models.Enums.EstadoCliente.Contactado => "📞",
+                                        CotizacionMVC.Models.Enums.EstadoCliente.SinAsignar => "🆕",
+                                        _ => "📋"
+                                    };
+                    
+                                    <option value="@cliente.Id"
+                                            data-producto="@productoBusca"
+                                            data-fecha="@fechaAsignacion"
+                                            data-estado="@cliente.Estado"
+                                            style="padding: 8px 12px; border-bottom: 1px solid #eee;">
+                                        @estadoTexto @cliente.Folio | @cliente.Nombre | 📱 @cliente.Contacto.Telefono | 🏷️ @productoBusca | 📅 @fechaAsignacion
+                                    </option>
+                                }
+                            </select>
+                            <div id="clientePreview" class="mt-2 p-3 bg-light rounded" style="display:none;">
+                                <div class="row">
+                                    <div class="col-md-4"><strong>Folio:</strong> <span id="prevFolio"></span></div>
+                                    <div class="col-md-4"><strong>Teléfono:</strong> <span id="prevTelefono"></span></div>
+                                    <div class="col-md-4"><strong>Estado:</strong> <span id="prevEstado"></span></div>
+                                </div>
+                                <div class="row mt-1">
+                                    <div class="col-12"><strong>Producto:</strong> <span id="prevProducto"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
 
                 <!-- Área y Condiciones -->
                 <div class="row">
@@ -55,7 +139,7 @@
                             </tr>
                         </thead>
                         <tbody id="equiposBody">
-                            <tr><td colspan="5" class="text-center text-muted">No hay equipos agregados</td><td style="display:none"></td><td style="display:none"></td><td style="display:none"></td><td style="display:none"></td></tr>
+                            <tr><td colspan="5" class="text-center text-muted">No hay equipos agregados</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -80,7 +164,7 @@
                             </tr>
                         </thead>
                         <tbody id="instalacionesBody">
-                            <tr><td colspan="6" class="text-center text-muted">No hay instalaciones agregadas</td><td style="display:none"></td><td style="display:none"></td><td style="display:none"></td><td style="display:none"></td><td style="display:none"></td></tr>
+                            <tr><td colspan="6" class="text-center text-muted">No hay instalaciones agregadas</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -121,7 +205,6 @@
                     </div>
                 </div>
 
-                <!-- Campos ocultos para enviar datos -->
                 <input type="hidden" id="equiposJson" name="equipos" />
                 <input type="hidden" id="instalacionesJson" name="instalaciones" />
 
@@ -231,294 +314,237 @@
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        // Variables globales
         var equiposAgregados = [];
         var instalacionesAgregadas = [];
-        var utilidadEmpresa = 20; 
+        var utilidadEmpresa = 20;
         var utilidadVendedor = 10;
         var tipoCambio = 20.50;
 
-        // Calcular precio final con utilidades
         function calcularPrecioFinal(precioBase, moneda) {
-            var precioEnMXN = precioBase;
-
-            // Convertir a MXN si está en USD
-            if (moneda === 'USD') {
-                precioEnMXN = precioBase * tipoCambio;
-            }
-
-            // Aplicar utilidades
-            var precioConUtilidadEmpresa = precioEnMXN * (1 + utilidadEmpresa / 100);
-            var precioFinal = precioConUtilidadEmpresa * (1 + utilidadVendedor / 100);
-
-            return Math.round(precioFinal * 100) / 100;
+        var precioEnMXN = precioBase;
+        if (moneda === 'USD') { precioEnMXN = precioBase * tipoCambio; }
+        var precioConUtilidadEmpresa = precioEnMXN * (1 + utilidadEmpresa / 100);
+        var precioFinal = precioConUtilidadEmpresa * (1 + utilidadVendedor / 100);
+        return Math.round(precioFinal * 100) / 100;
         }
 
-        // Calcular carga térmica
         function calcularCargaTermica() {
-            var area = $('#areaMetrosCuadrados').val();
-            if (area && area > 0) {
-                $.get('/Cotizacion/CalcularCargaTermica', { area: area }, function(data) {
-                    $('#cargaTermicaInfo').html('<i class="fas fa-thermometer-half"></i> Capacidad sugerida: ' + data.tr + ' TR (' + data.btu + ' BTU/h)<br/><small>Regla: 16 m² = 1 TR</small>');
-                });
-            }
-        }
-
-        // Actualizar totales
-        function actualizarTotales() {
-            var totalEquipos = 0;
-            var totalInstalaciones = 0;
-
-            equiposAgregados.forEach(function(eq) {
-                totalEquipos += eq.subtotal;
-            });
-
-            instalacionesAgregadas.forEach(function(inst) {
-                totalInstalaciones += inst.subtotal;
-            });
-
-            var subtotal = totalEquipos + totalInstalaciones;
-            var iva = subtotal * 0.16;
-            var total = subtotal + iva;
-
-            $('#totalEquipos').text('$' + totalEquipos.toFixed(2));
-            $('#totalInstalaciones').text('$' + totalInstalaciones.toFixed(2));
-            $('#subtotal').text('$' + subtotal.toFixed(2));
-            $('#iva').text('$' + iva.toFixed(2));
-            $('#total').text('$' + total.toFixed(2));
-        }
-
-        // Renderizar tabla de equipos
-        function renderizarEquipos() {
-            var html = '';
-            if (equiposAgregados.length === 0) {
-                html = '<tr><td colspan="5" class="text-center text-muted">No hay equipos agregados</td></tr>';
-            } else {
-                for (var i = 0; i < equiposAgregados.length; i++) {
-                    var eq = equiposAgregados[i];
-                    html += '<tr>' +
-                        '<td><strong>' + eq.marca + '</strong> - ' + eq.modelo + ' (' + eq.capacidad + ' TR)</td>' +
-                        '<td><input type="number" class="form-control form-control-sm cantidad-equipo" style="width:80px" data-indice="' + i + '" value="' + eq.cantidad + '" min="1" /></td>' +
-                        '<td>$' + eq.precioUnitario.toFixed(2) + '</td>' +
-                        '<td>$' + eq.subtotal.toFixed(2) + '</td>' +
-                        '<td><button type="button" class="btn btn-sm btn-danger eliminar-equipo" data-indice="' + i + '"><i class="fas fa-trash"></i></button></td>' +
-                        '</tr>';
-                }
-            }
-            $('#equiposBody').html(html);
-            actualizarTotales();
-        }
-
-        // Renderizar tabla de instalaciones
-        function renderizarInstalaciones() {
-            var html = '';
-            if (instalacionesAgregadas.length === 0) {
-                html = '<tr><td colspan="6" class="text-center text-muted">No hay instalaciones agregadas</td></tr>';
-            } else {
-                for (var i = 0; i < instalacionesAgregadas.length; i++) {
-                    var inst = instalacionesAgregadas[i];
-                    html += '<tr>' +
-                        '<td>' + inst.concepto + '</td>' +
-                        '<td>' + inst.descripcion + '</td>' +
-                        '<td><input type="number" class="form-control form-control-sm cantidad-instalacion" style="width:80px" data-indice="' + i + '" value="' + inst.cantidad + '" min="1" /></td>' +
-                        '<td>$' + inst.costoUnitario.toFixed(2) + '</td>' +
-                        '<td>$' + inst.subtotal.toFixed(2) + '</td>' +
-                        '<td><button type="button" class="btn btn-sm btn-danger eliminar-instalacion" data-indice="' + i + '"><i class="fas fa-trash"></i></button></td>' +
-                        '</tr>';
-                }
-            }
-            $('#instalacionesBody').html(html);
-            actualizarTotales();
-        }
-
-        // Agregar equipo
-        $('#btnAgregarEquipo').click(function() {
-            $('#modalEquipo').modal('show');
+        var area = $('#areaMetrosCuadrados').val();
+        if (area && area > 0) {
+        $.get('/Cotizacion/CalcularCargaTermica', { area: area }, function(data) {
+        $('#cargaTermicaInfo').html('<i class="fas fa-thermometer-half"></i> Capacidad sugerida: ' + data.tr + ' TR (' + data.btu + ' BTU/h)<br/><small>Regla: 16 m² = 1 TR</small>');
         });
+        }
+        }
+
+        function actualizarTotales() {
+        var totalEquipos = 0, totalInstalaciones = 0;
+        equiposAgregados.forEach(function(eq) { totalEquipos += eq.subtotal; });
+        instalacionesAgregadas.forEach(function(inst) { totalInstalaciones += inst.subtotal; });
+        var subtotal = totalEquipos + totalInstalaciones;
+        var iva = subtotal * 0.16;
+        var total = subtotal + iva;
+        $('#totalEquipos').text('$' + totalEquipos.toFixed(2));
+        $('#totalInstalaciones').text('$' + totalInstalaciones.toFixed(2));
+        $('#subtotal').text('$' + subtotal.toFixed(2));
+        $('#iva').text('$' + iva.toFixed(2));
+        $('#total').text('$' + total.toFixed(2));
+        }
+
+        function renderizarEquipos() {
+        var html = '';
+        if (equiposAgregados.length === 0) {
+        html = '<tr><td colspan="5" class="text-center text-muted">No hay equipos agregados</td></tr>';
+        } else {
+        for (var i = 0; i < equiposAgregados.length; i++) {
+        var eq = equiposAgregados[i];
+        html += '<tr>' +
+        '<td><strong>' + eq.marca + '</strong> - ' + eq.modelo + ' (' + eq.capacidad + ' TR)</td>' +
+        '<td><input type="number" class="form-control form-control-sm cantidad-equipo" style="width:80px" data-indice="' + i + '" value="' + eq.cantidad + '" min="1" /></td>' +
+        '<td>$' + eq.precioUnitario.toFixed(2) + '</td>' +
+        '<td>$' + eq.subtotal.toFixed(2) + '</td>' +
+        '<td><button type="button" class="btn btn-sm btn-danger eliminar-equipo" data-indice="' + i + '"><i class="fas fa-trash"></i></button></td>' +
+        '</tr>';
+        }
+        }
+        $('#equiposBody').html(html);
+        actualizarTotales();
+        }
+
+        function renderizarInstalaciones() {
+        var html = '';
+        if (instalacionesAgregadas.length === 0) {
+        html = '<tr><td colspan="6" class="text-center text-muted">No hay instalaciones agregadas</td></tr>';
+        } else {
+        for (var i = 0; i < instalacionesAgregadas.length; i++) {
+        var inst = instalacionesAgregadas[i];
+        html += '<tr>' +
+        '<td>' + inst.concepto + '</td>' +
+        '<td>' + inst.descripcion + '</td>' +
+        '<td><input type="number" class="form-control form-control-sm cantidad-instalacion" style="width:80px" data-indice="' + i + '" value="' + inst.cantidad + '" min="1" /></td>' +
+        '<td>$' + inst.costoUnitario.toFixed(2) + '</td>' +
+        '<td>$' + inst.subtotal.toFixed(2) + '</td>' +
+        '<td><button type="button" class="btn btn-sm btn-danger eliminar-instalacion" data-indice="' + i + '"><i class="fas fa-trash"></i></button></td>' +
+        '</tr>';
+        }
+        }
+        $('#instalacionesBody').html(html);
+        actualizarTotales();
+        }
+
+        $(document).ready(function() {
+        @if (clientePreseleccionado == null)
+        {
+            <text>
+                var totalClientes = $('#clienteId option').length - 1;
+                $('#clienteCount').text('(' + totalClientes + ' disponibles)');
+
+                $('#clienteId').on('change', function() {
+                var selected = $(this).find(':selected');
+                if (selected.val()) {
+                var optionText = selected.text();
+                var partes = optionText.split('|');
+                $('#prevFolio').text(partes[0] ? partes[0].replace(/[🆕✅📞📋]/g, '').trim() : '');
+                $('#prevTelefono').text(partes[2] ? partes[2].replace('📱', '').trim() : '');
+                $('#prevEstado').text(partes[4] ? partes[4].replace('📅', '').trim() : '');
+                $('#prevProducto').text(partes[3] ? partes[3].replace('🏷️', '').trim() : '');
+                $('#clientePreview').slideDown();
+                } else {
+                $('#clientePreview').slideUp();
+                }
+                });
+            </text>
+        }
+
+        $('#btnAgregarEquipo').click(function() { $('#modalEquipo').modal('show'); });
 
         $('#btnConfirmarEquipo').click(function() {
-            var equipoId = $('#equipoSelect').val();
-            var cantidad = parseInt($('#equipoCantidad').val());
-            var selected = $('#equipoSelect option:selected');
-
-            if (!equipoId) {
-                alert('Seleccione un equipo');
-                return;
-            }
-
-            if (isNaN(cantidad) || cantidad < 1) cantidad = 1;
-
-            var precioBase = parseFloat(selected.data('precio-base'));
-            var moneda = selected.data('moneda');
-            var precioFinal = calcularPrecioFinal(precioBase, moneda);
-
-            var nuevoEquipo = {
-                equipoId: equipoId,
-                marca: selected.data('marca'),
-                modelo: selected.data('modelo'),
-                capacidad: selected.data('capacidad'),
-                cantidad: cantidad,
-                precioUnitario: precioFinal,
-                subtotal: precioFinal * cantidad
-            };
-
-            equiposAgregados.push(nuevoEquipo);
-            renderizarEquipos();
-            $('#modalEquipo').modal('hide');
-            $('#equipoCantidad').val(1);
+        var equipoId = $('#equipoSelect').val();
+        var cantidad = parseInt($('#equipoCantidad').val());
+        var selected = $('#equipoSelect option:selected');
+        if (!equipoId) { alert('Seleccione un equipo'); return; }
+        if (isNaN(cantidad) || cantidad < 1) cantidad = 1;
+        var precioBase = parseFloat(selected.data('precio-base'));
+        var moneda = selected.data('moneda');
+        var precioFinal = calcularPrecioFinal(precioBase, moneda);
+        var nuevoEquipo = {
+        equipoId: equipoId,
+        marca: selected.data('marca'),
+        modelo: selected.data('modelo'),
+        capacidad: selected.data('capacidad'),
+        cantidad: cantidad,
+        precioUnitario: precioFinal,
+        subtotal: precioFinal * cantidad
+        };
+        equiposAgregados.push(nuevoEquipo);
+        renderizarEquipos();
+        $('#modalEquipo').modal('hide');
+        $('#equipoCantidad').val(1);
         });
 
-        // Agregar instalación
-        $('#btnAgregarInstalacion').click(function() {
-            $('#modalInstalacion').modal('show');
-        });
+        $('#btnAgregarInstalacion').click(function() { $('#modalInstalacion').modal('show'); });
 
         $('#instalacionTipoSelect').change(function() {
-            if ($(this).val() == 'predefinida') {
-                $('#instalacionPredefinidaDiv').show();
-                $('#instalacionPersonalizadaDiv').hide();
-            } else {
-                $('#instalacionPredefinidaDiv').hide();
-                $('#instalacionPersonalizadaDiv').show();
-            }
+        if ($(this).val() == 'predefinida') {
+        $('#instalacionPredefinidaDiv').show();
+        $('#instalacionPersonalizadaDiv').hide();
+        } else {
+        $('#instalacionPredefinidaDiv').hide();
+        $('#instalacionPersonalizadaDiv').show();
+        }
         });
 
-        // Cuando se selecciona una instalación predefinida, copiar costo
         $('#instalacionSelect').change(function() {
-            var selected = $(this).find(':selected');
-            var costo = selected.data('costo');
-            if (costo) {
-                $('#instCostoPersonalizado').val(costo);
-            }
+        var selected = $(this).find(':selected');
+        var costo = selected.data('costo');
+        if (costo) { $('#instCostoPersonalizado').val(costo); }
         });
 
         $('#btnConfirmarInstalacion').click(function() {
-            var tipo = $('#instalacionTipoSelect').val();
-            var cantidad = parseInt($('#instalacionCantidad').val());
-            var instalacionId = null;
-            var concepto = '';
-            var descripcion = '';
-            var costo = 0;  
-
-            if (tipo == 'predefinida') {
-                instalacionId = $('#instalacionSelect').val();
-                if (!instalacionId) {
-                    alert('Seleccione una instalación');
-                    return;
-                }
-                var selected = $('#instalacionSelect').find(':selected');
-                concepto = selected.text().split(' - ')[0];
-                costo = selected.data('costo');
-                descripcion = selected.data('desc') || '';
-            } else {
-                concepto = $('#instConcepto').val();
-                descripcion = $('#instDescripcion').val();
-                costo = parseFloat($('#instCostoPersonalizado').val());
-                if (!concepto) {
-                    alert('Ingrese un concepto');
-                    return;
-                }
-                if (isNaN(costo) || costo <= 0) {
-                    alert('Ingrese un costo válido');
-                    return;
-                }
-            }
-
-            if (isNaN(cantidad) || cantidad < 1) cantidad = 1;
-
-            var nuevaInstalacion = {
-                instalacionId: instalacionId,
-                concepto: concepto,
-                descripcion: descripcion,
-                cantidad: cantidad,
-                costoUnitario: costo,
-                subtotal: cantidad * costo
-            };
-
-            instalacionesAgregadas.push(nuevaInstalacion);
-            renderizarInstalaciones();
-            $('#modalInstalacion').modal('hide');
-            $('#instalacionCantidad').val(1);
-            $('#instConcepto').val('');
-            $('#instDescripcion').val('');
-            $('#instCostoPersonalizado').val('');
+        var tipo = $('#instalacionTipoSelect').val();
+        var cantidad = parseInt($('#instalacionCantidad').val());
+        var instalacionId = null, concepto = '', descripcion = '', costo = 0;
+        if (tipo == 'predefinida') {
+        instalacionId = $('#instalacionSelect').val();
+        if (!instalacionId) { alert('Seleccione una instalación'); return; }
+        var selected = $('#instalacionSelect').find(':selected');
+        concepto = selected.text().split(' - ')[0];
+        costo = selected.data('costo');
+        descripcion = selected.data('desc') || '';
+        } else {
+        concepto = $('#instConcepto').val();
+        descripcion = $('#instDescripcion').val();
+        costo = parseFloat($('#instCostoPersonalizado').val());
+        if (!concepto) { alert('Ingrese un concepto'); return; }
+        if (isNaN(costo) || costo <= 0) { alert('Ingrese un costo válido'); return; }
+        }
+        if (isNaN(cantidad) || cantidad < 1) cantidad = 1;
+        var nuevaInstalacion = {
+        instalacionId: instalacionId,
+        concepto: concepto,
+        descripcion: descripcion,
+        cantidad: cantidad,
+        costoUnitario: costo,
+        subtotal: cantidad * costo
+        };
+        instalacionesAgregadas.push(nuevaInstalacion);
+        renderizarInstalaciones();
+        $('#modalInstalacion').modal('hide');
+        $('#instalacionCantidad').val(1);
+        $('#instConcepto').val('');
+        $('#instDescripcion').val('');
+        $('#instCostoPersonalizado').val('');
         });
 
-        // Eventos dinámicos para equipos
+        $('#formCotizacion').submit(function(e) {
+        @if (clientePreseleccionado == null)
+        {
+            <text>
+                var clienteId = $('#clienteId').val();
+                if (!clienteId) { alert('Debe seleccionar un cliente'); e.preventDefault(); return false; }
+            </text>
+        }
+        if (equiposAgregados.length === 0) { alert('Debe agregar al menos un equipo'); e.preventDefault(); return false; }
+        var equiposJson = equiposAgregados.map(function(eq) { return { equipoId: eq.equipoId, cantidad: eq.cantidad }; });
+        var instalacionesJson = instalacionesAgregadas.map(function(inst) { return { instalacionId: inst.instalacionId, concepto: inst.concepto, descripcion: inst.descripcion, cantidad: inst.cantidad, costoUnitario: inst.costoUnitario }; });
+        $('#equiposJson').val(JSON.stringify(equiposJson));
+        $('#instalacionesJson').val(JSON.stringify(instalacionesJson));
+        });
+
+        $('#areaMetrosCuadrados').on('change', calcularCargaTermica);
+        calcularCargaTermica();
+        $('#instalacionTipoSelect').trigger('change');
+        });
+
         $(document).on('change', '.cantidad-equipo', function() {
-            var indice = $(this).data('indice');
-            var nuevaCantidad = parseInt($(this).val());
-            if (isNaN(nuevaCantidad) || nuevaCantidad < 1) nuevaCantidad = 1;
-            equiposAgregados[indice].cantidad = nuevaCantidad;
-            equiposAgregados[indice].subtotal = equiposAgregados[indice].precioUnitario * nuevaCantidad;
-            renderizarEquipos();
+        var indice = $(this).data('indice');
+        var nuevaCantidad = parseInt($(this).val());
+        if (isNaN(nuevaCantidad) || nuevaCantidad < 1) nuevaCantidad = 1;
+        equiposAgregados[indice].cantidad = nuevaCantidad;
+        equiposAgregados[indice].subtotal = equiposAgregados[indice].precioUnitario * nuevaCantidad;
+        renderizarEquipos();
         });
 
         $(document).on('click', '.eliminar-equipo', function() {
-            var indice = $(this).data('indice');
-            equiposAgregados.splice(indice, 1);
-            renderizarEquipos();
+        var indice = $(this).data('indice');
+        equiposAgregados.splice(indice, 1);
+        renderizarEquipos();
         });
 
-        // Eventos dinámicos para instalaciones
         $(document).on('change', '.cantidad-instalacion', function() {
-            var indice = $(this).data('indice');
-            var nuevaCantidad = parseInt($(this).val());
-            if (isNaN(nuevaCantidad) || nuevaCantidad < 1) nuevaCantidad = 1;
-            instalacionesAgregadas[indice].cantidad = nuevaCantidad;
-            instalacionesAgregadas[indice].subtotal = instalacionesAgregadas[indice].costoUnitario * nuevaCantidad;
-            renderizarInstalaciones();
+        var indice = $(this).data('indice');
+        var nuevaCantidad = parseInt($(this).val());
+        if (isNaN(nuevaCantidad) || nuevaCantidad < 1) nuevaCantidad = 1;
+        instalacionesAgregadas[indice].cantidad = nuevaCantidad;
+        instalacionesAgregadas[indice].subtotal = instalacionesAgregadas[indice].costoUnitario * nuevaCantidad;
+        renderizarInstalaciones();
         });
 
         $(document).on('click', '.eliminar-instalacion', function() {
-            var indice = $(this).data('indice');
-            instalacionesAgregadas.splice(indice, 1);
-            renderizarInstalaciones();
+        var indice = $(this).data('indice');
+        instalacionesAgregadas.splice(indice, 1);
+        renderizarInstalaciones();
         });
-
-        // Enviar formulario
-        $('#formCotizacion').submit(function(e) {
-            var clienteId = $('#clienteId').val();
-            if (!clienteId) {
-                alert('Debe seleccionar un cliente');
-                e.preventDefault();
-                return false;
-            }
-
-            if (equiposAgregados.length === 0) {
-                alert('Debe agregar al menos un equipo');
-                e.preventDefault();
-                return false;
-            }
-
-            // Preparar JSON para enviar
-            var equiposJson = equiposAgregados.map(function(eq) {
-                return {
-                    equipoId: eq.equipoId,
-                    cantidad: eq.cantidad
-                };
-            });
-
-            var instalacionesJson = instalacionesAgregadas.map(function(inst) {
-                return {
-                    instalacionId: inst.instalacionId,
-                    concepto: inst.concepto,
-                    descripcion: inst.descripcion,
-                    cantidad: inst.cantidad,
-                    costoUnitario: inst.costoUnitario
-                };
-            });
-
-            $('#equiposJson').val(JSON.stringify(equiposJson));
-            $('#instalacionesJson').val(JSON.stringify(instalacionesJson));
-        });
-
-        // Inicializar
-        $('#areaMetrosCuadrados').on('change', calcularCargaTermica);
-        calcularCargaTermica();
-
-        // Inicializar tipo de instalación
-        $('#instalacionTipoSelect').trigger('change');
     </script>
 }
 

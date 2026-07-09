@@ -31,5 +31,15 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
                 .OrderBy(c => c.Nombre)
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<Cliente>> ObtenerParaCotizacionAsync()
+        {
+            return await _context.Clientes
+                .Where(c => c.Estado == Models.Enums.EstadoCliente.Asignado ||
+                            c.Estado == Models.Enums.EstadoCliente.Contactado ||
+                            c.Estado == Models.Enums.EstadoCliente.SinAsignar)
+                .OrderByDescending(c => c.FechaRegistro)
+                .ToListAsync();
+        }
     }
 }

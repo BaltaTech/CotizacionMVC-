@@ -1,4 +1,5 @@
-﻿using CotizacionMVC.Data.Repositorios.Interfaces;
+﻿using CotizacionMVC.Data;
+using CotizacionMVC.Data.Repositorios.Interfaces;
 using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Models.Enums;
 using CotizacionMVC.Servicios;
@@ -7,6 +8,7 @@ using CotizacionMVC.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Controllers
 {
@@ -21,6 +23,7 @@ namespace CotizacionMVC.Controllers
         private readonly IDocumento _documentoService;
         private readonly UserManager<Usuario> _userManager;
         private readonly CotizacionServicio _cotizacionServicio;
+        private readonly ApplicationDbContext _context;
 
         public CotizacionController(
             ICotizacionRepository cotizacionRepo,
@@ -30,7 +33,8 @@ namespace CotizacionMVC.Controllers
             IEmpresaRepository empresaRepo,
             IDocumento documentoService,
             UserManager<Usuario> userManager,
-            CotizacionServicio cotizacionServicio)
+            CotizacionServicio cotizacionServicio,
+            ApplicationDbContext context)
         {
             _cotizacionRepo = cotizacionRepo;
             _clienteRepo = clienteRepo;
@@ -40,15 +44,20 @@ namespace CotizacionMVC.Controllers
             _documentoService = documentoService;
             _userManager = userManager;
             _cotizacionServicio = cotizacionServicio;
+            _context = context;
         }
 
+        // GET: Cotizacion/Indice
         // GET: Cotizacion/Indice
         public async Task<IActionResult> Indice()
         {
             var usuarioActual = await _userManager.GetUserAsync(User);
 
-            IEnumerable<Cotizacion> cotizaciones;
+            // Obtener empresa de sesión
+            var empresaIdString = HttpContext.Session.GetString("EmpresaActivaId");
+            Guid? empresaId = string.IsNullOrEmpty(empresaIdString) ? null : Guid.Parse(empresaIdString);
 
+            IEnumerable<Cotizacion> cotizaciones;
             if (User.IsInRole("Administrador"))
             {
                 cotizaciones = await _cotizacionRepo.ObtenerTodasConRelacionesAsync();
@@ -57,6 +66,22 @@ namespace CotizacionMVC.Controllers
             {
                 cotizaciones = await _cotizacionRepo.ObtenerPorVendedorAsync(usuarioActual!.Id);
             }
+
+            // Filtrar por empresa de sesión si existe
+            if (empresaId.HasValue)
+            {
+                cotizaciones = cotizaciones.Where(c => c.EmpresaId == empresaId.Value);
+            }
+
+            // Cargar Leads del vendedor
+            var leads = await _context.Leads
+                .Include(l => l.Cliente)
+                .Include(l => l.Empresa)
+                .Where(l => l.VendedorAsignadoId == usuarioActual!.Id)
+                .OrderByDescending(l => l.FechaAsignacion)
+                .ToListAsync();
+
+            ViewBag.Leads = leads;
 
             return View(cotizaciones);
         }
@@ -76,9 +101,48 @@ namespace CotizacionMVC.Controllers
         }
 
         // GET: Cotizacion/Crear
-        public async Task<IActionResult> Crear()
+        public async Task<IActionResult> Crear(Guid? leadId = null)
         {
-            ViewBag.Clientes = await _clienteRepo.ObtenerTodosOrdenadosAsync();
+            var usuarioActual = await _userManager.GetUserAsync(User);
+
+            // Si viene de un Lead específico, forzar esa empresa
+            if (leadId.HasValue)
+            {
+                var lead = await _context.Leads
+                    .Include(l => l.Empresa)
+                    .Include(l => l.Cliente)
+                    .FirstOrDefaultAsync(l => l.Id == leadId.Value);
+                if (lead != null && lead.VendedorAsignadoId == usuarioActual!.Id)
+                {
+                    ViewBag.LeadId = lead.Id;
+                    ViewBag.ClientePreseleccionado = lead.Cliente;
+                    ViewBag.EmpresaForzada = lead.Empresa;
+                    ViewBag.LeadProducto = lead.ProductoBusca;
+                }
+            }
+
+            // Obtener clientes con oportunidades asignadas al vendedor
+            IEnumerable<Cliente> clientes;
+            if (User.IsInRole("Vendedor"))
+            {
+                var leadsDelVendedor = await _context.Leads
+                    .Include(l => l.Cliente)
+                    .Where(l => l.VendedorAsignadoId == usuarioActual!.Id)
+                    .OrderByDescending(l => l.FechaAsignacion)
+                    .ToListAsync();
+
+                clientes = leadsDelVendedor
+                    .Where(l => l.Cliente != null)
+                    .Select(l => l.Cliente!)
+                    .Distinct()
+                    .ToList();
+            }
+            else
+            {
+                clientes = await _clienteRepo.ObtenerParaCotizacionAsync();
+            }
+
+            ViewBag.Clientes = clientes.ToList();
             ViewBag.Equipos = await _equipoRepo.ObtenerTodosOrdenadosAsync();
             ViewBag.Instalaciones = await _instalacionRepo.ObtenerActivasAsync();
 
@@ -93,7 +157,8 @@ namespace CotizacionMVC.Controllers
             decimal areaMetrosCuadrados,
             string condicionesPago,
             string equipos,
-            string instalaciones)
+            string instalaciones,
+            Guid? leadId = null)
         {
             // 1. Deserializar JSON
             var (listaEquipos, listaInstalaciones) = DeserializarItems(equipos, instalaciones);
@@ -106,8 +171,27 @@ namespace CotizacionMVC.Controllers
                 return RedirectToAction("Login", "Autenticacion");
             }
 
-            // 3. Obtener empresa actual
-            var empresa = await ObtenerEmpresaActual();
+            // 3. Obtener empresa: forzada por el Lead o de la sesión
+            Empresa? empresa = null;
+
+            if (leadId.HasValue)
+            {
+                var lead = await _context.Leads
+                    .Include(l => l.Empresa)
+                    .FirstOrDefaultAsync(l => l.Id == leadId.Value);
+
+                if (lead != null)
+                {
+                    empresa = lead.Empresa;
+                }
+            }
+
+            // Si no hay Lead, usar la empresa de la sesión
+            if (empresa == null)
+            {
+                empresa = await ObtenerEmpresaActual();
+            }
+
             if (empresa == null)
             {
                 TempData["MensajeError"] = "No hay empresa activa";
@@ -134,6 +218,17 @@ namespace CotizacionMVC.Controllers
             {
                 TempData["MensajeError"] = resultado.MensajeError;
                 return RedirectToAction(nameof(Crear));
+            }
+
+            // 7. Actualizar Lead si existe
+            if (leadId.HasValue)
+            {
+                var lead = await _context.Leads.FindAsync(leadId.Value);
+                if (lead != null)
+                {
+                    lead.MarcarCotizado();
+                    await _context.SaveChangesAsync();
+                }
             }
 
             TempData["MensajeExito"] = $"Cotización {resultado.Cotizacion!.NumeroCotizacion} creada exitosamente";

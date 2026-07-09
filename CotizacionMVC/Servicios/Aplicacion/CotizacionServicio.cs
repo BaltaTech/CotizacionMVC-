@@ -27,9 +27,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
         public async Task<ResultadoCrearCotizacion> CrearCotizacionAsync(SolicitudCrearCotizacion solicitud)
         {
-            // ==========================================
             // PASO 1: VALIDAR DATOS DE ENTRADA
-            // ==========================================
             if (solicitud.ClienteId == Guid.Empty)
                 return ResultadoCrearCotizacion.Error("Debe seleccionar un cliente");
 
@@ -39,9 +37,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
             if (solicitud.AreaMetrosCuadrados <= 0)
                 return ResultadoCrearCotizacion.Error("El área debe ser mayor a cero");
 
-            // ==========================================
             // PASO 2: BUSCAR ENTIDADES
-            // ==========================================
             var cliente = await _clienteRepo.GetByIdAsync(solicitud.ClienteId);
             if (cliente == null)
                 return ResultadoCrearCotizacion.Error("Cliente no encontrado");
@@ -50,128 +46,68 @@ namespace CotizacionMVC.Servicios.Aplicacion
             if (empresa == null)
                 return ResultadoCrearCotizacion.Error("Empresa no encontrada");
 
-            // ==========================================
             // PASO 3: VALIDAR REGLAS DE DOMINIO DEL CLIENTE
-            // ==========================================
             if (!cliente.TieneContacto())
-                return ResultadoCrearCotizacion.Error(
-                    "El cliente no tiene información de contacto. Debe registrar teléfono o correo.");
+                return ResultadoCrearCotizacion.Error("El cliente no tiene información de contacto.");
 
             if (!cliente.TieneDireccion())
-                return ResultadoCrearCotizacion.Error(
-                    "El cliente no tiene dirección registrada. Debe completar la dirección antes de crear una cotización.");
+                return ResultadoCrearCotizacion.Error("El cliente no tiene dirección registrada.");
 
-            // ==========================================
-            // PASO 4: GENERAR NÚMERO DE COTIZACIÓN
-            // ==========================================
-            var numeroCotizacion = await _cotizacionRepo.GenerarSiguienteNumeroAsync();
-
-            // ==========================================
-            // PASO 5: CREAR COTIZACIÓN (El constructor ejecuta reglas de dominio)
-            // ==========================================
-            Cotizacion cotizacion;
-            try
-            {
-                cotizacion = new Cotizacion(
-                    numeroCotizacion,
-                    cliente,
-                    empresa,
-                    solicitud.Vendedor,
-                    solicitud.AreaMetrosCuadrados,
-                    solicitud.CondicionesPago ?? ""
-                );
-            }
-            catch (ArgumentException ex)
-            {
-                return ResultadoCrearCotizacion.Error(ex.Message);
-            }
-
-            // ==========================================
-            // PASO 6: AGREGAR EQUIPOS (Ejecuta reglas Trane, precios, etc.)
-            // ==========================================
+            // PASO 4: VALIDAR EQUIPOS ANTES DE CREAR COTIZACIÓN
             foreach (var eq in solicitud.Equipos)
             {
                 var equipo = await _equipoRepo.GetByIdAsync(eq.EquipoId);
                 if (equipo == null)
                     return ResultadoCrearCotizacion.Error($"Equipo con ID {eq.EquipoId} no encontrado");
 
-                try
-                {                 
-                    cotizacion.AgregarEquipo(
-                        equipo,
-                        eq.Cantidad,
-                        empresa.UtilidadEmpresaPorcentaje,
-                        empresa.UtilidadVendedorPorcentaje,
-                        null
-                    );
-                }
-                catch (InvalidOperationException ex) when (ex.Message.Contains("Trane"))
-                {
+                // Validar regla Trane ANTES de crear la cotización
+                if (empresa.EsExclusivaTrane && !equipo.EsMarcaTrane())
                     return ResultadoCrearCotizacion.Error(
-                        $"Error con el equipo {equipo.Modelo}: {ex.Message}");
-                }
-                catch (InvalidOperationException ex) when (ex.Message.Contains("activo"))
-                {
-                    return ResultadoCrearCotizacion.Error(
-                        $"El equipo {equipo.Modelo} no está disponible actualmente.");
-                }
-                catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
-                {
-                    return ResultadoCrearCotizacion.Error(ex.Message);
-                }
+                        $"Esta empresa solo puede cotizar equipos Trane. El equipo {equipo.Marca} {equipo.Modelo} no está permitido.");
+
+                if (!equipo.Activo)
+                    return ResultadoCrearCotizacion.Error($"El equipo {equipo.Modelo} no está disponible actualmente.");
             }
 
-            // ==========================================
+            // PASO 5: GENERAR NÚMERO Y CREAR COTIZACIÓN
+            var numeroCotizacion = await _cotizacionRepo.GenerarSiguienteNumeroAsync();
+
+            Cotizacion cotizacion;
+            try
+            {
+                cotizacion = new Cotizacion(numeroCotizacion, cliente, empresa, solicitud.Vendedor,
+                    solicitud.AreaMetrosCuadrados, solicitud.CondicionesPago ?? "");
+            }
+            catch (ArgumentException ex)
+            {
+                return ResultadoCrearCotizacion.Error(ex.Message);
+            }
+
+            // PASO 6: AGREGAR EQUIPOS (ya validados, no deberían fallar)
+            foreach (var eq in solicitud.Equipos)
+            {
+                var equipo = await _equipoRepo.GetByIdAsync(eq.EquipoId);
+                cotizacion.AgregarEquipo(equipo!, eq.Cantidad, empresa.UtilidadEmpresaPorcentaje,
+                    empresa.UtilidadVendedorPorcentaje, null);
+            }
+
             // PASO 7: AGREGAR INSTALACIONES
-            // ==========================================
             foreach (var inst in solicitud.Instalaciones)
             {
-                try
+                if (inst.InstalacionId.HasValue)
                 {
-                    if (inst.InstalacionId.HasValue)
-                    {
-                        var instalacion = await _instalacionRepo.GetByIdAsync(inst.InstalacionId.Value);
-                        if (instalacion == null)
-                            return ResultadoCrearCotizacion.Error($"Instalación con ID {inst.InstalacionId} no encontrada");
-
-                        if (!instalacion.Activo)
-                            return ResultadoCrearCotizacion.Error($"La instalación '{instalacion.Concepto}' no está activa");
-
-                        cotizacion.AgregarInstalacionPredefinida(instalacion, inst.Cantidad);
-                    }
-                    else
-                    {
-                        cotizacion.AgregarInstalacion(
-                            inst.Concepto,
-                            inst.Descripcion ?? "",
-                            inst.Cantidad,
-                            inst.CostoUnitario
-                        );
-                    }
+                    var instalacion = await _instalacionRepo.GetByIdAsync(inst.InstalacionId.Value);
+                    if (instalacion == null || !instalacion.Activo) continue;
+                    cotizacion.AgregarInstalacionPredefinida(instalacion, inst.Cantidad);
                 }
-                catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
+                else
                 {
-                    return ResultadoCrearCotizacion.Error(ex.Message);
+                    cotizacion.AgregarInstalacion(inst.Concepto, inst.Descripcion ?? "", inst.Cantidad, inst.CostoUnitario);
                 }
             }
 
-            // ==========================================
-            // PASO 8: VALIDAR REGLA DE DOMINIO - AUTORIZACIÓN
-            // ==========================================
-            if (cotizacion.RequiereAutorizacion)
-            {
-                // Aquí podrías:
-                // - Enviar notificación al administrador
-                // - Marcar la cotización como "Pendiente de autorización"
-                // - Registrar en un log de auditoría
-                Console.WriteLine($"⚠️ La cotización {numeroCotizacion} requiere autorización (Total: ${cotizacion.Total.Monto:N2} {cotizacion.Total.Moneda})");
-            }
-
-            // ==========================================
-            // PASO 9: GUARDAR
-            // ==========================================
+            // PASO 8: GUARDAR
             await _cotizacionRepo.AddAsync(cotizacion);
-
             return ResultadoCrearCotizacion.Exito(cotizacion);
         }
     }

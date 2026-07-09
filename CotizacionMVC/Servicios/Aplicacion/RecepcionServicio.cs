@@ -1,4 +1,5 @@
-﻿using CotizacionMVC.Data.Repositorios.Interfaces;
+﻿using CotizacionMVC.Data;
+using CotizacionMVC.Data.Repositorios.Interfaces;
 using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Models.Enums;
 using CotizacionMVC.Models.Valor;
@@ -14,17 +15,20 @@ namespace CotizacionMVC.Servicios.Aplicacion
         private readonly IEmpresaRepository _empresaRepo;
         private readonly UserManager<Usuario> _userManager;
         private readonly NotificacionServicio _notificacionServicio;
+        private readonly ApplicationDbContext _context;
 
         public RecepcionServicio(
             IClienteRepository clienteRepo,
             IEmpresaRepository empresaRepo,
             UserManager<Usuario> userManager,
-            NotificacionServicio notificacionServicio)
+            NotificacionServicio notificacionServicio,
+            ApplicationDbContext context)
         {
             _clienteRepo = clienteRepo;
             _empresaRepo = empresaRepo;
             _userManager = userManager;
             _notificacionServicio = notificacionServicio;
+            _context = context;
         }
 
         public async Task<ResultadoRegistroCliente> RegistrarClienteAsync(
@@ -47,73 +51,77 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
             // 2. Verificar duplicado por teléfono
             var clienteExistente = await _clienteRepo.ExisteTelefonoAsync(modelo.Telefono);
-            if (clienteExistente != null)
-            {
-                return ResultadoRegistroCliente.Duplicado(
-                    clienteExistente,
-                    $"El teléfono {modelo.Telefono} ya está registrado a nombre de {clienteExistente.Nombre}. " +
-                    $"Folio: {clienteExistente.Folio}");
-            }
 
             // 3. Verificar que la empresa existe
             var empresa = await _empresaRepo.GetByIdAsync(modelo.EmpresaId);
             if (empresa == null)
                 return ResultadoRegistroCliente.Error("Empresa no encontrada");
 
-            // 4. Crear el contacto
-            var contacto = new Contacto(
-                modelo.Telefono,
-                null,
-                modelo.Correo,
-                modelo.Nombre
-            );
+            Cliente cliente;
 
-            // 5. Crear el cliente
-            var cliente = new Cliente(modelo.Nombre, contacto);
-
-            // 6. Generar y asignar folio
-            var folio = await _clienteRepo.GenerarFolioAsync();
-            cliente.AsignarFolio(folio);
-
-            // 7. Guardar ubicación con CP
-            var direccion = new Direccion(
-                null, null, null,
-                modelo.Ciudad,
-                null,
-                modelo.CodigoPostal,
-                null
-            );
-            cliente.ActualizarDireccion(direccion);
-
-            // 8. Agregar observaciones
-            var observaciones = $"Producto: {modelo.ProductoBusca}";
-            if (!string.IsNullOrWhiteSpace(modelo.Comentarios))
-                observaciones += $" | Comentarios: {modelo.Comentarios}";
-            cliente.AgregarObservaciones(observaciones);
-
-            // 9. Configurar registro
-            cliente.ConfigurarRegistro(modelo.Origen, registradoPorId);
-
-            // 10. Asignar vendedor Y NOTIFICAR
-            if (esRecepcion && modelo.AsignarAhora && modelo.VendedorAsignadoId.HasValue)
+            if (clienteExistente != null)
             {
-                cliente.AsignarVendedor(modelo.VendedorAsignadoId.Value);
-
-                // Enviar notificación al vendedor
-                await _notificacionServicio.EnviarNotificacionAsync(
-                    modelo.VendedorAsignadoId.Value.ToString(),
-                    "Nuevo Cliente Asignado",
-                    $"Se te ha asignado el cliente: {cliente.Nombre} - {modelo.ProductoBusca}",
-                    "success"
-                );
+                // El cliente YA existe → solo creamos un nuevo Lead
+                cliente = clienteExistente;
             }
             else
             {
-                cliente.MarcarPendienteAsignar();
+                // Cliente NUEVO → creamos Cliente + Lead
+                var contacto = new Contacto(modelo.Telefono, null, modelo.Correo, modelo.Nombre);
+                cliente = new Cliente(modelo.Nombre, contacto);
+
+                var folio = await _clienteRepo.GenerarFolioAsync();
+                cliente.AsignarFolio(folio);
+
+                var direccion = new Direccion(null, null, null, modelo.Ciudad, null, modelo.CodigoPostal, null);
+                cliente.ActualizarDireccion(direccion);
+
+                var observaciones = $"Producto: {modelo.ProductoBusca}";
+                if (!string.IsNullOrWhiteSpace(modelo.Comentarios))
+                    observaciones += $" | Comentarios: {modelo.Comentarios}";
+                cliente.AgregarObservaciones(observaciones);
+
+                cliente.ConfigurarRegistro(modelo.Origen, registradoPorId);
+
+                await _clienteRepo.AddAsync(cliente);
             }
 
-            // 11. Guardar en base de datos
-            await _clienteRepo.AddAsync(cliente);
+            // ========== CREAR LEAD (OPORTUNIDAD) ==========
+            var lead = new Lead(
+                empresa,
+                cliente.Nombre,
+                modelo.Telefono,
+                CategoriaLead.Caliente, // Lead entrante = caliente
+                modelo.Origen.ToString(),
+                modelo.Correo
+            );
+
+            lead.VincularCliente(cliente);
+            lead.EstablecerProducto(modelo.ProductoBusca);
+
+            if (!string.IsNullOrWhiteSpace(modelo.Comentarios))
+                lead.AgregarComentario(modelo.Comentarios);
+
+            // Asignar vendedor al Lead
+            if (esRecepcion && modelo.AsignarAhora && modelo.VendedorAsignadoId.HasValue)
+            {
+                var vendedor = await _userManager.FindByIdAsync(modelo.VendedorAsignadoId.Value.ToString());
+                if (vendedor != null)
+                {
+                    lead.AsignarVendedor(vendedor);
+
+                    // Notificar al vendedor
+                    await _notificacionServicio.EnviarNotificacionAsync(
+                        modelo.VendedorAsignadoId.Value.ToString(),
+                        "Nueva Oportunidad Asignada",
+                        $"Se te ha asignado una oportunidad: {cliente.Nombre} - {modelo.ProductoBusca} - {empresa.NombreComercial}",
+                        "success"
+                    );
+                }
+            }
+
+            _context.Leads.Add(lead);
+            await _context.SaveChangesAsync();
 
             return ResultadoRegistroCliente.Exito(cliente);
         }
@@ -142,7 +150,6 @@ namespace CotizacionMVC.Servicios.Aplicacion
             cliente.AsignarVendedor(vendedorId);
             _clienteRepo.Update(cliente);
 
-            // Notificar al vendedor
             await _notificacionServicio.EnviarNotificacionAsync(
                 vendedorId.ToString(),
                 "Cliente Asignado",
@@ -163,7 +170,6 @@ namespace CotizacionMVC.Servicios.Aplicacion
             cliente.ReasignarVendedor(nuevoVendedorId);
             _clienteRepo.Update(cliente);
 
-            // Notificar al nuevo vendedor
             await _notificacionServicio.EnviarNotificacionAsync(
                 nuevoVendedorId.ToString(),
                 "Cliente Reasignado",

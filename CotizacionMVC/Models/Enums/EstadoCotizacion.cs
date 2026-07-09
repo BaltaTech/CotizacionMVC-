@@ -10,7 +10,6 @@
         Aceptada = 90,
         PagoAnticipo = 95,
         Cerrada = 100,
-        Cancelada = 0,
         Perdida = 0
     }
 }
