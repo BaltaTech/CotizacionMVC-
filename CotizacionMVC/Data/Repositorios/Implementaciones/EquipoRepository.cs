@@ -21,6 +21,16 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
             return await _context.Equipos
                 .OrderBy(e => e.Marca)
                 .ToListAsync();
-        } 
+        }
+
+        public IQueryable<Equipo> ObtenerQueryable()
+        {
+            return _context.Equipos.AsQueryable();
+        }
+
+        public async Task<bool> EstaEnUsoAsync(Guid id)
+        {
+            return await _context.ItemsCotizacion.AnyAsync(i => i.EquipoId == id);
+        }
     }
 }

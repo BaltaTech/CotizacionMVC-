@@ -1,4 +1,5 @@
-﻿@model CotizacionMVC.Models.Entidades.Cliente
+﻿
+@model CotizacionMVC.ViewModels.Cliente.ClienteFormViewModel
 
 @{
     ViewData["Title"] = "Nuevo Cliente";
@@ -10,14 +11,16 @@
             <h2><i class="fas fa-user-plus"></i> Nuevo Cliente</h2>
         </div>
         <div class="card-body">
-            <form method="post">
+            <form method="post" asp-action="Crear">
                 <div asp-validation-summary="All" class="alert alert-danger"></div>
+                <input type="hidden" asp-for="Id" />
 
                 <h4 class="text-primary mb-3">Datos Básicos</h4>
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label class="form-label fw-bold">Nombre / Razón Social *</label>
-                        <input name="nombre" class="form-control" required value="@ViewBag.Nombre" />
+                        <label asp-for="Nombre" class="form-label fw-bold"></label>
+                        <input asp-for="Nombre" class="form-control" />
+                        <span asp-validation-for="Nombre" class="text-danger"></span>
                     </div>
                 </div>
 
@@ -28,78 +31,74 @@
 
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Teléfono</label>
-                        <input name="telefono" type="tel" class="form-control"
-                               placeholder="5512345678" value="@ViewBag.Telefono" />
+                        <label asp-for="Telefono" class="form-label"></label>
+                        <input asp-for="Telefono" type="tel" class="form-control" placeholder="5512345678" />
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Teléfono Móvil</label>
-                        <input name="telefonoMovil" type="tel" class="form-control"
-                               placeholder="5512345678" value="@ViewBag.TelefonoMovil" />
+                        <label asp-for="TelefonoMovil" class="form-label"></label>
+                        <input asp-for="TelefonoMovil" type="tel" class="form-control" placeholder="5512345678" />
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Correo Electrónico</label>
-                        <input name="correo" type="email" class="form-control"
-                               placeholder="cliente@ejemplo.com" value="@ViewBag.Correo" />
+                        <label asp-for="Correo" class="form-label"></label>
+                        <input asp-for="Correo" type="email" class="form-control" placeholder="cliente@ejemplo.com" />
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label class="form-label">Nombre de Contacto</label>
-                        <input name="nombreContacto" class="form-control"
-                               placeholder="Persona con quien tratar" value="@ViewBag.NombreContacto" />
+                        <label asp-for="NombreContacto" class="form-label"></label>
+                        <input asp-for="NombreContacto" class="form-control" placeholder="Persona con quien tratar" />
                     </div>
                 </div>
 
                 <h4 class="text-primary mb-3 mt-4">Dirección (Opcional)</h4>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Calle</label>
-                        <input name="calle" class="form-control" value="@ViewBag.Calle" />
+                        <label asp-for="Calle" class="form-label"></label>
+                        <input asp-for="Calle" class="form-control" />
                     </div>
                     <div class="col-md-3 mb-3">
-                        <label class="form-label">Número Exterior</label>
-                        <input name="numeroExterior" class="form-control" value="@ViewBag.NumeroExterior" />
+                        <label asp-for="NumeroExterior" class="form-label"></label>
+                        <input asp-for="NumeroExterior" class="form-control" />
                     </div>
                     <div class="col-md-3 mb-3">
-                        <label class="form-label">Número Interior</label>
-                        <input name="numeroInterior" class="form-control" value="@ViewBag.NumeroInterior" />
+                        <label asp-for="NumeroInterior" class="form-label"></label>
+                        <input asp-for="NumeroInterior" class="form-control" />
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Colonia</label>
-                        <input name="colonia" class="form-control" value="@ViewBag.Colonia" />
+                        <label asp-for="Colonia" class="form-label"></label>
+                        <input asp-for="Colonia" class="form-control" />
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Ciudad</label>
-                        <input name="ciudad" class="form-control" value="@ViewBag.Ciudad" />
+                        <label asp-for="Ciudad" class="form-label"></label>
+                        <input asp-for="Ciudad" class="form-control" />
                     </div>
                     <div class="col-md-2 mb-3">
-                        <label class="form-label">Estado</label>
-                        <select name="estado" class="form-control">
+                        <label asp-for="Estado" class="form-label"></label>
+                        <select asp-for="Estado" class="form-control">
                             <option value="">Seleccione...</option>
-                            <option value="CDMX" selected="@(ViewBag.Estado == "CDMX")">CDMX</option>
-                            <option value="EdoMex" selected="@(ViewBag.Estado == "EdoMex")">Estado de México</option>
-                            <option value="Jalisco" selected="@(ViewBag.Estado == "Jalisco")">Jalisco</option>
-                            <option value="NuevoLeon" selected="@(ViewBag.Estado == "NuevoLeon")">Nuevo León</option>
-                            <option value="Puebla" selected="@(ViewBag.Estado == "Puebla")">Puebla</option>
-                            <option value="Otro" selected="@(ViewBag.Estado == "Otro")">Otro</option>
+                            <option value="CDMX">CDMX</option>
+                            <option value="EdoMex">Estado de México</option>
+                            <option value="Jalisco">Jalisco</option>
+                            <option value="NuevoLeon">Nuevo León</option>
+                            <option value="Puebla">Puebla</option>
+                            <option value="Otro">Otro</option>
                         </select>
                     </div>
                     <div class="col-md-2 mb-3">
-                        <label class="form-label">Código Postal</label>
-                        <input name="codigoPostal" class="form-control" value="@ViewBag.CodigoPostal" />
+                        <label asp-for="CodigoPostal" class="form-label"></label>
+                        <input asp-for="CodigoPostal" class="form-control" />
                     </div>
                 </div>
 
                 <h4 class="text-primary mb-3 mt-4">Observaciones</h4>
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <textarea name="observaciones" class="form-control" rows="3"
-                                  placeholder="Notas adicionales...">@ViewBag.Observaciones</textarea>
+                        <textarea asp-for="Observaciones" class="form-control" rows="3"
+                                  placeholder="Notas adicionales..."></textarea>
                     </div>
                 </div>
 

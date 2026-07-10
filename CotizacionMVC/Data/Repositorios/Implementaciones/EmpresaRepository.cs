@@ -13,5 +13,10 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
             return await _context.Empresas
                 .FirstOrDefaultAsync(e => e.Activa);
         }
+
+        public IQueryable<Empresa> ObtenerQueryable()
+        {
+            return _context.Empresas.AsQueryable();
+        }
     }
 }

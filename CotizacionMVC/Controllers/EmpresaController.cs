@@ -1,107 +1,106 @@
-﻿using CotizacionMVC.Data;
-using CotizacionMVC.Models.Entidades;
-using Microsoft.AspNetCore.Authorization;
+﻿using CotizacionMVC.Servicios.Aplicacion.Dtos.Empresa;
+ using CotizacionMVC.Servicios.Aplicacion.Interfaces;
+using CotizacionMVC.ViewModels.Empresa;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Controllers
 {
     public class EmpresaController : Controller
     {
-        private readonly ApplicationDbContext _contextoBaseDatos;
+        private readonly IEmpresaServicio _empresaServicio;
 
-        public EmpresaController(ApplicationDbContext contextoBaseDatos)
+        public EmpresaController(IEmpresaServicio empresaServicio)
         {
-            _contextoBaseDatos = contextoBaseDatos;
+            _empresaServicio = empresaServicio;
         }
 
         // GET: Empresa/Indice
         public async Task<IActionResult> Indice()
         {
-            var empresas = await _contextoBaseDatos.Empresas
-                .OrderBy(e => e.NombreComercial)
-                .ToListAsync();
+            var empresas = await _empresaServicio.ObtenerTodasAsync();
 
-            return View(empresas);
+            var viewModel = new EmpresaIndiceViewModel
+            {
+                Empresas = empresas.Select(e => new EmpresaResumenViewModel
+                {
+                    Id = e.Id,
+                    NombreComercial = e.NombreComercial,
+                    Slug = e.Slug,
+                    Activa = e.Activa,
+                    LogoUrl = e.LogoUrl,
+                    ColorPrimario = e.ColorPrimario
+                }).ToList()
+            };
+
+            return View(viewModel);
         }
 
         // GET: Empresa/Editar/5
-        // Solo administrador - Formulario para editar empresa
         public async Task<IActionResult> Editar(Guid? id)
         {
             if (id == null)
-            {
                 return NotFound("No se proporcionó un identificador de empresa");
-            }
 
-            var empresa = await _contextoBaseDatos.Empresas.FindAsync(id);
+            var empresa = await _empresaServicio.ObtenerPorIdAsync(id.Value);
 
             if (empresa == null)
-            {
                 return NotFound($"No se encontró la empresa con ID {id}");
-            }
 
-            return View(empresa);
+            var viewModel = new EmpresaFormViewModel
+            {
+                Id = empresa.Id,
+                NombreComercial = empresa.NombreComercial,
+                UtilidadEmpresaPorcentaje = empresa.UtilidadEmpresaPorcentaje,
+                UtilidadVendedorPorcentaje = empresa.UtilidadVendedorPorcentaje,
+                TelefonoContacto = empresa.TelefonoContacto,
+                CorreoContacto = empresa.CorreoContacto,
+                LogoUrl = empresa.LogoUrl ?? "",
+                ColorPrimario = empresa.ColorPrimario ?? "",
+                ColorSecundario = empresa.ColorSecundario ?? "",
+                PlantillaPdfNombre = empresa.PlantillaPdfNombre ?? "",
+                Eslogan = empresa.Eslogan ?? ""
+            };
+
+            return View(viewModel);
         }
 
         // POST: Empresa/Editar/5
-        // Solo administrador - Guardar cambios de la empresa
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Editar(Guid id, Empresa empresa)
+        public async Task<IActionResult> Editar(EmpresaFormViewModel formulario)
         {
-            if (id != empresa.Id)
-            {
-                return NotFound("El identificador de la empresa no coincide");
-            }
-
             if (!ModelState.IsValid)
-            {
-                return View(empresa);
-            }
+                return View(formulario);
 
             try
             {
-                var empresaExistente = await _contextoBaseDatos.Empresas.FindAsync(id);
-
-                if (empresaExistente == null)
+                var dto = new ActualizarEmpresaDto
                 {
-                    return NotFound($"No se encontró la empresa con ID {id}");
-                }
+                    Id = formulario.Id,
+                    UtilidadEmpresaPorcentaje = formulario.UtilidadEmpresaPorcentaje,
+                    UtilidadVendedorPorcentaje = formulario.UtilidadVendedorPorcentaje,
+                    TelefonoContacto = formulario.TelefonoContacto,
+                    CorreoContacto = formulario.CorreoContacto,
+                    LogoUrl = formulario.LogoUrl,
+                    ColorPrimario = formulario.ColorPrimario,
+                    ColorSecundario = formulario.ColorSecundario,
+                    PlantillaPdfNombre = formulario.PlantillaPdfNombre,
+                    Eslogan = formulario.Eslogan
+                };
 
-                empresaExistente.ActualizarUtilidades(
-                    empresa.UtilidadEmpresaPorcentaje,
-                    empresa.UtilidadVendedorPorcentaje
-                );
+                var resultado = await _empresaServicio.ActualizarAsync(dto);
 
-                empresaExistente.ActualizarContacto(empresa.TelefonoContacto, empresa.CorreoContacto);
-
-                // Actualizar identidad visual
-                empresaExistente.ConfigurarIdentidadVisual(
-                    empresa.LogoUrl ?? "",
-                    empresa.ColorPrimario ?? "",
-                    empresa.ColorSecundario ?? "",
-                    empresa.PlantillaPdfNombre ?? "",
-                    empresa.Eslogan ?? ""
-                );
-
-                await _contextoBaseDatos.SaveChangesAsync();
-
-                TempData["MensajeExito"] = $"Empresa {empresaExistente.NombreComercial} actualizada exitosamente";
+                TempData["MensajeExito"] = $"Empresa {resultado.NombreComercial} actualizada exitosamente";
                 return RedirectToAction(nameof(Indice));
             }
-            catch (DbUpdateConcurrencyException)
+            catch (KeyNotFoundException ex)
             {
-                if (!EmpresaExiste(id))
-                {
-                    return NotFound($"La empresa con ID {id} ya no existe");
-                }
-                throw;
+                return NotFound(ex.Message);
             }
             catch (Exception ex)
             {
                 ModelState.AddModelError("", $"Error al actualizar: {ex.Message}");
-                return View(empresa);
+                return View(formulario);
             }
         }
 
@@ -121,17 +120,13 @@ namespace CotizacionMVC.Controllers
         }
 
         // POST: Empresa/CambiarEmpresaActiva
-        // Cualquier usuario autenticado - Cambia la empresa activa en sesión
         [HttpPost]
-       // [Authorize]
         public async Task<IActionResult> CambiarEmpresaActiva(Guid empresaId, string? returnUrl = null)
         {
-            var empresa = await _contextoBaseDatos.Empresas.FindAsync(empresaId);
+            var empresa = await _empresaServicio.ObtenerPorIdAsync(empresaId);
 
             if (empresa == null)
-            {
                 return NotFound("No se encontró la empresa seleccionada");
-            }
 
             if (!empresa.Activa)
             {
@@ -139,7 +134,6 @@ namespace CotizacionMVC.Controllers
                 return RedirectToLocal(returnUrl);
             }
 
-            // Guardar empresa activa en sesión
             HttpContext.Session.SetString("EmpresaActivaId", empresa.Id.ToString());
             HttpContext.Session.SetString("EmpresaActivaNombre", empresa.NombreComercial);
             HttpContext.Session.SetString("EmpresaActivaSlug", empresa.Slug);
@@ -151,55 +145,46 @@ namespace CotizacionMVC.Controllers
             return RedirectToLocal(returnUrl);
         }
 
-        public async Task<Empresa?> ObtenerEmpresaActual()
+        public async Task<EmpresaDetalleDto?> ObtenerEmpresaActual()
         {
             var empresaIdString = HttpContext.Session.GetString("EmpresaActivaId");
 
             if (string.IsNullOrEmpty(empresaIdString))
             {
-                var primeraEmpresa = await _contextoBaseDatos.Empresas
-                    .FirstOrDefaultAsync(e => e.Activa);
+                var empresa = await _empresaServicio.ObtenerEmpresaActualAsync();
 
-                if (primeraEmpresa != null)
+                if (empresa != null)
                 {
-                    HttpContext.Session.SetString("EmpresaActivaId", primeraEmpresa.Id.ToString());
-                    HttpContext.Session.SetString("EmpresaActivaNombre", primeraEmpresa.NombreComercial);
-                    HttpContext.Session.SetString("EmpresaActivaSlug", primeraEmpresa.Slug);
-                    HttpContext.Session.SetString("EmpresaEsExclusivaTrane", primeraEmpresa.EsExclusivaTrane.ToString());
-                    HttpContext.Session.SetString("EmpresaColorPrimario", primeraEmpresa.ColorPrimario ?? "#C8102E");
-                    HttpContext.Session.SetString("EmpresaColorSecundario", primeraEmpresa.ColorSecundario ?? "#FFFFFF");
-                    return primeraEmpresa;
+                    HttpContext.Session.SetString("EmpresaActivaId", empresa.Id.ToString());
+                    HttpContext.Session.SetString("EmpresaActivaNombre", empresa.NombreComercial);
+                    HttpContext.Session.SetString("EmpresaActivaSlug", empresa.Slug);
+                    HttpContext.Session.SetString("EmpresaEsExclusivaTrane", empresa.EsExclusivaTrane.ToString());
+                    HttpContext.Session.SetString("EmpresaColorPrimario", empresa.ColorPrimario ?? "#C8102E");
+                    HttpContext.Session.SetString("EmpresaColorSecundario", empresa.ColorSecundario ?? "#FFFFFF");
+                    return empresa;
                 }
 
                 return null;
             }
 
             var empresaId = Guid.Parse(empresaIdString);
-            var empresa = await _contextoBaseDatos.Empresas.FindAsync(empresaId);
+            var empresaActiva = await _empresaServicio.ObtenerPorIdAsync(empresaId);
 
-            if (empresa == null || !empresa.Activa)
+            if (empresaActiva == null || !empresaActiva.Activa)
             {
                 HttpContext.Session.Remove("EmpresaActivaId");
                 return await ObtenerEmpresaActual();
             }
 
-            return empresa;
+            return empresaActiva;
         }
 
-        private bool EmpresaExiste(Guid id)
-        {
-            return _contextoBaseDatos.Empresas.Any(e => e.Id == id);
-        }
-
-        private IActionResult RedirectToLocal(string returnUrl)
+        private IActionResult RedirectToLocal(string? returnUrl)
         {
             if (Url.IsLocalUrl(returnUrl))
-            {
                 return Redirect(returnUrl);
-            }
+
             return RedirectToAction("Indice", "Equipo");
         }
-
-
     }
 }

@@ -1,4 +1,4 @@
-﻿@model CotizacionMVC.Models.Entidades.Cotizacion
+﻿@model CotizacionMVC.ViewModels.Cotizacion.CotizacionDetalleViewModel
 
 @{
     ViewData["Title"] = $"Cotización {Model.NumeroCotizacion}";
@@ -11,34 +11,16 @@
         </div>
         <div class="card-body">
 
-            <!-- DEBUG -->
-            @if (TempData["DebugItems"] != null)
-            {
-                <div class="alert alert-info">@TempData["DebugItems"]</div>
-            }
-
             <!-- Datos de la cotización -->
             <div class="row mb-4">
                 <div class="col-md-6">
                     <h5 class="text-primary">Cliente</h5>
-                    <p><strong>@Model.Cliente?.Nombre</strong></p>
-                    @if (!string.IsNullOrWhiteSpace(Model.Cliente?.Contacto?.NombreContacto))
-                    {
-                        <p><small>Attn: @Model.Cliente.Contacto.NombreContacto</small></p>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(Model.Cliente?.Contacto?.Telefono))
-                    {
-                        <p><i class="fas fa-phone"></i> @Model.Cliente.Contacto.Telefono</p>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(Model.Cliente?.Contacto?.Correo))
-                    {
-                        <p><i class="fas fa-envelope"></i> @Model.Cliente.Contacto.Correo</p>
-                    }
+                    <p><strong>@Model.ClienteNombre</strong></p>
                 </div>
                 <div class="col-md-6">
                     <h5 class="text-primary">Datos de la Cotización</h5>
-                    <p><strong>Empresa:</strong> @Model.Empresa?.NombreComercial</p>
-                    <p><strong>Vendedor:</strong> @Model.Vendedor?.NombreCompleto</p>
+                    <p><strong>Empresa:</strong> @Model.EmpresaNombre</p>
+                    <p><strong>Vendedor:</strong> @Model.VendedorNombre</p>
                     <p><strong>Fecha:</strong> @Model.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
                     <p><strong>Válida hasta:</strong> @Model.FechaVencimiento.ToLocalTime().ToString("dd/MM/yyyy")</p>
                     @if (!string.IsNullOrWhiteSpace(Model.CondicionesPago))
@@ -50,7 +32,7 @@
 
             <!-- Equipos -->
             <h4 class="text-primary mt-4"><i class="fas fa-microchip"></i> Equipos</h4>
-            @if (Model.ItemsEquipos.Any())
+            @if (Model.Equipos.Any())
             {
                 <div class="table-responsive">
                     <table class="table table-striped">
@@ -58,22 +40,20 @@
                             <tr>
                                 <th>Marca</th>
                                 <th>Modelo</th>
-                                <th>Capacidad</th>
                                 <th>Cantidad</th>
                                 <th>Precio Unitario</th>
                                 <th>Subtotal</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var item in Model.ItemsEquipos)
+                            @foreach (var item in Model.Equipos)
                             {
                                 <tr>
-                                    <td><span class="badge bg-info">@item.Equipo?.Marca</span></td>
-                                    <td>@item.Equipo?.Modelo</td>
-                                    <td>@item.Equipo?.CapacidadToneladas TR</td>
+                                    <td><span class="badge bg-info">@item.EquipoMarca</span></td>
+                                    <td>@item.EquipoModelo</td>
                                     <td>@item.Cantidad</td>
-                                    <td>@item.PrecioUnitario.Monto.ToString("N2")</td>
-                                    <td>@item.Subtotal.Monto.ToString("N2")</td>
+                                    <td>@item.PrecioUnitario.ToString("N2")</td>
+                                    <td>@item.Subtotal.ToString("N2")</td>
                                 </tr>
                             }
                         </tbody>
@@ -87,7 +67,7 @@
 
             <!-- Instalaciones -->
             <h4 class="text-primary mt-4"><i class="fas fa-tools"></i> Instalaciones</h4>
-            @if (Model.ItemsInstalacion.Any())
+            @if (Model.Instalaciones.Any())
             {
                 <div class="table-responsive">
                     <table class="table table-striped">
@@ -101,14 +81,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var item in Model.ItemsInstalacion)
+                            @foreach (var item in Model.Instalaciones)
                             {
                                 <tr>
                                     <td>@item.Concepto</td>
                                     <td>@item.Descripcion</td>
                                     <td>@item.Cantidad</td>
-                                    <td>@item.CostoUnitario.Monto.ToString("N2")</td>
-                                    <td>@item.Subtotal.Monto.ToString("N2")</td>
+                                    <td>@item.CostoUnitario.ToString("N2")</td>
+                                    <td>@item.Subtotal.ToString("N2")</td>
                                 </tr>
                             }
                         </tbody>
@@ -128,15 +108,15 @@
                             <table class="table table-borderless">
                                 <tr>
                                     <td><strong>Subtotal:</strong></td>
-                                    <td class="text-end">@Model.Subtotal.Monto.ToString("N2")</td>
+                                    <td class="text-end">@Model.Subtotal.ToString("N2")</td>
                                 </tr>
                                 <tr>
                                     <td><strong>IVA (16%):</strong></td>
-                                    <td class="text-end">@Model.Iva.Monto.ToString("N2")</td>
+                                    <td class="text-end">@Model.Iva.ToString("N2")</td>
                                 </tr>
                                 <tr class="table-primary">
                                     <td><strong>TOTAL:</strong></td>
-                                    <td class="text-end fw-bold fs-5">@Model.Total.Monto.ToString("N2")</td>
+                                    <td class="text-end fw-bold fs-5">@Model.Total.ToString("N2") @Model.Moneda</td>
                                 </tr>
                             </table>
                         </div>
@@ -153,13 +133,12 @@
             <a asp-action="Indice" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Volver al listado
             </a>
+            <a asp-action="DescargarPdf" asp-route-id="@Model.Id" class="btn btn-danger">
+                <i class="fas fa-file-pdf"></i> Descargar PDF
+            </a>
         </div>
     </div>
 </div>
-
-<a asp-action="DescargarPdf" asp-route-id="@Model.Id" class="btn btn-danger">
-    <i class="fas fa-file-pdf"></i> Descargar PDF
-</a>
 
 @section Styles {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />

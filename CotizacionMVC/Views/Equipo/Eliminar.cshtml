@@ -1,4 +1,4 @@
-﻿@model CotizacionMVC.Models.Entidades.Equipo
+﻿@model CotizacionMVC.ViewModels.Equipo.EquipoDetalleViewModel
 
 @{
     ViewData["Title"] = "Eliminar Equipo";
@@ -12,10 +12,6 @@
         <div class="card-body">
             <div class="alert alert-warning">
                 <i class="fas fa-warning"></i> ¿Está seguro de que desea eliminar este equipo?
-                @if (ViewBag.EstaEnUso != null && ViewBag.EstaEnUso)
-                {
-                    <strong>Este equipo está siendo utilizado en cotizaciones. Solo se desactivará, no se eliminará físicamente.</strong>
-                }
             </div>
 
             <dl class="row">

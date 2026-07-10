@@ -1,146 +1,118 @@
-﻿using CotizacionMVC.Data;
-using CotizacionMVC.Models.Entidades;
-using CotizacionMVC.Models.Enums;
+﻿using CotizacionMVC.Models.Enums;
+using CotizacionMVC.Servicios.Aplicacion.Dtos.Equipo;
+using CotizacionMVC.Servicios.Aplicacion.Interfaces;
+using CotizacionMVC.ViewModels.Equipo;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Controllers
 {
     public class EquipoController : Controller
     {
-        private readonly ApplicationDbContext _contextoBaseDatos;
+        private readonly IEquipoServicio _equipoServicio;
 
-        public EquipoController(ApplicationDbContext contextoBaseDatos)
+        public EquipoController(IEquipoServicio equipoServicio)
         {
-            _contextoBaseDatos = contextoBaseDatos;
+            _equipoServicio = equipoServicio;
         }
 
         // GET: Equipo/Indice
         public async Task<IActionResult> Indice()
         {
-            var equipos = await _contextoBaseDatos.Equipos
-                .Where(e => e.Activo)
-                .OrderBy(e => e.Marca)
-                .ThenBy(e => e.Modelo)
-                .ToListAsync();
+            var equipos = await _equipoServicio.ObtenerTodosAsync();
 
-            return View(equipos);
+            var viewModel = new EquipoIndiceViewModel
+            {
+                Equipos = equipos.Select(e => new EquipoResumenViewModel
+                {
+                    Id = e.Id,
+                    Marca = e.Marca,
+                    Modelo = e.Modelo,
+                    CapacidadToneladas = e.CapacidadToneladas,
+                    PrecioBase = e.PrecioBase,
+                    MonedaOriginal = e.MonedaOriginal,
+                    Activo = e.Activo
+                }).ToList()
+            };
+
+            return View(viewModel);
         }
 
         // GET: Equipo/Detalles/5
         public async Task<IActionResult> Detalles(Guid? id)
         {
             if (id == null)
-            {
                 return NotFound("No se proporcionó un identificador de equipo");
-            }
 
-            var equipo = await _contextoBaseDatos.Equipos
-                .FirstOrDefaultAsync(e => e.Id == id);
+            var equipo = await _equipoServicio.ObtenerPorIdAsync(id.Value);
 
             if (equipo == null)
-            {
                 return NotFound($"No se encontró el equipo con ID {id}");
-            }
 
-            return View(equipo);
+            var viewModel = new EquipoDetalleViewModel
+            {
+                Id = equipo.Id,
+                Marca = equipo.Marca,
+                Modelo = equipo.Modelo,
+                Tipo = equipo.Tipo,
+                CapacidadToneladas = equipo.CapacidadToneladas,
+                Tension = equipo.Tension,
+                Tecnologia = equipo.Tecnologia,
+                PrecioBase = equipo.PrecioBase,
+                MonedaOriginal = equipo.MonedaOriginal,
+                Activo = equipo.Activo,
+                FechaCreacion = equipo.FechaCreacion
+            };
+
+            return View(viewModel);
         }
 
         // GET: Equipo/Crear
         public IActionResult Crear()
         {
+            var viewModel = new EquipoFormViewModel
+            {
+                MonedaOriginal = "USD"
+            };
+
             ViewBag.Marcas = ObtenerListaMarcas();
-            return View();
+            return View(viewModel);
         }
 
         // POST: Equipo/Crear
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Crear(
-            TipoMarca Marca,
-            string Modelo,
-            string? Tipo,
-            decimal CapacidadToneladas,
-            string? Tension,
-            string? Tecnologia,
-            decimal PrecioBase,
-            string MonedaOriginal)
+        public async Task<IActionResult> Crear(EquipoFormViewModel formulario)
         {
-            bool hayErrores = false;
-
-            // Validar campos obligatorios
-            if (string.IsNullOrWhiteSpace(Modelo))
-            {
-                ModelState.AddModelError("Modelo", "El modelo es obligatorio");
-                hayErrores = true;
-            }
-
-            if (PrecioBase <= 0)
-            {
-                ModelState.AddModelError("PrecioBase", "El precio base debe ser mayor a cero");
-                hayErrores = true;
-            }
-
-            if (CapacidadToneladas <= 0)
-            {
-                ModelState.AddModelError("CapacidadToneladas", "La capacidad debe ser mayor a cero");
-                hayErrores = true;
-            }
-
-            if (string.IsNullOrWhiteSpace(MonedaOriginal))
-            {
-                ModelState.AddModelError("MonedaOriginal", "La moneda es obligatoria");
-                hayErrores = true;
-            }
-
-            // Validar reglas de negocio de moneda por marca
-            if (!hayErrores)
-            {
-                if ((Marca == TipoMarca.Trane || Marca == TipoMarca.York) && MonedaOriginal != "USD")
-                {
-                    ModelState.AddModelError("MonedaOriginal", "Los equipos Trane y York solo pueden tener precio en USD");
-                    hayErrores = true;
-                }
-
-                if (Marca != TipoMarca.Trane && Marca != TipoMarca.York && MonedaOriginal != "MXN")
-                {
-                    ModelState.AddModelError("MonedaOriginal", $"Los equipos {Marca} solo pueden tener precio en MXN");
-                    hayErrores = true;
-                }
-            }
-
-            if (hayErrores)
+            if (!ModelState.IsValid)
             {
                 ViewBag.Marcas = ObtenerListaMarcas();
-                return View();
+                return View(formulario);
             }
 
             try
             {
-                var equipo = new Equipo(
-                    Marca,
-                    Modelo,
-                    CapacidadToneladas,
-                    PrecioBase,
-                    MonedaOriginal
-                );
-
-                if (!string.IsNullOrWhiteSpace(Tipo))
+                var dto = new CrearEquipoDto
                 {
-                    equipo.CompletarDetalles(Tipo, Tension ?? "", Tecnologia ?? "");
-                }
+                    Marca = formulario.Marca,
+                    Modelo = formulario.Modelo,
+                    Tipo = formulario.Tipo,
+                    CapacidadToneladas = formulario.CapacidadToneladas,
+                    Tension = formulario.Tension,
+                    Tecnologia = formulario.Tecnologia,
+                    PrecioBase = formulario.PrecioBase,
+                    MonedaOriginal = formulario.MonedaOriginal
+                };
 
-                _contextoBaseDatos.Equipos.Add(equipo);
-                await _contextoBaseDatos.SaveChangesAsync();
+                var resultado = await _equipoServicio.CrearAsync(dto);
 
-                TempData["MensajeExito"] = $"Equipo {equipo.Modelo} creado exitosamente";
+                TempData["MensajeExito"] = $"Equipo {resultado.Modelo} creado exitosamente";
                 return RedirectToAction(nameof(Indice));
             }
             catch (Exception ex)
             {
                 ModelState.AddModelError("", $"Error al guardar: {ex.Message}");
                 ViewBag.Marcas = ObtenerListaMarcas();
-                return View();
+                return View(formulario);
             }
         }
 
@@ -148,100 +120,93 @@ namespace CotizacionMVC.Controllers
         public async Task<IActionResult> Editar(Guid? id)
         {
             if (id == null)
-            {
                 return NotFound("No se proporcionó un identificador de equipo");
-            }
 
-            var equipo = await _contextoBaseDatos.Equipos.FindAsync(id);
+            var equipo = await _equipoServicio.ObtenerPorIdAsync(id.Value);
 
             if (equipo == null)
-            {
                 return NotFound($"No se encontró el equipo con ID {id}");
-            }
+
+            var viewModel = new EquipoFormViewModel
+            {
+                Id = equipo.Id,
+                Marca = equipo.Marca,
+                Modelo = equipo.Modelo,
+                Tipo = equipo.Tipo,
+                CapacidadToneladas = equipo.CapacidadToneladas,
+                Tension = equipo.Tension,
+                Tecnologia = equipo.Tecnologia,
+                PrecioBase = equipo.PrecioBase,
+                MonedaOriginal = equipo.MonedaOriginal
+            };
 
             ViewBag.Marcas = ObtenerListaMarcas();
-            return View(equipo);
+            return View(viewModel);
         }
 
         // POST: Equipo/Editar/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Editar(Guid id, Equipo equipo)
+        public async Task<IActionResult> Editar(EquipoFormViewModel formulario)
         {
-            if (id != equipo.Id)
+            if (!ModelState.IsValid)
             {
-                return NotFound("El identificador del equipo no coincide");
+                ViewBag.Marcas = ObtenerListaMarcas();
+                return View(formulario);
             }
 
-            if (string.IsNullOrWhiteSpace(equipo.Modelo))
+            try
             {
-                ModelState.AddModelError("Modelo", "El modelo es obligatorio");
-            }
-
-            if (equipo.PrecioBase <= 0)
-            {
-                ModelState.AddModelError("PrecioBase", "El precio base debe ser mayor a cero");
-            }
-
-            if (equipo.CapacidadToneladas <= 0)
-            {
-                ModelState.AddModelError("CapacidadToneladas", "La capacidad debe ser mayor a cero");
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
+                var dto = new ActualizarEquipoDto
                 {
-                    var equipoExistente = await _contextoBaseDatos.Equipos.FindAsync(id);
+                    Id = formulario.Id.GetValueOrDefault(),
+                    PrecioBase = formulario.PrecioBase
+                };
 
-                    if (equipoExistente == null)
-                    {
-                        return NotFound($"No se encontró el equipo con ID {id}");
-                    }
+                await _equipoServicio.ActualizarAsync(dto);
 
-                    equipoExistente.ActualizarPrecio(equipo.PrecioBase);
-                    _contextoBaseDatos.Entry(equipoExistente).CurrentValues.SetValues(equipo);
-
-                    await _contextoBaseDatos.SaveChangesAsync();
-
-                    TempData["MensajeExito"] = $"Equipo {equipoExistente.Modelo} actualizado exitosamente";
-                    return RedirectToAction(nameof(Indice));
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!EquipoExiste(id))
-                    {
-                        return NotFound($"El equipo con ID {id} ya no existe");
-                    }
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    ModelState.AddModelError("", $"Error al actualizar: {ex.Message}");
-                }
+                TempData["MensajeExito"] = $"Equipo actualizado exitosamente";
+                return RedirectToAction(nameof(Indice));
             }
-
-            ViewBag.Marcas = ObtenerListaMarcas();
-            return View(equipo);
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Error al actualizar: {ex.Message}");
+                ViewBag.Marcas = ObtenerListaMarcas();
+                return View(formulario);
+            }
         }
 
         // GET: Equipo/Eliminar/5
         public async Task<IActionResult> Eliminar(Guid? id)
         {
             if (id == null)
-            {
                 return NotFound("No se proporcionó un identificador de equipo");
-            }
 
-            var equipo = await _contextoBaseDatos.Equipos
-                .FirstOrDefaultAsync(e => e.Id == id);
+            var equipo = await _equipoServicio.ObtenerPorIdAsync(id.Value);
 
             if (equipo == null)
-            {
                 return NotFound($"No se encontró el equipo con ID {id}");
-            }
 
-            return View(equipo);
+            var viewModel = new EquipoDetalleViewModel
+            {
+                Id = equipo.Id,
+                Marca = equipo.Marca,
+                Modelo = equipo.Modelo,
+                Tipo = equipo.Tipo,
+                CapacidadToneladas = equipo.CapacidadToneladas,
+                Tension = equipo.Tension,
+                Tecnologia = equipo.Tecnologia,
+                PrecioBase = equipo.PrecioBase,
+                MonedaOriginal = equipo.MonedaOriginal,
+                Activo = equipo.Activo,
+                FechaCreacion = equipo.FechaCreacion
+            };
+
+            return View(viewModel);
         }
 
         // POST: Equipo/Eliminar/5
@@ -249,34 +214,21 @@ namespace CotizacionMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EliminarConfirmado(Guid id)
         {
-            var equipo = await _contextoBaseDatos.Equipos.FindAsync(id);
-
-            if (equipo == null)
+            try
             {
-                return NotFound($"No se encontró el equipo con ID {id}");
+                var resultado = await _equipoServicio.EliminarAsync(id);
+
+                if (resultado.Desactivado)
+                    TempData["MensajeAdvertencia"] = resultado.Mensaje;
+                else
+                    TempData["MensajeExito"] = resultado.Mensaje;
+
+                return RedirectToAction(nameof(Indice));
             }
-
-            var estaEnUso = await _contextoBaseDatos.ItemsCotizacion
-                .AnyAsync(i => i.EquipoId == id);
-
-            if (estaEnUso)
+            catch (KeyNotFoundException ex)
             {
-                equipo.Desactivar();
-                TempData["MensajeAdvertencia"] = $"El equipo {equipo.Modelo} está en uso en cotizaciones. Se ha desactivado pero no eliminado.";
+                return NotFound(ex.Message);
             }
-            else
-            {
-                _contextoBaseDatos.Equipos.Remove(equipo);
-                TempData["MensajeExito"] = $"Equipo {equipo.Modelo} eliminado exitosamente";
-            }
-
-            await _contextoBaseDatos.SaveChangesAsync();
-            return RedirectToAction(nameof(Indice));
-        }
-
-        private bool EquipoExiste(Guid id)
-        {
-            return _contextoBaseDatos.Equipos.Any(e => e.Id == id);
         }
 
         private List<object> ObtenerListaMarcas()

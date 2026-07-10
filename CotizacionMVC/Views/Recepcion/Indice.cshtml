@@ -1,13 +1,12 @@
-﻿@model List<CotizacionMVC.Models.Entidades.Cliente>
+﻿@model IReadOnlyList<CotizacionMVC.Servicios.Aplicacion.Dtos.Recepcion.ClienteDashboardDto>
 
 @{
     ViewData["Title"] = "Panel de Recepción";
-    var leads = ViewBag.Leads as List<CotizacionMVC.Models.Entidades.Lead> ?? new List<CotizacionMVC.Models.Entidades.Lead>();
     var totalClientes = Model.Count;
-    var pendientesAsignar = leads.Count(l => l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.SinAsignar);
-    var pendientesCotizar = leads.Count(l => l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Asignado || l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Contactado);
-    var cotizados = leads.Count(l => l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Cotizado);
-    var noCotizables = leads.Count(l => l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.NoCotizable);
+    var pendientesAsignar = Model.Count(c => c.Estado == "SinAsignar");
+    var pendientesCotizar = Model.Count(c => c.Estado == "Asignado" || c.Estado == "Contactado");
+    var cotizados = Model.Count(c => c.Estado == "Cotizado");
+    var noCotizables = Model.Count(c => c.Estado == "NoCotizable");
 }
 
 <div class="container-fluid px-4">
@@ -45,7 +44,6 @@
                 </div>
             </div>
         </div>
-
         <div class="col-xl-3 col-md-6 mb-3">
             <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #FF6B35, #F7931E);">
                 <div class="card-body text-white">
@@ -60,7 +58,6 @@
                 </div>
             </div>
         </div>
-
         <div class="col-xl-3 col-md-6 mb-3">
             <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #1A73E8, #4285F4);">
                 <div class="card-body text-white">
@@ -75,7 +72,6 @@
                 </div>
             </div>
         </div>
-
         <div class="col-xl-3 col-md-6 mb-3">
             <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #343A40, #495057);">
                 <div class="card-body text-white">
@@ -113,7 +109,6 @@
                             <th>Nombre</th>
                             <th>Teléfono</th>
                             <th>Origen</th>
-                            <th>Producto</th>
                             <th>Estado</th>
                             <th>Vendedor</th>
                             <th>Fecha</th>
@@ -122,10 +117,8 @@
                     </thead>
                     <tbody id="tbodyUltimosRegistros">
                         <tr>
-                            <td colspan="9" class="text-center py-3">
-                                <div class="spinner-border text-danger" role="status">
-                                    <span class="visually-hidden">Cargando...</span>
-                                </div>
+                            <td colspan="8" class="text-center py-3">
+                                <div class="spinner-border text-danger" role="status"></div>
                                 <p class="mt-2 text-muted">Cargando últimos registros...</p>
                             </td>
                         </tr>
@@ -326,7 +319,7 @@
                 type: 'GET',
                 success: function(data) { renderizarTablaUltimos(data); },
                 error: function() {
-                    $('#tbodyUltimosRegistros').html('<tr><td colspan="9" class="text-center text-danger py-3"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar los registros</td></tr>');
+                    $('#tbodyUltimosRegistros').html('<tr><td colspan="8" class="text-center text-danger py-3"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar los registros</td></tr>');
                 }
             });
         }
@@ -335,23 +328,21 @@
             const tbody = $('#tbodyUltimosRegistros');
             $('#contadorUltimos').text(clientes.length);
             if (!clientes || clientes.length === 0) {
-                tbody.html('<tr><td colspan="9" class="text-center py-5"><div class="text-muted"><i class="fas fa-clipboard-list fa-4x mb-3" style="opacity: 0.3;"></i><h5>No hay clientes registrados</h5></div></td></tr>');
+                tbody.html('<tr><td colspan="8" class="text-center py-5"><div class="text-muted"><i class="fas fa-clipboard-list fa-4x mb-3" style="opacity: 0.3;"></i><h5>No hay clientes registrados</h5></div></td></tr>');
                 return;
             }
             let html = '';
             clientes.forEach(function(cliente) {
                 const estadoBadge = getEstadoBadge(cliente.estado);
-                const producto = cliente.observaciones ? (cliente.observaciones.split('Producto: ')[1]?.split(' |')[0] || 'N/A') : 'N/A';
                 const tieneVendedor = cliente.vendedorAsignadoId != null;
                 html += `<tr>
                     <td class="ps-3"><span class="badge bg-light text-dark border">${cliente.folio}</span></td>
                     <td><strong>${cliente.nombre}</strong></td>
                     <td>${cliente.telefono || 'N/A'}</td>
                     <td><span class="badge bg-light text-dark">${cliente.origen}</span></td>
-                    <td><small class="text-muted">${producto}</small></td>
                     <td><span class="badge bg-${estadoBadge.color}">${estadoBadge.texto}</span></td>
                     <td>${tieneVendedor ? '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Asignado</span>' : '<span class="text-warning"><i class="fas fa-clock me-1"></i>Sin asignar</span>'}</td>
-                    <td><small>${cliente.fecha}</small></td>
+                    <td><small>${cliente.fechaFormateada || ''}</small></td>
                     <td class="text-center">
                         <div class="btn-group btn-group-sm">
                             <button class="btn btn-outline-secondary btn-ver-detalle" data-id="${cliente.id}" title="Ver detalle"><i class="fas fa-eye"></i></button>

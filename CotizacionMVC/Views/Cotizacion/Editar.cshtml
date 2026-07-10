@@ -1,4 +1,4 @@
-﻿@model CotizacionMVC.Models.Entidades.Cotizacion
+﻿@model CotizacionMVC.ViewModels.Cotizacion.CotizacionDetalleViewModel
 
 @{
     ViewData["Title"] = "Editar Cotización";
@@ -22,20 +22,8 @@
                     <div class="col-md-6">
                         <div class="form-group mb-3">
                             <label for="clienteId" class="form-label fw-bold">Cliente <span class="text-danger">*</span></label>
-                            <select id="clienteId" name="clienteId" class="form-select" required>
-                                <option value="">Seleccione un cliente</option>
-                                @foreach (var cliente in ViewBag.Clientes)
-                                {
-                                    if (cliente.Id == Model.ClienteId)
-                                    {
-                                        <option value="@cliente.Id" selected>@cliente.Nombre</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@cliente.Id">@cliente.Nombre</option>
-                                    }
-                                }
-                            </select>
+                            <input type="text" class="form-control" value="@Model.ClienteNombre" readonly />
+                            <input type="hidden" name="clienteId" value="@Model.ClienteId" />
                         </div>
                     </div>
 
@@ -73,24 +61,15 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @if (Model.ItemsEquipos != null && Model.ItemsEquipos.Any())
+                                    @if (Model.Equipos != null && Model.Equipos.Any())
                                     {
-                                        foreach (var item in Model.ItemsEquipos)
+                                        foreach (var item in Model.Equipos)
                                         {
                                             <tr>
                                                 <td>@item.Cantidad</td>
-                                                <td>
-                                                    @if (item.Equipo != null)
-                                                    {
-                                                        <span>@item.Equipo.Marca @item.Equipo.Modelo</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="text-muted">Equipo no disponible</span>
-                                                    }
-                                                </td>
-                                                <td>@item.PrecioUnitario.Monto.ToString("N2")</td>
-                                                <td class="fw-bold">@item.Subtotal.Monto.ToString("N2")</td>
+                                                <td><span>@item.EquipoMarca @item.EquipoModelo</span></td>
+                                                <td>@item.PrecioUnitario.ToString("N2")</td>
+                                                <td class="fw-bold">@item.Subtotal.ToString("N2")</td>
                                             </tr>
                                         }
                                     }
@@ -119,15 +98,15 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @if (Model.ItemsInstalacion != null && Model.ItemsInstalacion.Any())
+                                    @if (Model.Instalaciones != null && Model.Instalaciones.Any())
                                     {
-                                        foreach (var item in Model.ItemsInstalacion)
+                                        foreach (var item in Model.Instalaciones)
                                         {
                                             <tr>
                                                 <td>@item.Concepto</td>
                                                 <td>@item.Cantidad</td>
-
-                                                <td class="fw-bold">@item.Subtotal.Monto.ToString("N2")</td>
+                                                <td>@item.CostoUnitario.ToString("N2")</td>
+                                                <td class="fw-bold">@item.Subtotal.ToString("N2")</td>
                                             </tr>
                                         }
                                     }
@@ -150,23 +129,21 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between">
                                     <span class="fw-bold">Subtotal:</span>
-                                    <span>@Model.Subtotal.Monto.ToString("N2")</span>
+                                    <span>@Model.Subtotal.ToString("N2")</span>
                                 </div>
                                 <div class="d-flex justify-content-between">
                                     <span class="fw-bold">IVA (16%):</span>
-                                    <span>@Model.Iva.Monto.ToString("N2")</span>
+                                    <span>@Model.Iva.ToString("N2")</span>
                                 </div>
                                 <hr />
                                 <div class="d-flex justify-content-between">
                                     <span class="fw-bold fs-5">Total:</span>
-                                    <span class="fw-bold fs-5 text-primary">@Model.Total.Monto.ToString("N2")</span>
+                                    <span class="fw-bold fs-5 text-primary">@Model.Total.ToString("N2")</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-
-               
 
                 <!-- Botones de acción -->
                 <div class="row mt-4">
@@ -186,16 +163,8 @@
 
 @section Scripts {
     <script>
-        // Validación del formulario
         document.getElementById('formEditar').addEventListener('submit', function(e) {
-            var clienteId = document.getElementById('clienteId').value;
             var area = document.getElementById('areaMetrosCuadrados').value;
-
-            if (!clienteId) {
-                e.preventDefault();
-                alert('Por favor, seleccione un cliente');
-                return false;
-            }
 
             if (!area || parseFloat(area) <= 0) {
                 e.preventDefault();
@@ -206,7 +175,6 @@
             return true;
         });
 
-        // Validación de área en tiempo real
         document.getElementById('areaMetrosCuadrados').addEventListener('input', function() {
             if (this.value < 0) {
                 this.value = 0;

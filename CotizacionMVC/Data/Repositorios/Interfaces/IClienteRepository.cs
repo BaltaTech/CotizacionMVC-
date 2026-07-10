@@ -8,6 +8,6 @@ namespace CotizacionMVC.Data.Repositorios.Interfaces
         Task<string> GenerarFolioAsync();
         Task<Cliente?> ExisteTelefonoAsync(string telefono);
         Task<IEnumerable<Cliente>> ObtenerParaCotizacionAsync();
-
+        IQueryable<Cliente> ObtenerQueryable();
     }
 }

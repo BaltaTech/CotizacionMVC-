@@ -1,8 +1,7 @@
-﻿@model CotizacionMVC.Models.Entidades.Cliente
+﻿@model CotizacionMVC.ViewModels.Cliente.ClienteDetalleViewModel
 
 @{
     ViewData["Title"] = "Eliminar Cliente";
-    var tieneCotizaciones = ViewBag.TieneCotizaciones ?? false;
 }
 
 <div class="container mt-4">
@@ -11,10 +10,11 @@
             <h2><i class="fas fa-exclamation-triangle"></i> Eliminar Cliente</h2>
         </div>
         <div class="card-body">
-            @if (tieneCotizaciones)
+            @if (Model.Cotizaciones.Any())
             {
                 <div class="alert alert-warning">
-                    <i class="fas fa-warning"></i> No se puede eliminar este cliente porque tiene cotizaciones asociadas.
+                    <i class="fas fa-warning"></i>
+                    No se puede eliminar este cliente porque tiene @Model.Cotizaciones.Count cotizaciones asociadas.
                 </div>
                 <a asp-action="Indice" class="btn btn-secondary">Volver al listado</a>
             }
@@ -29,10 +29,10 @@
                     <dd class="col-sm-9">@Model.Nombre</dd>
 
                     <dt class="col-sm-3">Teléfono</dt>
-                    <dd class="col-sm-9">@(!string.IsNullOrWhiteSpace(Model.Contacto.Telefono) ? Model.Contacto.Telefono : "—")</dd>
+                    <dd class="col-sm-9">@(Model.Telefono ?? "—")</dd>
 
                     <dt class="col-sm-3">Email</dt>
-                    <dd class="col-sm-9">@(!string.IsNullOrWhiteSpace(Model.Contacto.Correo) ? Model.Contacto.Correo : "—")</dd>
+                    <dd class="col-sm-9">@(Model.Correo ?? "—")</dd>
                 </dl>
 
                 <form asp-action="Eliminar" method="post">

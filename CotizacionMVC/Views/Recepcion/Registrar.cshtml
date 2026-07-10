@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Registrar Cliente";
+    var esRecepcion = ViewBag.EsRecepcion as bool? ?? false;
 }
 
 <div class="container-fluid px-4 py-3">
@@ -270,39 +271,42 @@
                     </div>
                 </div>
 
-                @* ASIGNACIÓN DE VENDEDOR *@
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header py-3" style="background: linear-gradient(135deg, #C8102E, #E63946);">
-                        <h5 class="mb-0 text-white">
-                            <i class="fas fa-user-check me-2"></i>Asignación de Vendedor
-                        </h5>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="form-check form-switch mb-3">
-                            <input asp-for="AsignarAhora" class="form-check-input" type="checkbox" 
-                                   id="chkAsignarAhora" style="width: 50px; height: 25px; cursor: pointer;">
-                            <label asp-for="AsignarAhora" class="form-check-label fw-bold ms-2">
-                                Asignar vendedor ahora mismo
-                            </label>
-                        </div>
+               @if (esRecepcion)
+{
+    @* ASIGNACIÓN DE VENDEDOR *@
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header py-3" style="background: linear-gradient(135deg, #C8102E, #E63946);">
+            <h5 class="mb-0 text-white">
+                <i class="fas fa-user-check me-2"></i>Asignación de Vendedor
+            </h5>
+        </div>
+        <div class="card-body p-4">
+            <div class="form-check form-switch mb-3">
+                <input asp-for="AsignarAhora" class="form-check-input" type="checkbox" 
+                       id="chkAsignarAhora" style="width: 50px; height: 25px; cursor: pointer;">
+                <label asp-for="AsignarAhora" class="form-check-label fw-bold ms-2">
+                    Asignar vendedor ahora mismo
+                </label>
+            </div>
 
-                        <div id="seccionVendedor" style="display: none;">
-                            <div class="col-md-8">
-                                <select asp-for="VendedorAsignadoId" class="form-select">
-                                    <option value="">-- Seleccione un Vendedor --</option>
-                                    @if (ViewBag.Vendedores != null)
-                                    {
-                                        foreach (var vendedor in ViewBag.Vendedores)
-                                        {
-                                            <option value="@vendedor.Id">@vendedor.NombreCompleto</option>
-                                        }
-                                    }
-                                </select>
-                                <span asp-validation-for="VendedorAsignadoId" class="text-danger small"></span>
-                            </div>
-                        </div>
-                    </div>
+            <div id="seccionVendedor" style="display: none;">
+                <div class="col-md-8">
+                    <select asp-for="VendedorAsignadoId" class="form-select">
+                        <option value="">-- Seleccione un Vendedor --</option>
+                        @if (ViewBag.Vendedores != null)
+                        {
+                            foreach (var vendedor in ViewBag.Vendedores)
+                            {
+                                <option value="@vendedor.Id">@vendedor.NombreCompleto</option>
+                            }
+                        }
+                    </select>
+                    <span asp-validation-for="VendedorAsignadoId" class="text-danger small"></span>
                 </div>
+            </div>
+        </div>
+    </div>
+}
 
                 @* BOTONES *@
                 <div class="d-flex gap-2 mb-5">
@@ -380,10 +384,13 @@
                             <i class="fas fa-check-circle text-success me-2"></i>
                             <small>Verifique el teléfono antes de guardar</small>
                         </li>
-                        <li class="mb-3 pb-3 border-bottom">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            <small>Asigne vendedor para seguimiento inmediato</small>
-                        </li>
+                        @if (esRecepcion)
+{
+    <li class="mb-3 pb-3 border-bottom">
+        <i class="fas fa-check-circle text-success me-2"></i>
+        <small>Asigne vendedor para seguimiento inmediato</small>
+    </li>
+}
                         <li>
                             <i class="fas fa-check-circle text-success me-2"></i>
                             <small>El CP es obligatorio para validar cobertura</small>

@@ -27,19 +27,16 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
         public virtual async Task AddAsync(T entity)
         {
             await _dbSet.AddAsync(entity);
-            await _context.SaveChangesAsync();
         }
 
         public virtual void Update(T entity)
         {
             _dbSet.Update(entity);
-            _context.SaveChanges();
         }
 
         public virtual void Delete(T entity)
         {
             _dbSet.Remove(entity);
-            _context.SaveChanges();
         }
 
         public async Task SaveChangesAsync()

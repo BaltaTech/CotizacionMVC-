@@ -1,8 +1,7 @@
-﻿@model IEnumerable<CotizacionMVC.Models.Entidades.Cliente>
+﻿@model CotizacionMVC.ViewModels.Cliente.ClienteIndiceViewModel
 
 @{
     ViewData["Title"] = "Clientes";
-    var terminoBusqueda = ViewBag.TerminoBusqueda as string;
 }
 
 <div class="container mt-4">
@@ -34,7 +33,9 @@
         <div class="card-body">
             <form method="get" asp-action="Indice" class="row g-3">
                 <div class="col-md-10">
-                    <input type="text" name="termino" class="form-control" placeholder="Buscar por nombre, teléfono o email..." value="@terminoBusqueda" />
+                    <input type="text" name="termino" class="form-control"
+                           placeholder="Buscar por nombre, teléfono o email..."
+                           value="@Model.TerminoBusqueda" />
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-primary w-100">
@@ -45,7 +46,7 @@
         </div>
     </div>
 
-    @if (!Model.Any())
+    @if (!Model.Clientes.Any())
     {
         <div class="alert alert-info text-center">
             <i class="fas fa-info-circle"></i> No hay clientes registrados.
@@ -60,48 +61,24 @@
                 <thead class="table-dark">
                     <tr>
                         <th>Nombre</th>
-                        <th>Contacto</th>
+                        <th>Empresa</th>
                         <th>Teléfono</th>
                         <th>Email</th>
                         <th>Cotizaciones</th>
-                        <th>Fecha Registro</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var cliente in Model)
+                    @foreach (var cliente in Model.Clientes)
                     {
                         <tr>
                             <td>
                                 <strong>@cliente.Nombre</strong>
-                                @if (!string.IsNullOrWhiteSpace(cliente.Contacto.NombreContacto))
-                                {
-                                    <br />
-                                    <small class="text-muted">Attn: @cliente.Contacto.NombreContacto</small>
-                                }
                             </td>
                             <td>
-                                @if (!string.IsNullOrWhiteSpace(cliente.Contacto.TelefonoMovil))
+                                @if (!string.IsNullOrWhiteSpace(cliente.Empresa))
                                 {
-                                    <i class="fas fa-mobile-alt"></i> <span>Móvil</span>
-                                }
-                                else if (!string.IsNullOrWhiteSpace(cliente.Contacto.Telefono))
-                                {
-                                    <i class="fas fa-phone"></i> <span>Fijo</span>
-                                }
-                                else
-                                {
-                                    <i class="fas fa-envelope"></i> <span>Email</span>
-                                }
-                            </td>
-                            <td>
-                                @if (!string.IsNullOrWhiteSpace(cliente.Contacto.TelefonoMovil))
-                                {
-                                    @cliente.Contacto.TelefonoMovil
-                                }
-                                else if (!string.IsNullOrWhiteSpace(cliente.Contacto.Telefono))
-                                {
-                                    @cliente.Contacto.Telefono
+                                    @cliente.Empresa
                                 }
                                 else
                                 {
@@ -109,9 +86,9 @@
                                 }
                             </td>
                             <td>
-                                @if (!string.IsNullOrWhiteSpace(cliente.Contacto.Correo))
+                                @if (!string.IsNullOrWhiteSpace(cliente.Telefono))
                                 {
-                                    <a href="mailto:@cliente.Contacto.Correo">@cliente.Contacto.Correo</a>
+                                    @cliente.Telefono
                                 }
                                 else
                                 {
@@ -119,23 +96,35 @@
                                 }
                             </td>
                             <td>
-                                <span class="badge bg-info">@cliente.Cotizaciones.Count</span>
+                                @if (!string.IsNullOrWhiteSpace(cliente.Correo))
+                                {
+                                    <a href="mailto:@cliente.Correo">@cliente.Correo</a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
                             </td>
-                            <td>@cliente.FechaRegistro.ToLocalTime().ToString("dd/MM/yyyy")</td>
                             <td>
-                                <a asp-action="Detalles" asp-route-id="@cliente.Id" class="btn btn-sm btn-info" title="Detalles">
+                                <span class="badge bg-info">@cliente.CantidadCotizaciones</span>
+                            </td>
+                            <td>
+                                <a asp-action="Detalles" asp-route-id="@cliente.Id"
+                                       class="btn btn-sm btn-info" title="Detalles">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a asp-action="Editar" asp-route-id="@cliente.Id" class="btn btn-sm btn-warning" title="Editar">
+                                <a asp-action="Editar" asp-route-id="@cliente.Id"
+                                       class="btn btn-sm btn-warning" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 @if (User.IsInRole("Administrador"))
                                 {
-                                    <a asp-action="Eliminar" asp-route-id="@cliente.Id" class="btn btn-sm btn-danger" title="Eliminar">
+                                    <a asp-action="Eliminar" asp-route-id="@cliente.Id"
+                                           class="btn btn-sm btn-danger" title="Eliminar">
                                         <i class="fas fa-trash"></i>
                                     </a>
                                 }
-                             </td>
+                            </td>
                         </tr>
                     }
                 </tbody>

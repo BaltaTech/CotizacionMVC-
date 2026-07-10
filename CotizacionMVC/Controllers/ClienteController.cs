@@ -1,45 +1,42 @@
-﻿using CotizacionMVC.Data;
-using CotizacionMVC.Models.Entidades;
-using CotizacionMVC.Models.Valor;
+﻿using CotizacionMVC.Servicios.Aplicacion.Dtos.Cliente;
+using CotizacionMVC.Servicios.Aplicacion.Interfaces;
+using CotizacionMVC.ViewModels.Cliente;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Controllers
 {
     public class ClienteController : Controller
     {
-        private readonly ApplicationDbContext _contextoBaseDatos;
+        private readonly IClienteServicio _clienteServicio;
 
-        public ClienteController(ApplicationDbContext contextoBaseDatos)
+        public ClienteController(IClienteServicio clienteServicio)
         {
-            _contextoBaseDatos = contextoBaseDatos;
+            _clienteServicio = clienteServicio;
         }
 
         // GET: Cliente/Indice
         public async Task<IActionResult> Indice(string? termino = null)
         {
-            var consulta = _contextoBaseDatos.Clientes
-                .Include(c => c.Cotizaciones)
-                .AsQueryable();
+            var clientes = await _clienteServicio.ObtenerTodosAsync(termino);
 
-            if (!string.IsNullOrWhiteSpace(termino))
+            var viewModel = new ClienteIndiceViewModel
             {
-                termino = termino.ToLower();
-                consulta = consulta.Where(c =>
-                    c.Nombre.ToLower().Contains(termino) ||
-                    (c.Contacto.Telefono != null && c.Contacto.Telefono.ToLower().Contains(termino)) ||
-                    (c.Contacto.TelefonoMovil != null && c.Contacto.TelefonoMovil.ToLower().Contains(termino)) ||
-                    (c.Contacto.Correo != null && c.Contacto.Correo.ToLower().Contains(termino))
-                );
-            }
+                Clientes = clientes.Select(c => new ClienteResumenViewModel
+                {
+                    Id = c.Id,
+                    Nombre = c.Nombre,
+                    Telefono = c.Telefono,
+                    Correo = c.Correo,
+                    Estado = c.Estado,
+                    Empresa = c.Empresa,
+                    FechaRegistro = c.FechaRegistro,
+                    CantidadCotizaciones = c.CantidadCotizaciones
+                }).ToList(),
+                TerminoBusqueda = termino
+            };
 
-            var clientes = await consulta
-                .OrderBy(c => c.Nombre)
-                .ToListAsync();
-
-            ViewBag.TerminoBusqueda = termino;
-            return View(clientes);
+            return View(viewModel);
         }
 
         // GET: Cliente/Detalles/5
@@ -48,99 +45,57 @@ namespace CotizacionMVC.Controllers
             if (id == null)
                 return NotFound("No se proporcionó un identificador de cliente");
 
-            var cliente = await _contextoBaseDatos.Clientes
-                .Include(c => c.Cotizaciones)
-                .ThenInclude(cot => cot.Empresa)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var cliente = await _clienteServicio.ObtenerPorIdAsync(id.Value);
 
             if (cliente == null)
                 return NotFound($"No se encontró el cliente con ID {id}");
 
-            return View(cliente);
+            var viewModel = MapearADetalleViewModel(cliente);
+            return View(viewModel);
+        }
+
+        // GET: Cliente/Crear
+        public IActionResult Crear()
+        {
+            return View(new ClienteFormViewModel());
         }
 
         // POST: Cliente/Crear
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Crear(
-            string nombre,
-            string telefono,
-            string telefonoMovil,
-            string correo,
-            string nombreContacto,
-            string calle,
-            string numeroExterior,
-            string numeroInterior,
-            string colonia,
-            string ciudad,
-            string estado,
-            string codigoPostal,
-            string observaciones)
+        public async Task<IActionResult> Crear(ClienteFormViewModel formulario)
         {
-            bool hayErrores = false;
-
-            if (string.IsNullOrWhiteSpace(nombre))
-            {
-                ModelState.AddModelError("nombre", "El nombre del cliente es obligatorio");
-                hayErrores = true;
-            }
-
-            bool tieneTelefono = !string.IsNullOrWhiteSpace(telefono);
-            bool tieneMovil = !string.IsNullOrWhiteSpace(telefonoMovil);
-            bool tieneCorreo = !string.IsNullOrWhiteSpace(correo);
-
-            if (!tieneTelefono && !tieneMovil && !tieneCorreo)
-            {
-                ModelState.AddModelError("", "El cliente debe tener al menos un medio de contacto (teléfono, teléfono móvil o correo electrónico)");
-                hayErrores = true;
-            }
-
-            if (hayErrores)
-            {
-                ConservarValoresEnViewBag(nombre, telefono, telefonoMovil, correo, nombreContacto,
-                    calle, numeroExterior, numeroInterior, colonia, ciudad, estado, codigoPostal, observaciones);
-                return View();
-            }
+            if (!ModelState.IsValid)
+                return View(formulario);
 
             try
             {
-                var contacto = new Contacto(telefono, telefonoMovil, correo, nombreContacto);
-                var cliente = new Cliente(nombre, contacto);
-
-                bool tieneDireccion = !string.IsNullOrWhiteSpace(calle) ||
-                                      !string.IsNullOrWhiteSpace(colonia) ||
-                                      !string.IsNullOrWhiteSpace(ciudad) ||
-                                      !string.IsNullOrWhiteSpace(codigoPostal);
-
-                if (tieneDireccion)
+                var dto = new CrearClienteDto
                 {
-                    var direccion = new Direccion(
-                        calle ?? "",
-                        numeroExterior,
-                        colonia ?? "",
-                        ciudad ?? "",
-                        estado,
-                        codigoPostal ?? "",
-                        numeroInterior
-                    );
-                    cliente.ActualizarDireccion(direccion);
-                }
+                    Nombre = formulario.Nombre,
+                    Telefono = formulario.Telefono,
+                    TelefonoMovil = formulario.TelefonoMovil,
+                    Correo = formulario.Correo,
+                    NombreContacto = formulario.NombreContacto,
+                    Calle = formulario.Calle,
+                    NumeroExterior = formulario.NumeroExterior,
+                    NumeroInterior = formulario.NumeroInterior,
+                    Colonia = formulario.Colonia,
+                    Ciudad = formulario.Ciudad,
+                    Estado = formulario.Estado,
+                    CodigoPostal = formulario.CodigoPostal,
+                    Observaciones = formulario.Observaciones
+                };
 
-                if (!string.IsNullOrWhiteSpace(observaciones))
-                    cliente.AgregarObservaciones(observaciones);
+                var resultado = await _clienteServicio.CrearAsync(dto);
 
-                _contextoBaseDatos.Clientes.Add(cliente);
-                await _contextoBaseDatos.SaveChangesAsync();
-
-                TempData["MensajeExito"] = $"Cliente {cliente.Nombre} creado exitosamente";
+                TempData["MensajeExito"] = $"Cliente {resultado.Nombre} creado exitosamente";
                 return RedirectToAction(nameof(Indice));
             }
-            catch (Exception ex)
+            catch (ArgumentException ex)
             {
-                ModelState.AddModelError("", $"Error al guardar: {ex.Message}");
-                ConservarValoresEnViewBag(nombre, telefono, telefonoMovil, correo, nombreContacto,
-                    calle, numeroExterior, numeroInterior, colonia, ciudad, estado, codigoPostal, observaciones);
-                return View();
+                ModelState.AddModelError("", ex.Message);
+                return View(formulario);
             }
         }
 
@@ -150,106 +105,73 @@ namespace CotizacionMVC.Controllers
             if (id == null)
                 return NotFound("No se proporcionó un identificador de cliente");
 
-            var cliente = await _contextoBaseDatos.Clientes.FindAsync(id);
+            var cliente = await _clienteServicio.ObtenerParaEdicionAsync(id.Value);
 
             if (cliente == null)
                 return NotFound($"No se encontró el cliente con ID {id}");
 
-            return View(cliente);
+            var viewModel = new ClienteFormViewModel
+            {
+                Id = cliente.Id,
+                Nombre = cliente.Nombre,
+                Telefono = cliente.Telefono,
+                TelefonoMovil = cliente.TelefonoMovil,
+                Correo = cliente.Correo,
+                NombreContacto = cliente.NombreContacto,
+                Calle = cliente.Calle,
+                NumeroExterior = cliente.NumeroExterior,
+                NumeroInterior = cliente.NumeroInterior,
+                Colonia = cliente.Colonia,
+                Ciudad = cliente.Ciudad,
+                Estado = cliente.Estado,
+                CodigoPostal = cliente.CodigoPostal,
+                Observaciones = cliente.Observaciones
+            };
+
+            return View(viewModel);
         }
 
         // POST: Cliente/Editar/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Editar(
-            Guid id,
-            string nombre,
-            string telefono,
-            string telefonoMovil,
-            string correo,
-            string nombreContacto,
-            string calle,
-            string numeroExterior,
-            string numeroInterior,
-            string colonia,
-            string ciudad,
-            string estado,
-            string codigoPostal,
-            string observaciones)
+        public async Task<IActionResult> Editar(ClienteFormViewModel formulario)
         {
-            bool hayErrores = false;
-
-            if (string.IsNullOrWhiteSpace(nombre))
-            {
-                ModelState.AddModelError("nombre", "El nombre del cliente es obligatorio");
-                hayErrores = true;
-            }
-
-            bool tieneTelefono = !string.IsNullOrWhiteSpace(telefono);
-            bool tieneMovil = !string.IsNullOrWhiteSpace(telefonoMovil);
-            bool tieneCorreo = !string.IsNullOrWhiteSpace(correo);
-
-            if (!tieneTelefono && !tieneMovil && !tieneCorreo)
-            {
-                ModelState.AddModelError("", "El cliente debe tener al menos un medio de contacto");
-                hayErrores = true;
-            }
-
-            if (hayErrores)
-            {
-                var clienteOriginal = await _contextoBaseDatos.Clientes.FindAsync(id);
-                ConservarValoresEnViewBag(nombre, telefono, telefonoMovil, correo, nombreContacto,
-                    calle, numeroExterior, numeroInterior, colonia, ciudad, estado, codigoPostal, observaciones);
-                return View(clienteOriginal);
-            }
+            if (!ModelState.IsValid)
+                return View(formulario);
 
             try
             {
-                var cliente = await _contextoBaseDatos.Clientes.FindAsync(id);
-
-                if (cliente == null)
-                    return NotFound($"No se encontró el cliente con ID {id}");
-
-                var nuevoContacto = new Contacto(telefono, telefonoMovil, correo, nombreContacto);
-                cliente.ActualizarContacto(nuevoContacto);
-
-                bool tieneDireccion = !string.IsNullOrWhiteSpace(calle) ||
-                                      !string.IsNullOrWhiteSpace(colonia) ||
-                                      !string.IsNullOrWhiteSpace(ciudad) ||
-                                      !string.IsNullOrWhiteSpace(codigoPostal);
-
-                if (tieneDireccion)
+                var dto = new ActualizarClienteDto
                 {
-                    var direccion = new Direccion(
-                        calle ?? "",
-                        numeroExterior,
-                        colonia ?? "",
-                        ciudad ?? "",
-                        estado,
-                        codigoPostal ?? "",
-                        numeroInterior
-                    );
-                    cliente.ActualizarDireccion(direccion);
-                }
-                else
-                {
-                    cliente.ActualizarDireccion(null);
-                }
+                    Id = formulario.Id.GetValueOrDefault(),
+                    Nombre = formulario.Nombre,
+                    Telefono = formulario.Telefono,
+                    TelefonoMovil = formulario.TelefonoMovil,
+                    Correo = formulario.Correo,
+                    NombreContacto = formulario.NombreContacto,
+                    Calle = formulario.Calle,
+                    NumeroExterior = formulario.NumeroExterior,
+                    NumeroInterior = formulario.NumeroInterior,
+                    Colonia = formulario.Colonia,
+                    Ciudad = formulario.Ciudad,
+                    Estado = formulario.Estado,
+                    CodigoPostal = formulario.CodigoPostal,
+                    Observaciones = formulario.Observaciones
+                };
 
-                cliente.AgregarObservaciones(observaciones);
+                var resultado = await _clienteServicio.ActualizarAsync(dto);
 
-                await _contextoBaseDatos.SaveChangesAsync();
-
-                TempData["MensajeExito"] = $"Cliente {cliente.Nombre} actualizado exitosamente";
+                TempData["MensajeExito"] = $"Cliente {resultado.Nombre} actualizado exitosamente";
                 return RedirectToAction(nameof(Indice));
             }
-            catch (Exception ex)
+            catch (KeyNotFoundException ex)
             {
-                ModelState.AddModelError("", $"Error al actualizar: {ex.Message}");
-                var clienteOriginal = await _contextoBaseDatos.Clientes.FindAsync(id);
-                ConservarValoresEnViewBag(nombre, telefono, telefonoMovil, correo, nombreContacto,
-                    calle, numeroExterior, numeroInterior, colonia, ciudad, estado, codigoPostal, observaciones);
-                return View(clienteOriginal);
+                return NotFound(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                return View(formulario);
             }
         }
 
@@ -260,14 +182,13 @@ namespace CotizacionMVC.Controllers
             if (id == null)
                 return NotFound("No se proporcionó un identificador de cliente");
 
-            var cliente = await _contextoBaseDatos.Clientes
-                .Include(c => c.Cotizaciones)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var cliente = await _clienteServicio.ObtenerParaEliminacionAsync(id.Value);
 
             if (cliente == null)
                 return NotFound($"No se encontró el cliente con ID {id}");
 
-            return View(cliente);
+            var viewModel = MapearADetalleViewModel(cliente);
+            return View(viewModel);
         }
 
         // POST: Cliente/Eliminar/5 (Solo administrador)
@@ -276,54 +197,46 @@ namespace CotizacionMVC.Controllers
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> EliminarConfirmado(Guid id)
         {
-            var cliente = await _contextoBaseDatos.Clientes
-                .Include(c => c.Cotizaciones)
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (cliente == null)
-                return NotFound($"No se encontró el cliente con ID {id}");
-
-            if (cliente.Cotizaciones.Any())
+            try
             {
-                TempData["MensajeError"] = $"No se puede eliminar el cliente {cliente.Nombre} porque tiene cotizaciones asociadas";
+                var resultado = await _clienteServicio.EliminarAsync(id);
+
+                if (!resultado.Exitoso)
+                {
+                    TempData["MensajeError"] = resultado.MotivoFallo;
+                    return RedirectToAction(nameof(Indice));
+                }
+
+                TempData["MensajeExito"] = "Cliente eliminado exitosamente";
                 return RedirectToAction(nameof(Indice));
             }
-
-            _contextoBaseDatos.Clientes.Remove(cliente);
-            await _contextoBaseDatos.SaveChangesAsync();
-
-            TempData["MensajeExito"] = $"Cliente {cliente.Nombre} eliminado exitosamente";
-            return RedirectToAction(nameof(Indice));
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
         }
 
-        private void ConservarValoresEnViewBag(
-            string nombre,
-            string telefono,
-            string telefonoMovil,
-            string correo,
-            string nombreContacto,
-            string calle,
-            string numeroExterior,
-            string numeroInterior,
-            string colonia,
-            string ciudad,
-            string estado,
-            string codigoPostal,
-            string observaciones)
+        private ClienteDetalleViewModel MapearADetalleViewModel(ClienteDetalleDto dto)
         {
-            ViewBag.Nombre = nombre;
-            ViewBag.Telefono = telefono;
-            ViewBag.TelefonoMovil = telefonoMovil;
-            ViewBag.Correo = correo;
-            ViewBag.NombreContacto = nombreContacto;
-            ViewBag.Calle = calle;
-            ViewBag.NumeroExterior = numeroExterior;
-            ViewBag.NumeroInterior = numeroInterior;
-            ViewBag.Colonia = colonia;
-            ViewBag.Ciudad = ciudad;
-            ViewBag.Estado = estado;
-            ViewBag.CodigoPostal = codigoPostal;
-            ViewBag.Observaciones = observaciones;
+            return new ClienteDetalleViewModel
+            {
+                Id = dto.Id,
+                Nombre = dto.Nombre,
+                Telefono = dto.Telefono,
+                TelefonoMovil = dto.TelefonoMovil,
+                Correo = dto.Correo,
+                NombreContacto = dto.NombreContacto,
+                Calle = dto.Calle,
+                NumeroExterior = dto.NumeroExterior,
+                NumeroInterior = dto.NumeroInterior,
+                Colonia = dto.Colonia,
+                Ciudad = dto.Ciudad,
+                Estado = dto.Estado,
+                CodigoPostal = dto.CodigoPostal,
+                Observaciones = dto.Observaciones,
+                EstadoCliente = dto.EstadoCliente,
+                FechaCreacion = dto.FechaCreacion
+            };
         }
     }
 }

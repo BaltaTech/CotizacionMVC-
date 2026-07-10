@@ -7,6 +7,7 @@ using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Servicios;
 using CotizacionMVC.Servicios.Aplicacion;
 using CotizacionMVC.Servicios.Infraestructura;
+using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
@@ -32,7 +33,11 @@ builder.Services.AddScoped<NotificacionServicio>();
 
 // ========== Servicios de aplicación ==========
 builder.Services.AddScoped<IDocumento, PdfCotizacion>();
-builder.Services.AddScoped<CotizacionServicio>();
+builder.Services.AddScoped<IClienteServicio, ClienteServicio>();
+builder.Services.AddScoped<IEmpresaServicio, EmpresaServicio>();
+builder.Services.AddScoped<ICotizacionServicio, CotizacionServicio>();
+builder.Services.AddScoped<IEquipoServicio, EquipoServicio>();
+builder.Services.AddScoped<IRecepcionServicio, RecepcionServicio>();
 
 // ========== Repositorios ==========
 builder.Services.AddScoped<ICotizacionRepository, CotizacionRepository>();
@@ -44,9 +49,6 @@ builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
 // Registrar el DbContext con PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(opciones =>
     opciones.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// ========== Recepción (después del DbContext) ==========
-builder.Services.AddScoped<RecepcionServicio>();
 
 // ========== Configuración de Identity ==========
 builder.Services.AddIdentity<Usuario, IdentityRole<Guid>>(opciones =>

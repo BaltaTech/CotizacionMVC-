@@ -41,5 +41,10 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
                 .OrderByDescending(c => c.FechaRegistro)
                 .ToListAsync();
         }
+
+        public IQueryable<Cliente> ObtenerQueryable()
+        {
+            return _context.Clientes.AsQueryable();
+        }
     }
 }

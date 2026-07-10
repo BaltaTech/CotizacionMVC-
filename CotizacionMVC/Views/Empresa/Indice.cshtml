@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CotizacionMVC.Models.Entidades.Empresa>
+﻿@model CotizacionMVC.ViewModels.Empresa.EmpresaIndiceViewModel
 
 @{
     ViewData["Title"] = "Administración de Empresas";
@@ -32,33 +32,16 @@
                         <tr>
                             <th>Nombre Comercial</th>
                             <th>Slug</th>
-                            <th>Trane Exclusiva</th>
-                            <th>Moneda Base</th>
-                            <th>Utilidad Empresa</th>
-                            <th>Utilidad Vendedor</th>
                             <th>Estado</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var empresa in Model)
+                        @foreach (var empresa in Model.Empresas)
                         {
                             <tr>
                                 <td>@empresa.NombreComercial</td>
                                 <td>@empresa.Slug</td>
-                                <td>
-                                    @if (empresa.EsExclusivaTrane)
-                                    {
-                                        <span class="badge bg-info">Solo TRANE</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">Multi-marca</span>
-                                    }
-                                </td>
-                                <td>@empresa.MonedaBase</td>
-                                <td>@empresa.UtilidadEmpresaPorcentaje.ToString("N0")%</td>
-                                <td>@empresa.UtilidadVendedorPorcentaje.ToString("N0")%</td>
                                 <td>
                                     @if (empresa.Activa)
                                     {
@@ -70,7 +53,8 @@
                                     }
                                 </td>
                                 <td>
-                                    <a asp-action="Editar" asp-route-id="@empresa.Id" class="btn btn-sm btn-warning" title="Editar">
+                                    <a asp-action="Editar" asp-route-id="@empresa.Id"
+                                           class="btn btn-sm btn-warning" title="Editar">
                                         <i class="fas fa-edit"></i> Editar
                                     </a>
                                 </td>

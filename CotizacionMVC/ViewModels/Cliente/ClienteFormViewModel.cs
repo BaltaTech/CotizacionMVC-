@@ -1,0 +1,25 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace CotizacionMVC.ViewModels.Cliente
+{
+    public class ClienteFormViewModel
+    {
+        public Guid? Id { get; set; }
+
+        [Required(ErrorMessage = "El nombre del cliente es obligatorio")]
+        public string Nombre { get; set; } = string.Empty;
+
+        public string? Telefono { get; set; }
+        public string? TelefonoMovil { get; set; }
+        public string? Correo { get; set; }
+        public string? NombreContacto { get; set; }
+        public string? Calle { get; set; }
+        public string? NumeroExterior { get; set; }
+        public string? NumeroInterior { get; set; }
+        public string? Colonia { get; set; }
+        public string? Ciudad { get; set; }
+        public string? Estado { get; set; }
+        public string? CodigoPostal { get; set; }
+        public string? Observaciones { get; set; }
+    }
+}

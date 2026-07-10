@@ -1,89 +1,75 @@
-﻿using CotizacionMVC.Data;
-using CotizacionMVC.Data.Repositorios.Interfaces;
+﻿using CotizacionMVC.Data.Repositorios.Interfaces;
 using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Models.Enums;
-using CotizacionMVC.Servicios;
-using CotizacionMVC.Servicios.Aplicacion;
+using CotizacionMVC.Servicios.Aplicacion.Dtos.Cotizacion;
+using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using CotizacionMVC.ViewModels;
+using CotizacionMVC.ViewModels.Cotizacion;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Controllers
 {
     [Authorize]
     public class CotizacionController : Controller
     {
-        private readonly ICotizacionRepository _cotizacionRepo;
-        private readonly IClienteRepository _clienteRepo;
-        private readonly IEquipoRepository _equipoRepo;
-        private readonly IInstalacionRepository _instalacionRepo;
-        private readonly IEmpresaRepository _empresaRepo;
-        private readonly IDocumento _documentoService;
+        private readonly ICotizacionServicio _cotizacionServicio;
         private readonly UserManager<Usuario> _userManager;
-        private readonly CotizacionServicio _cotizacionServicio;
-        private readonly ApplicationDbContext _context;
+        private readonly IEmpresaRepository _empresaRepo;
 
         public CotizacionController(
-            ICotizacionRepository cotizacionRepo,
-            IClienteRepository clienteRepo,
-            IEquipoRepository equipoRepo,
-            IInstalacionRepository instalacionRepo,
-            IEmpresaRepository empresaRepo,
-            IDocumento documentoService,
+            ICotizacionServicio cotizacionServicio,
             UserManager<Usuario> userManager,
-            CotizacionServicio cotizacionServicio,
-            ApplicationDbContext context)
+            IEmpresaRepository empresaRepo)
         {
-            _cotizacionRepo = cotizacionRepo;
-            _clienteRepo = clienteRepo;
-            _equipoRepo = equipoRepo;
-            _instalacionRepo = instalacionRepo;
-            _empresaRepo = empresaRepo;
-            _documentoService = documentoService;
-            _userManager = userManager;
             _cotizacionServicio = cotizacionServicio;
-            _context = context;
+            _userManager = userManager;
+            _empresaRepo = empresaRepo;
         }
 
-        // GET: Cotizacion/Indice
         // GET: Cotizacion/Indice
         public async Task<IActionResult> Indice()
         {
             var usuarioActual = await _userManager.GetUserAsync(User);
-
-            // Obtener empresa de sesión
             var empresaIdString = HttpContext.Session.GetString("EmpresaActivaId");
             Guid? empresaId = string.IsNullOrEmpty(empresaIdString) ? null : Guid.Parse(empresaIdString);
+            bool esAdmin = User.IsInRole("Administrador");
 
-            IEnumerable<Cotizacion> cotizaciones;
-            if (User.IsInRole("Administrador"))
+            var cotizaciones = await _cotizacionServicio.ObtenerIndiceAsync(
+                usuarioActual?.Id, empresaId, esAdmin);
+
+            var leads = await _cotizacionServicio.ObtenerLeadsDelVendedorAsync(usuarioActual!.Id);
+
+            var viewModel = new CotizacionIndiceViewModel
             {
-                cotizaciones = await _cotizacionRepo.ObtenerTodasConRelacionesAsync();
-            }
-            else
-            {
-                cotizaciones = await _cotizacionRepo.ObtenerPorVendedorAsync(usuarioActual!.Id);
-            }
+                Cotizaciones = cotizaciones.Select(c => new CotizacionResumenViewModel
+                {
+                    Id = c.Id,
+                    NumeroCotizacion = c.NumeroCotizacion,
+                    ClienteNombre = c.ClienteNombre,
+                    EmpresaNombre = c.EmpresaNombre,
+                    FechaCreacion = c.FechaCreacion,
+                    Total = c.Total,
+                    Moneda = c.Moneda,
+                    Estado = c.Estado
+                }).ToList(),
+                Leads = leads.Select(l => new LeadResumenViewModel
+                {
+                    Id = l.Id,
+                    ClienteNombre = l.ClienteNombre,
+                    ClienteId = l.ClienteId,
+                    Telefono = l.Telefono,
+                    ProductoBusca = l.ProductoBusca,
+                    EmpresaNombre = l.EmpresaNombre,
+                    Estado = l.Estado,
+                    FechaAsignacion = l.FechaAsignacion,
+                    FechaCreacion = l.FechaCreacion,
+                    NombreContacto = l.NombreContacto
+                }).ToList()
+            };
 
-            // Filtrar por empresa de sesión si existe
-            if (empresaId.HasValue)
-            {
-                cotizaciones = cotizaciones.Where(c => c.EmpresaId == empresaId.Value);
-            }
-
-            // Cargar Leads del vendedor
-            var leads = await _context.Leads
-                .Include(l => l.Cliente)
-                .Include(l => l.Empresa)
-                .Where(l => l.VendedorAsignadoId == usuarioActual!.Id)
-                .OrderByDescending(l => l.FechaAsignacion)
-                .ToListAsync();
-
-            ViewBag.Leads = leads;
-
-            return View(cotizaciones);
+            return View(viewModel);
         }
 
         // GET: Cotizacion/Detalles/5
@@ -92,78 +78,57 @@ namespace CotizacionMVC.Controllers
             if (id == null)
                 return NotFound("No se proporcionó un identificador de cotización");
 
-            var cotizacion = await _cotizacionRepo.ObtenerCompletaPorIdAsync(id.Value);
+            var cotizacion = await _cotizacionServicio.ObtenerDetalleAsync(id.Value);
 
             if (cotizacion == null)
                 return NotFound($"No se encontró la cotización con ID {id}");
 
-            return View(cotizacion);
+            var viewModel = MapearADetalleViewModel(cotizacion);
+            return View(viewModel);
         }
 
+        // GET: Cotizacion/Crear
         // GET: Cotizacion/Crear
         public async Task<IActionResult> Crear(Guid? leadId = null)
         {
             var usuarioActual = await _userManager.GetUserAsync(User);
+            bool esVendedor = User.IsInRole("Vendedor");
 
-            // Si viene de un Lead específico, forzar esa empresa
-            if (leadId.HasValue)
+            var datos = await _cotizacionServicio.ObtenerDatosParaCrearAsync(
+                usuarioActual!.Id, esVendedor, leadId);
+
+            var viewModel = new CrearCotizacionViewModel();
+
+            if (datos.Lead != null)
             {
-                var lead = await _context.Leads
-                    .Include(l => l.Empresa)
-                    .Include(l => l.Cliente)
-                    .FirstOrDefaultAsync(l => l.Id == leadId.Value);
-                if (lead != null && lead.VendedorAsignadoId == usuarioActual!.Id)
-                {
-                    ViewBag.LeadId = lead.Id;
-                    ViewBag.ClientePreseleccionado = lead.Cliente;
-                    ViewBag.EmpresaForzada = lead.Empresa;
-                    ViewBag.LeadProducto = lead.ProductoBusca;
-                }
-            }
+                // MODO LEAD: solo este cliente, sin dropdown
+                viewModel.LeadId = datos.Lead.Id;
+                viewModel.ClienteId = datos.Lead.ClienteId.GetValueOrDefault();
 
-            // Obtener clientes con oportunidades asignadas al vendedor
-            IEnumerable<Cliente> clientes;
-            if (User.IsInRole("Vendedor"))
-            {
-                var leadsDelVendedor = await _context.Leads
-                    .Include(l => l.Cliente)
-                    .Where(l => l.VendedorAsignadoId == usuarioActual!.Id)
-                    .OrderByDescending(l => l.FechaAsignacion)
-                    .ToListAsync();
-
-                clientes = leadsDelVendedor
-                    .Where(l => l.Cliente != null)
-                    .Select(l => l.Cliente!)
-                    .Distinct()
-                    .ToList();
+                ViewBag.ModoLead = true;
+                ViewBag.Lead = datos.Lead;
             }
             else
             {
-                clientes = await _clienteRepo.ObtenerParaCotizacionAsync();
+                // MODO NORMAL: dropdown con todos los clientes
+                ViewBag.ModoLead = false;
+                ViewBag.Clientes = datos.Clientes;
             }
 
-            ViewBag.Clientes = clientes.ToList();
-            ViewBag.Equipos = await _equipoRepo.ObtenerTodosOrdenadosAsync();
-            ViewBag.Instalaciones = await _instalacionRepo.ObtenerActivasAsync();
+            ViewBag.Equipos = datos.Equipos;
+            ViewBag.Instalaciones = datos.Instalaciones;
 
-            return View();
+            return View(viewModel);
         }
 
         // POST: Cotizacion/Crear
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Crear(
-            Guid clienteId,
-            decimal areaMetrosCuadrados,
-            string condicionesPago,
-            string equipos,
-            string instalaciones,
-            Guid? leadId = null)
+        public async Task<IActionResult> Crear(CrearCotizacionViewModel formulario)
         {
-            // 1. Deserializar JSON
-            var (listaEquipos, listaInstalaciones) = DeserializarItems(equipos, instalaciones);
+            if (!ModelState.IsValid)
+                return RedirectToAction(nameof(Crear), new { leadId = formulario.LeadId });
 
-            // 2. Obtener vendedor autenticado
             var vendedor = await _userManager.GetUserAsync(User);
             if (vendedor == null)
             {
@@ -171,107 +136,64 @@ namespace CotizacionMVC.Controllers
                 return RedirectToAction("Login", "Autenticacion");
             }
 
-            // 3. Obtener empresa: forzada por el Lead o de la sesión
             Empresa? empresa = null;
 
-            if (leadId.HasValue)
+            if (formulario.LeadId.HasValue)
             {
-                var lead = await _context.Leads
-                    .Include(l => l.Empresa)
-                    .FirstOrDefaultAsync(l => l.Id == leadId.Value);
+                var datosLead = await _cotizacionServicio.ObtenerDatosParaCrearAsync(
+                    vendedor.Id, User.IsInRole("Vendedor"), formulario.LeadId);
 
-                if (lead != null)
-                {
-                    empresa = lead.Empresa;
-                }
+                if (datosLead.Lead?.EmpresaId != null)
+                    empresa = await _empresaRepo.GetByIdAsync(datosLead.Lead.EmpresaId.Value);
             }
 
-            // Si no hay Lead, usar la empresa de la sesión
             if (empresa == null)
-            {
                 empresa = await ObtenerEmpresaActual();
-            }
 
             if (empresa == null)
             {
                 TempData["MensajeError"] = "No hay empresa activa";
-                return RedirectToAction(nameof(Crear));
+                return RedirectToAction(nameof(Crear), new { leadId = formulario.LeadId });
             }
 
-            // 4. Preparar solicitud para el caso de uso
-            var solicitud = new SolicitudCrearCotizacion
+            var dto = new CrearCotizacionDto
             {
-                ClienteId = clienteId,
+                ClienteId = formulario.ClienteId,
                 EmpresaId = empresa.Id,
-                Vendedor = vendedor,
-                AreaMetrosCuadrados = areaMetrosCuadrados,
-                CondicionesPago = condicionesPago,
-                Equipos = listaEquipos,
-                Instalaciones = listaInstalaciones
+                VendedorId = vendedor.Id,
+                AreaMetrosCuadrados = formulario.AreaMetrosCuadrados,
+                CondicionesPago = formulario.CondicionesPago,
+                Equipos = DeserializarEquipos(formulario.EquiposJson),
+                Instalaciones = DeserializarInstalaciones(formulario.InstalacionesJson),
+                LeadId = formulario.LeadId
             };
 
-            // 5. Ejecutar caso de uso
-            var resultado = await _cotizacionServicio.CrearCotizacionAsync(solicitud);
+            var resultado = await _cotizacionServicio.CrearAsync(dto);
 
-            // 6. Manejar resultado
             if (!resultado.Exitoso)
             {
                 TempData["MensajeError"] = resultado.MensajeError;
-                return RedirectToAction(nameof(Crear));
-            }
-
-            // 7. Actualizar Lead si existe
-            if (leadId.HasValue)
-            {
-                var lead = await _context.Leads.FindAsync(leadId.Value);
-                if (lead != null)
-                {
-                    lead.MarcarCotizado();
-                    await _context.SaveChangesAsync();
-                }
+                return RedirectToAction(nameof(Crear), new { leadId = formulario.LeadId });
             }
 
             TempData["MensajeExito"] = $"Cotización {resultado.Cotizacion!.NumeroCotizacion} creada exitosamente";
             return RedirectToAction(nameof(Detalles), new { id = resultado.Cotizacion.Id });
         }
-
         // GET: Cotizacion/DescargarPdf/5
         [HttpGet]
         public async Task<IActionResult> DescargarPdf(Guid id)
         {
-            var cotizacion = await _cotizacionRepo.ObtenerCompletaPorIdAsync(id);
-
-            if (cotizacion == null)
-                return NotFound("Cotización no encontrada");
-
-            if (!string.IsNullOrEmpty(cotizacion.RutaPdf))
+            try
             {
-                var rutaExistente = Path.Combine(Directory.GetCurrentDirectory(), cotizacion.RutaPdf);
-                FileInfo fileInfo = new FileInfo(rutaExistente);
-
-                if (fileInfo.Exists && fileInfo.Length > 0)
-                {
-                    var bytesExistentes = await System.IO.File.ReadAllBytesAsync(rutaExistente);
-                    return File(bytesExistentes, _documentoService.TipoContenido,
-                        $"{cotizacion.NumeroCotizacion}{_documentoService.ExtensionArchivo}");
-                }
+                var pdfBytes = await _cotizacionServicio.GenerarPdfAsync(id);
+                var cotizacion = await _cotizacionServicio.ObtenerDetalleAsync(id);
+                var nombreArchivo = $"{cotizacion!.NumeroCotizacion}.pdf";
+                return File(pdfBytes, "application/pdf", nombreArchivo);
             }
-
-            var pdfBytes = _documentoService.Generar(cotizacion);
-
-            var carpeta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "pdf", "cotizaciones");
-            if (!Directory.Exists(carpeta))
-                Directory.CreateDirectory(carpeta);
-
-            var nombreArchivo = $"{cotizacion.NumeroCotizacion}{_documentoService.ExtensionArchivo}";
-            var rutaCompleta = Path.Combine(carpeta, nombreArchivo);
-            await System.IO.File.WriteAllBytesAsync(rutaCompleta, pdfBytes);
-
-            var rutaRelativa = $"wwwroot/pdf/cotizaciones/{nombreArchivo}";
-            cotizacion.GuardarRutaPdf(rutaRelativa);
-            _cotizacionRepo.Update(cotizacion);
-
-            return File(pdfBytes, _documentoService.TipoContenido, nombreArchivo);
+            catch (KeyNotFoundException)
+            {
+                return NotFound("Cotización no encontrada");
+            }
         }
 
         // POST: Cotizacion/Editar/5
@@ -279,37 +201,23 @@ namespace CotizacionMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Editar(Guid id, Guid clienteId, decimal areaMetrosCuadrados, string condicionesPago)
         {
-            var cotizacion = await _cotizacionRepo.ObtenerConItemsAsync(id);
-
-            if (cotizacion == null)
-                return NotFound();
-
-            if (!cotizacion.PuedeSerModificada())
+            var dto = new ActualizarCotizacionDto
             {
-                TempData["MensajeError"] = "Esta cotización no puede ser modificada";
-                return RedirectToAction(nameof(Indice));
-            }
+                Id = id,
+                ClienteId = clienteId,
+                AreaMetrosCuadrados = areaMetrosCuadrados,
+                CondicionesPago = condicionesPago
+            };
 
-            var cliente = await _clienteRepo.GetByIdAsync(clienteId);
-            if (cliente == null)
+            var resultado = await _cotizacionServicio.ActualizarAsync(dto);
+
+            if (!resultado.Exitoso)
             {
-                TempData["MensajeError"] = "Cliente no encontrado";
+                TempData["MensajeError"] = resultado.MensajeError;
                 return RedirectToAction(nameof(Editar), new { id });
             }
 
-            try
-            {
-                cotizacion.ActualizarDatosBasicos(cliente, areaMetrosCuadrados, condicionesPago ?? "");
-            }
-            catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
-            {
-                TempData["MensajeError"] = ex.Message;
-                return RedirectToAction(nameof(Editar), new { id });
-            }
-
-            _cotizacionRepo.Update(cotizacion);
-
-            TempData["MensajeExito"] = $"Cotización {cotizacion.NumeroCotizacion} actualizada";
+            TempData["MensajeExito"] = "Cotización actualizada";
             return RedirectToAction(nameof(Detalles), new { id });
         }
 
@@ -319,12 +227,13 @@ namespace CotizacionMVC.Controllers
             if (id == null)
                 return NotFound();
 
-            var cotizacion = await _cotizacionRepo.ObtenerConClienteAsync(id.Value);
+            var cotizacion = await _cotizacionServicio.ObtenerDetalleAsync(id.Value);
 
             if (cotizacion == null)
                 return NotFound();
 
-            return View(cotizacion);
+            var viewModel = MapearADetalleViewModel(cotizacion);
+            return View(viewModel);
         }
 
         // POST: Cotizacion/Eliminar/5
@@ -332,58 +241,41 @@ namespace CotizacionMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EliminarConfirmado(Guid id)
         {
-            var cotizacion = await _cotizacionRepo.ObtenerConItemsAsync(id);
+            var resultado = await _cotizacionServicio.EliminarAsync(id);
 
-            if (cotizacion == null)
-                return NotFound();
-
-            if (!cotizacion.PuedeSerModificada())
+            if (!resultado.Exitoso)
             {
-                TempData["MensajeError"] = "No se puede eliminar una cotización en este estado";
+                TempData["MensajeError"] = resultado.MensajeError;
                 return RedirectToAction(nameof(Indice));
             }
 
-            _cotizacionRepo.Delete(cotizacion);
-
-            TempData["MensajeExito"] = $"Cotización {cotizacion.NumeroCotizacion} eliminada";
+            TempData["MensajeExito"] = "Cotización eliminada";
             return RedirectToAction(nameof(Indice));
         }
 
         // GET: Cotizacion/CalcularCargaTermica
         [HttpGet]
-        public IActionResult CalcularCargaTermica(decimal area)
+        public async Task<IActionResult> CalcularCargaTermica(decimal area)
         {
-            var trSugerida = area / 16;
-            var btuSugerida = trSugerida * 12000;
+            var tr = await _cotizacionServicio.CalcularCargaTermicaAsync(area);
+            var btu = tr * 12000;
 
-            return Json(new
-            {
-                tr = Math.Round(trSugerida, 1),
-                btu = Math.Round(btuSugerida, 0)
-            });
+            return Json(new { tr, btu = Math.Round(btu, 0) });
         }
 
         // POST: Cotizacion/CambiarEstado
         [HttpPost]
-        public async Task<IActionResult> CambiarEstado(Guid cotizacionId, EstadoCotizacion nuevoEstado)
+        public async Task<IActionResult> CambiarEstado(Guid cotizacionId, int nuevoEstado)
         {
-            var cotizacion = await _cotizacionRepo.GetByIdAsync(cotizacionId);
-            if (cotizacion == null)
-                return Json(new { success = false, message = "Cotización no encontrada" });
+            var resultado = await _cotizacionServicio.CambiarEstadoAsync(cotizacionId, nuevoEstado);
 
-            try
-            {
-                cotizacion.CambiarEstado(nuevoEstado);
-                _cotizacionRepo.Update(cotizacion);
-                return Json(new { success = true, nuevoEstado = nuevoEstado.ToString() });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
-            }
+            if (!resultado.Exitoso)
+                return Json(new { success = false, message = resultado.MensajeError });
+
+            return Json(new { success = true, nuevoEstado = ((EstadoCotizacion)nuevoEstado).ToString() });
         }
 
-        // ==================== MÉTODOS AUXILIARES PRIVADOS ====================
+        // ==================== MÉTODOS AUXILIARES ====================
 
         private async Task<Empresa?> ObtenerEmpresaActual()
         {
@@ -395,25 +287,57 @@ namespace CotizacionMVC.Controllers
             return await _empresaRepo.GetByIdAsync(empresaId);
         }
 
-        private (List<ItemCotizacionJson>, List<ItemInstalacionJson>) DeserializarItems(
-            string equipos, string instalaciones)
+        private List<ItemCotizacionJson> DeserializarEquipos(string? json)
         {
-            var opcionesJson = new System.Text.Json.JsonSerializerOptions
+            if (string.IsNullOrEmpty(json)) return new();
+            return System.Text.Json.JsonSerializer.Deserialize<List<ItemCotizacionJson>>(json,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
+        }
+
+        private List<ItemInstalacionJson> DeserializarInstalaciones(string? json)
+        {
+            if (string.IsNullOrEmpty(json)) return new();
+            return System.Text.Json.JsonSerializer.Deserialize<List<ItemInstalacionJson>>(json,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
+        }
+
+        private CotizacionDetalleViewModel MapearADetalleViewModel(CotizacionDetalleDto dto)
+        {
+            return new CotizacionDetalleViewModel
             {
-                PropertyNameCaseInsensitive = true
+                Id = dto.Id,
+                NumeroCotizacion = dto.NumeroCotizacion,
+                ClienteNombre = dto.ClienteNombre,
+                EmpresaNombre = dto.EmpresaNombre,
+                VendedorNombre = dto.VendedorNombre,
+                FechaCreacion = dto.FechaCreacion,
+                FechaVencimiento = dto.FechaVencimiento,
+                Estado = dto.Estado,
+                AreaMetrosCuadrados = dto.AreaMetrosCuadrados,
+                CondicionesPago = dto.CondicionesPago,
+                Subtotal = dto.Subtotal,
+                Iva = dto.Iva,
+                Total = dto.Total,
+                Moneda = dto.Moneda,
+                PuedeSerModificada = dto.PuedeSerModificada,
+                ClienteId = dto.ClienteId,
+                Equipos = dto.Equipos.Select(e => new ItemCotizacionViewModel
+                {
+                    EquipoMarca = e.EquipoMarca,
+                    EquipoModelo = e.EquipoModelo,
+                    Cantidad = e.Cantidad,
+                    PrecioUnitario = e.PrecioUnitario,
+                    Subtotal = e.Subtotal
+                }).ToList(),
+                Instalaciones = dto.Instalaciones.Select(i => new ItemInstalacionViewModel
+                {
+                    Concepto = i.Concepto,
+                    Descripcion = i.Descripcion,
+                    Cantidad = i.Cantidad,
+                    CostoUnitario = i.CostoUnitario,
+                    Subtotal = i.Subtotal
+                }).ToList()
             };
-
-            var listaEquipos = string.IsNullOrEmpty(equipos)
-                ? new List<ItemCotizacionJson>()
-                : System.Text.Json.JsonSerializer.Deserialize<List<ItemCotizacionJson>>(equipos, opcionesJson)
-                  ?? new List<ItemCotizacionJson>();
-
-            var listaInstalaciones = string.IsNullOrEmpty(instalaciones)
-                ? new List<ItemInstalacionJson>()
-                : System.Text.Json.JsonSerializer.Deserialize<List<ItemInstalacionJson>>(instalaciones, opcionesJson)
-                  ?? new List<ItemInstalacionJson>();
-
-            return (listaEquipos, listaInstalaciones);
         }
     }
 }

@@ -1,17 +1,17 @@
-﻿@model IEnumerable<CotizacionMVC.Models.Entidades.Cotizacion>
+﻿@model CotizacionMVC.ViewModels.Cotizacion.CotizacionIndiceViewModel
 
 @{
     ViewData["Title"] = "Panel de Ventas";
-    var total = Model.Count();
-    var activas = Model.Count(c => c.Estado != CotizacionMVC.Models.Enums.EstadoCotizacion.Cerrada
+    var cotizaciones = Model.Cotizaciones;
+    var leads = Model.Leads;
+    var total = cotizaciones.Count();
+    var activas = cotizaciones.Count(c => c.Estado != CotizacionMVC.Models.Enums.EstadoCotizacion.Cerrada
                                 && c.Estado != CotizacionMVC.Models.Enums.EstadoCotizacion.Perdida);
-    var enviadas = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCotizacion.CotizacionEnviada);
-    var aceptadas = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCotizacion.Aceptada);
-    var cerradas = Model.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCotizacion.Cerrada);
-    var totalMonto = Model.Sum(c => c.Total.Monto);
-
-    var leads = ViewBag.Leads as List<CotizacionMVC.Models.Entidades.Lead> ?? new List<CotizacionMVC.Models.Entidades.Lead>();
-    var leadsPendientes = leads.Count(l => l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Asignado || l.Estado == CotizacionMVC.Models.Enums.EstadoCliente.Contactado);
+    var enviadas = cotizaciones.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCotizacion.CotizacionEnviada);
+    var aceptadas = cotizaciones.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCotizacion.Aceptada);
+    var cerradas = cotizaciones.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCotizacion.Cerrada);
+    var totalMonto = cotizaciones.Sum(c => c.Total);
+    var leadsPendientes = leads.Count(l => l.Estado == (int)CotizacionMVC.Models.Enums.EstadoCliente.Asignado || l.Estado == (int)CotizacionMVC.Models.Enums.EstadoCliente.Contactado);
 }
 
 <div class="container-fluid px-4 py-3">
@@ -138,8 +138,9 @@
                         <tbody>
                             @foreach (var lead in leads)
                             {
+                                var estadoCliente = (CotizacionMVC.Models.Enums.EstadoCliente)lead.Estado;
                                 string colorEstado, iconoEstado, textoEstado;
-                                switch (lead.Estado)
+                                switch (estadoCliente)
                                 {
                                     case CotizacionMVC.Models.Enums.EstadoCliente.SinAsignar:
                                         colorEstado = "secondary"; iconoEstado = "fa-clock"; textoEstado = "Sin Asignar"; break;
@@ -154,16 +155,19 @@
                                     case CotizacionMVC.Models.Enums.EstadoCliente.Cerrado:
                                         colorEstado = "success"; iconoEstado = "fa-check-circle"; textoEstado = "Cerrado"; break;
                                     default:
-                                        colorEstado = "secondary"; iconoEstado = "fa-circle"; textoEstado = lead.Estado.ToString(); break;
+                                        colorEstado = "secondary"; iconoEstado = "fa-circle"; textoEstado = estadoCliente.ToString(); break;
                                 }
 
                                 <tr class="align-middle">
                                     <td class="ps-3">
-                                        <strong>@(lead.Cliente?.Nombre ?? lead.NombreContacto)</strong>
-                                        <br><small class="text-muted">@lead.Telefono</small>
+                                        <strong>@lead.ClienteNombre</strong>
+                                        @if (!string.IsNullOrWhiteSpace(lead.Telefono))
+                                        {
+                                            <br><small class="text-muted">@lead.Telefono</small>
+                                        }
                                     </td>
                                     <td><span class="badge bg-light text-dark">@(lead.ProductoBusca ?? "Sin producto")</span></td>
-                                    <td><small>@lead.Empresa?.NombreComercial</small></td>
+                                    <td><small>@lead.EmpresaNombre</small></td>
                                     <td><span class="badge bg-@colorEstado"><i class="fas @iconoEstado me-1"></i>@textoEstado</span></td>
                                     <td><small>@(lead.FechaAsignacion?.ToString("dd/MM/yyyy") ?? lead.FechaCreacion.ToString("dd/MM/yyyy"))</small></td>
                                     <td class="text-center">
@@ -204,7 +208,7 @@
             </div>
         </div>
         <div class="card-body p-0">
-            @if (!Model.Any())
+            @if (!cotizaciones.Any())
             {
                 <div class="text-center py-5">
                     <i class="fas fa-file-invoice fa-5x mb-3" style="opacity: 0.2; color: var(--color-primario, #C8102E);"></i>
@@ -230,9 +234,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var cotizacion in Model)
+                            @foreach (var cotizacion in cotizaciones)
                             {
-                                var porcentaje = cotizacion.ObtenerPorcentajeEstado();
+                                var porcentaje = (int)cotizacion.Estado;
                                 string colorBadge, iconoEstado, textoEstado;
                                 switch (cotizacion.Estado)
                                 {
@@ -260,16 +264,10 @@
 
                                 <tr class="align-middle">
                                     <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">@cotizacion.NumeroCotizacion</span></td>
-                                    <td>
-                                        <strong>@cotizacion.Cliente?.Nombre</strong>
-                                        @if (cotizacion.Cliente?.Contacto?.Telefono != null)
-                                        {
-                                            <br><small class="text-muted"><i class="fas fa-phone-alt me-1"></i>@cotizacion.Cliente.Contacto.Telefono</small>
-                                        }
-                                    </td>
-                                    <td><span class="badge bg-light text-dark">@cotizacion.Empresa?.NombreComercial</span></td>
+                                    <td><strong>@cotizacion.ClienteNombre</strong></td>
+                                    <td><span class="badge bg-light text-dark">@cotizacion.EmpresaNombre</span></td>
                                     <td><small>@cotizacion.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy")</small></td>
-                                    <td class="text-end"><strong>@cotizacion.Total.ToString()</strong></td>
+                                    <td class="text-end"><strong>@cotizacion.Total.ToString("N2") @cotizacion.Moneda</strong></td>
                                     <td class="text-center">
                                         <span class="badge bg-@colorBadge py-2 px-3"><i class="fas @iconoEstado me-1"></i>@textoEstado</span>
                                         <div class="progress mt-1" style="height: 4px;"><div class="progress-bar bg-@colorBadge" style="width: @porcentaje%;"></div></div>
@@ -278,10 +276,7 @@
                                         <div class="btn-group btn-group-sm">
                                             <a asp-action="Detalles" asp-route-id="@cotizacion.Id" class="btn btn-outline-secondary" title="Ver" data-bs-toggle="tooltip"><i class="fas fa-eye"></i></a>
                                             <a asp-action="DescargarPdf" asp-route-id="@cotizacion.Id" class="btn btn-outline-danger" title="PDF" data-bs-toggle="tooltip"><i class="fas fa-file-pdf"></i></a>
-                                            @if (cotizacion.PuedeSerModificada())
-                                            {
-                                                <a asp-action="Editar" asp-route-id="@cotizacion.Id" class="btn btn-outline-warning" title="Editar" data-bs-toggle="tooltip"><i class="fas fa-edit"></i></a>
-                                            }
+                                            <a asp-action="Editar" asp-route-id="@cotizacion.Id" class="btn btn-outline-warning" title="Editar" data-bs-toggle="tooltip"><i class="fas fa-edit"></i></a>
                                         </div>
                                     </td>
                                 </tr>
@@ -291,7 +286,7 @@
                 </div>
             }
         </div>
-        @if (Model.Any())
+        @if (cotizaciones.Any())
         {
             <div class="card-footer bg-white d-flex justify-content-between align-items-center">
                 <small class="text-muted"><i class="fas fa-sync-alt me-1"></i> Actualizado: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</small>

@@ -1,4 +1,4 @@
-﻿@model CotizacionMVC.Models.Entidades.Empresa
+﻿@model CotizacionMVC.ViewModels.Empresa.EmpresaFormViewModel
 
 @{
     ViewData["Title"] = "Editar Empresa";
@@ -7,129 +7,67 @@
 <div class="container mt-4">
     <div class="card shadow">
         <div class="card-header bg-warning text-dark">
-            <h2><i class="fas fa-edit"></i> Editar Empresa</h2>
+            <h2><i class="fas fa-edit"></i> Editar Empresa: @Model.NombreComercial</h2>
         </div>
         <div class="card-body">
             <form asp-action="Editar" method="post">
                 <input type="hidden" asp-for="Id" />
                 <div asp-validation-summary="All" class="alert alert-danger"></div>
 
+                <h4 class="text-primary mb-3">Utilidades</h4>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label asp-for="NombreComercial" class="form-label fw-bold"></label>
-                        <input asp-for="NombreComercial" class="form-control" />
-                        <span asp-validation-for="NombreComercial" class="text-danger"></span>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="NombreLegal" class="form-label fw-bold">Razón Social</label>
-                        <input asp-for="NombreLegal" class="form-control" />
-                        <span asp-validation-for="NombreLegal" class="text-danger"></span>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <label asp-for="Slug" class="form-label fw-bold"></label>
-                        <input asp-for="Slug" class="form-control" />
-                        <span asp-validation-for="Slug" class="text-danger"></span>
-                    </div>
-
-                    <div class="col-md-3 mb-3">
-                        <label asp-for="MonedaBase" class="form-label fw-bold">Moneda Base</label>
-                        <select asp-for="MonedaBase" class="form-select">
-                            <option value="MXN">MXN - Peso Mexicano</option>
-                            <option value="USD">USD - Dólar Americano</option>
-                        </select>
-                        <span asp-validation-for="MonedaBase" class="text-danger"></span>
-                    </div>
-
-                    <div class="col-md-3 mb-3">
                         <label asp-for="UtilidadEmpresaPorcentaje" class="form-label fw-bold">Utilidad Empresa (%)</label>
                         <input asp-for="UtilidadEmpresaPorcentaje" class="form-control" step="1" />
                         <span asp-validation-for="UtilidadEmpresaPorcentaje" class="text-danger"></span>
                     </div>
-
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-6 mb-3">
                         <label asp-for="UtilidadVendedorPorcentaje" class="form-label fw-bold">Utilidad Vendedor (%)</label>
                         <input asp-for="UtilidadVendedorPorcentaje" class="form-control" step="1" />
                         <span asp-validation-for="UtilidadVendedorPorcentaje" class="text-danger"></span>
                     </div>
                 </div>
 
+                <h4 class="text-primary mb-3 mt-4">Contacto</h4>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label asp-for="TelefonoContacto" class="form-label fw-bold">Teléfono de Contacto</label>
                         <input asp-for="TelefonoContacto" class="form-control" />
-                        <span asp-validation-for="TelefonoContacto" class="text-danger"></span>
                     </div>
-
                     <div class="col-md-6 mb-3">
                         <label asp-for="CorreoContacto" class="form-label fw-bold">Correo de Contacto</label>
                         <input asp-for="CorreoContacto" class="form-control" />
-                        <span asp-validation-for="CorreoContacto" class="text-danger"></span>
                     </div>
                 </div>
 
+                <h4 class="text-primary mb-3 mt-4">Identidad Visual</h4>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label asp-for="LogoUrl" class="form-label fw-bold">URL del Logo</label>
                         <input asp-for="LogoUrl" class="form-control" placeholder="/logos/mi-logo.png" />
-                        <span asp-validation-for="LogoUrl" class="text-danger"></span>
                         <small class="text-muted">Ruta relativa desde wwwroot</small>
                     </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="SitioWeb" class="form-label fw-bold">Sitio Web</label>
-                        <input asp-for="SitioWeb" class="form-control" placeholder="https://www.miempresa.com" />
-                        <span asp-validation-for="SitioWeb" class="text-danger"></span>
+                    <div class="col-md-3 mb-3">
+                        <label asp-for="ColorPrimario" class="form-label fw-bold">Color Primario</label>
+                        <input asp-for="ColorPrimario" class="form-control" placeholder="#1E3A5F" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label asp-for="ColorSecundario" class="form-label fw-bold">Color Secundario</label>
+                        <input asp-for="ColorSecundario" class="form-control" placeholder="#B22234" />
                     </div>
                 </div>
 
                 <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label asp-for="ColorPrimario" class="form-label fw-bold">Color Primario</label>
-                        <input asp-for="ColorPrimario" class="form-control" placeholder="#1E3A5F" />
-                        <span asp-validation-for="ColorPrimario" class="text-danger"></span>
-                    </div>
-
-                    <div class="col-md-4 mb-3">
-                        <label asp-for="ColorSecundario" class="form-label fw-bold">Color Secundario</label>
-                        <input asp-for="ColorSecundario" class="form-control" placeholder="#B22234" />
-                        <span asp-validation-for="ColorSecundario" class="text-danger"></span>
-                    </div>
-
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-6 mb-3">
                         <label asp-for="PlantillaPdfNombre" class="form-label fw-bold">Plantilla PDF</label>
                         <select asp-for="PlantillaPdfNombre" class="form-select">
                             <option value="AireClima">Aire y Clima</option>
                             <option value="AirWeather">Air and Weather</option>
                         </select>
-                        <span asp-validation-for="PlantillaPdfNombre" class="text-danger"></span>
                     </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-12 mb-3">
+                    <div class="col-md-6 mb-3">
                         <label asp-for="Eslogan" class="form-label fw-bold">Eslogan</label>
                         <input asp-for="Eslogan" class="form-control" />
-                        <span asp-validation-for="Eslogan" class="text-danger"></span>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="form-check">
-                            <input asp-for="EsExclusivaTrane" class="form-check-input" type="checkbox" />
-                            <label asp-for="EsExclusivaTrane" class="form-check-label">Es exclusiva Trane</label>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <div class="form-check">
-                            <input asp-for="Activa" class="form-check-input" type="checkbox" />
-                            <label asp-for="Activa" class="form-check-label">Empresa Activa</label>
-                        </div>
                     </div>
                 </div>
 

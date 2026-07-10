@@ -1,45 +1,33 @@
-﻿using CotizacionMVC.Data;
-using CotizacionMVC.Data.Repositorios.Interfaces;
-using CotizacionMVC.Models.Entidades;
-using CotizacionMVC.Models.Enums;
-using CotizacionMVC.Servicios.Aplicacion;
+﻿using CotizacionMVC.Models.Entidades;
+
+using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using CotizacionMVC.ViewModels.Recepcion;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-
 namespace CotizacionMVC.Controllers
 {
-    [Authorize(Roles = "Administrador,Recepcion")]
+    [Authorize]
     public class RecepcionController : Controller
     {
-        private readonly RecepcionServicio _recepcionServicio;
-        private readonly IEmpresaRepository _empresaRepo;
+        private readonly IRecepcionServicio _recepcionServicio;
         private readonly UserManager<Usuario> _userManager;
-        private readonly IClienteRepository _clienteRepo;
-        private readonly ApplicationDbContext _context;
-
 
         public RecepcionController(
-    RecepcionServicio recepcionServicio,
-    IEmpresaRepository empresaRepo,
-    IClienteRepository clienteRepo,
-    UserManager<Usuario> userManager,
-    ApplicationDbContext context)
+            IRecepcionServicio recepcionServicio,
+            UserManager<Usuario> userManager)
         {
             _recepcionServicio = recepcionServicio;
-            _empresaRepo = empresaRepo;
             _userManager = userManager;
-            _clienteRepo = clienteRepo;
-            _context = context;
         }
 
         // GET: Recepcion/Registrar
         [HttpGet]
         public async Task<IActionResult> Registrar()
         {
-            await CargarListasAsync();
+            ViewBag.Empresas = await _recepcionServicio.ObtenerEmpresasAsync();
+            ViewBag.Vendedores = await _recepcionServicio.ObtenerVendedoresActivosAsync();
+            ViewBag.EsRecepcion = User.IsInRole("Recepcion") || User.IsInRole("Administrador");
             return View(new RegistrarClienteViewModel());
         }
 
@@ -50,7 +38,9 @@ namespace CotizacionMVC.Controllers
         {
             if (!ModelState.IsValid)
             {
-                await CargarListasAsync();
+                ViewBag.Empresas = await _recepcionServicio.ObtenerEmpresasAsync();
+                ViewBag.Vendedores = await _recepcionServicio.ObtenerVendedoresActivosAsync();
+                ViewBag.EsRecepcion = User.IsInRole("Recepcion") || User.IsInRole("Administrador");
                 return View(modelo);
             }
 
@@ -62,23 +52,22 @@ namespace CotizacionMVC.Controllers
 
             if (!resultado.Exitoso)
             {
-                if (resultado.EsDuplicado && resultado.ClienteExistente != null)
-                {
-                    TempData["ClienteExistenteNombre"] = resultado.ClienteExistente.Nombre;
-                    TempData["ClienteExistenteFolio"] = resultado.ClienteExistente.Folio;
-                    TempData["ClienteExistenteFecha"] = resultado.ClienteExistente.FechaRegistro.ToString("dd/MM/yyyy");
-                }
-
                 ModelState.AddModelError("", resultado.MensajeError!);
-                await CargarListasAsync();
+                ViewBag.Empresas = await _recepcionServicio.ObtenerEmpresasAsync();
+                ViewBag.Vendedores = await _recepcionServicio.ObtenerVendedoresActivosAsync();
+                ViewBag.EsRecepcion = User.IsInRole("Recepcion") || User.IsInRole("Administrador");
                 return View(modelo);
             }
 
             TempData["MensajeExito"] = $"Cliente {resultado.Cliente!.Nombre} registrado exitosamente. Folio: {resultado.Cliente.Folio}";
+
+            if (User.IsInRole("Vendedor"))
+                return RedirectToAction("Indice", "Cotizacion");
+
             return RedirectToAction(nameof(Registrar));
         }
 
-        // GET: Recepcion/BuscarCliente?telefono=xxx
+        // GET: Recepcion/BuscarCliente
         [HttpGet]
         public async Task<IActionResult> BuscarCliente(string telefono)
         {
@@ -92,101 +81,50 @@ namespace CotizacionMVC.Controllers
             }));
         }
 
-        // GET: Recepcion/Indice (Dashboard principal)
-        // GET: Recepcion/Indice (Dashboard principal)
+        // GET: Recepcion/Indice
         [HttpGet]
         public async Task<IActionResult> Indice()
         {
-            var clientes = await _clienteRepo.GetAllAsync();
-            var ordenados = clientes.OrderByDescending(c => c.FechaRegistro).ToList();
-
-            // Obtener Leads para saber el estado real de cada cliente
-            var leads = await _context.Leads
-                .Include(l => l.Cliente)
-                .OrderByDescending(l => l.FechaCreacion)
-                .ToListAsync();
-
-            ViewBag.Leads = leads;
-
-            return View(ordenados);
+            var clientes = await _recepcionServicio.ObtenerDashboardAsync();
+            return View(clientes);
         }
 
+        // GET: Recepcion/UltimosRegistros
         [HttpGet]
         public async Task<IActionResult> UltimosRegistros()
         {
-            var clientes = await _clienteRepo.GetAllAsync();
-            var ultimos = clientes
-                .OrderByDescending(c => c.FechaRegistro)
-                .Take(10)
-                .Select(c => new
-                {
-                    c.Id,
-                    c.Folio,
-                    c.Nombre,
-                    Telefono = c.Contacto.Telefono,
-                    Origen = c.Origen.ToString(),
-                    Fecha = c.FechaRegistro.ToString("dd/MM/yyyy HH:mm"),
-                    Estado = _context.Leads
-                        .Where(l => l.ClienteId == c.Id)
-                        .OrderByDescending(l => l.FechaCreacion)
-                        .Select(l => l.Estado.ToString())
-                        .FirstOrDefault() ?? "SinAsignar",
-                    VendedorAsignadoId = _context.Leads
-                        .Where(l => l.ClienteId == c.Id)
-                        .OrderByDescending(l => l.FechaCreacion)
-                        .Select(l => l.VendedorAsignadoId)
-                        .FirstOrDefault(),
-                    observaciones = c.Observaciones
-                });
-
+            var ultimos = await _recepcionServicio.ObtenerUltimosRegistrosAsync();
             return Json(ultimos);
         }
 
-        // GET: Recepcion/VerDetalles/5
+        // GET: Recepcion/VerDetalles
         [HttpGet]
         public async Task<IActionResult> VerDetalles(Guid id)
         {
-            var cliente = await _clienteRepo.GetByIdAsync(id);
-            if (cliente == null)
+            var detalle = await _recepcionServicio.ObtenerDetalleClienteAsync(id);
+            if (detalle == null)
                 return NotFound("Cliente no encontrado");
-
-            // Obtener nombre del vendedor si está asignado
-            string? vendedorNombre = null;
-            if (cliente.VendedorAsignadoId.HasValue)
-            {
-                var vendedor = await _userManager.FindByIdAsync(cliente.VendedorAsignadoId.Value.ToString());
-                vendedorNombre = vendedor?.NombreCompleto ?? "No disponible";
-            }
-
-            // Extraer producto de las observaciones
-            var producto = "No especificado";
-            if (!string.IsNullOrWhiteSpace(cliente.Observaciones))
-            {
-                var partes = cliente.Observaciones.Split("Producto: ");
-                if (partes.Length > 1)
-                    producto = partes[1].Split(" |")[0];
-            }
 
             var detalleHtml = $@"
                 <div class='row'>
                     <div class='col-md-6'>
                         <h6 class='text-muted border-bottom pb-2'>Información del Cliente</h6>
                         <table class='table table-sm table-borderless'>
-                            <tr><td class='fw-bold' style='width: 130px;'>Folio:</td><td><span class='badge bg-light text-dark border'>{cliente.Folio}</span></td></tr>
-                            <tr><td class='fw-bold'>Nombre:</td><td><strong>{cliente.Nombre}</strong></td></tr>
-                            <tr><td class='fw-bold'>Teléfono:</td><td><i class='fas fa-phone text-muted me-1'></i>{cliente.Contacto.Telefono}</td></tr>
-                            <tr><td class='fw-bold'>Tel. Móvil:</td><td>{(string.IsNullOrWhiteSpace(cliente.Contacto.TelefonoMovil) ? "<span class='text-muted'>N/A</span>" : cliente.Contacto.TelefonoMovil)}</td></tr>
-                            <tr><td class='fw-bold'>Correo:</td><td>{(string.IsNullOrWhiteSpace(cliente.Contacto.Correo) ? "<span class='text-muted'>N/A</span>" : cliente.Contacto.Correo)}</td></tr>
+                            <tr><td class='fw-bold' style='width: 130px;'>Folio:</td><td><span class='badge bg-light text-dark border'>{detalle.Folio}</span></td></tr>
+                            <tr><td class='fw-bold'>Nombre:</td><td><strong>{detalle.Nombre}</strong></td></tr>
+                            <tr><td class='fw-bold'>Teléfono:</td><td><i class='fas fa-phone text-muted me-1'></i>{detalle.Telefono}</td></tr>
+                            <tr><td class='fw-bold'>Tel. Móvil:</td><td>{(string.IsNullOrWhiteSpace(detalle.TelefonoMovil) ? "<span class='text-muted'>N/A</span>" : detalle.TelefonoMovil)}</td></tr>
+                            <tr><td class='fw-bold'>Correo:</td><td>{(string.IsNullOrWhiteSpace(detalle.Correo) ? "<span class='text-muted'>N/A</span>" : detalle.Correo)}</td></tr>
                         </table>
                     </div>
                     <div class='col-md-6'>
                         <h6 class='text-muted border-bottom pb-2'>Datos de Registro</h6>
                         <table class='table table-sm table-borderless'>
-                            <tr><td class='fw-bold' style='width: 130px;'>Origen:</td><td><span class='badge bg-light text-dark'>{cliente.Origen}</span></td></tr>
-                            <tr><td class='fw-bold'>Estado:</td><td><span class='badge bg-{GetEstadoColor(cliente.Estado)}'>{cliente.Estado}</span></td></tr>
-                            <tr><td class='fw-bold'>Producto:</td><td>{producto}</td></tr>
-                            <tr><td class='fw-bold'>Vendedor:</td><td>{(vendedorNombre != null ? $"<i class='fas fa-user-check text-success me-1'></i>{vendedorNombre}" : "<span class='text-warning'><i class='fas fa-clock me-1'></i>Sin asignar</span>")}</td></tr>
-                            <tr><td class='fw-bold'>Fecha Registro:</td><td>{cliente.FechaRegistro:dd/MM/yyyy HH:mm}</td></tr>
+                            <tr><td class='fw-bold' style='width: 130px;'>Origen:</td><td><span class='badge bg-light text-dark'>{detalle.Origen}</span></td></tr>
+                            <tr><td class='fw-bold'>Estado:</td><td><span class='badge bg-info'>{detalle.Estado}</span></td></tr>
+                            <tr><td class='fw-bold'>Producto:</td><td>{detalle.Producto}</td></tr>
+                            <tr><td class='fw-bold'>Vendedor:</td><td>{(detalle.VendedorNombre != null ? $"<i class='fas fa-user-check text-success me-1'></i>{detalle.VendedorNombre}" : "<span class='text-warning'><i class='fas fa-clock me-1'></i>Sin asignar</span>")}</td></tr>
+                            <tr><td class='fw-bold'>Fecha Registro:</td><td>{detalle.FechaRegistro:dd/MM/yyyy HH:mm}</td></tr>
                         </table>
                     </div>
                 </div>
@@ -194,7 +132,7 @@ namespace CotizacionMVC.Controllers
                     <div class='col-12'>
                         <h6 class='text-muted border-bottom pb-2'>Observaciones</h6>
                         <div class='p-3 bg-light rounded' style='min-height: 60px;'>
-                            {(string.IsNullOrWhiteSpace(cliente.Observaciones) ? "<span class='text-muted'>Sin observaciones</span>" : cliente.Observaciones)}
+                            {(string.IsNullOrWhiteSpace(detalle.Observaciones) ? "<span class='text-muted'>Sin observaciones</span>" : detalle.Observaciones)}
                         </div>
                     </div>
                 </div>";
@@ -206,18 +144,8 @@ namespace CotizacionMVC.Controllers
         [HttpGet]
         public async Task<IActionResult> ObtenerVendedores()
         {
-            var vendedores = await _userManager.GetUsersInRoleAsync("Vendedor");
-            var activos = vendedores
-                .Where(v => v.Activo)
-                .Select(v => new
-                {
-                    v.Id,
-                    v.NombreCompleto,
-                    v.Email
-                })
-                .OrderBy(v => v.NombreCompleto);
-
-            return Json(activos);
+            var vendedores = await _recepcionServicio.ObtenerVendedoresActivosAsync();
+            return Json(vendedores);
         }
 
         // POST: Recepcion/AsignarVendedor
@@ -225,19 +153,12 @@ namespace CotizacionMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AsignarVendedor(Guid clienteId, Guid vendedorId)
         {
-            try
-            {
-                var resultado = await _recepcionServicio.AsignarVendedorAsync(clienteId, vendedorId);
+            var resultado = await _recepcionServicio.AsignarVendedorAsync(clienteId, vendedorId);
 
-                if (resultado.Exitoso)
-                    return Json(new { success = true, message = "Vendedor asignado exitosamente" });
-                else
-                    return Json(new { success = false, message = resultado.MensajeError });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = $"Error: {ex.Message}" });
-            }
+            if (resultado.Exitoso)
+                return Json(new { success = true, message = "Vendedor asignado exitosamente" });
+
+            return Json(new { success = false, message = resultado.MensajeError });
         }
 
         // POST: Recepcion/MarcarNoCotizable
@@ -245,45 +166,12 @@ namespace CotizacionMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarcarNoCotizable(Guid clienteId, string motivo, string? comentario)
         {
-            try
-            {
-                if (!Enum.TryParse<MotivoNoCotizable>(motivo, out var motivoEnum))
-                    return Json(new { success = false, message = "Motivo no válido" });
+            var resultado = await _recepcionServicio.MarcarNoCotizableAsync(clienteId, motivo, comentario);
 
-                var resultado = await _recepcionServicio.MarcarNoCotizableAsync(clienteId, motivoEnum, comentario);
+            if (resultado.Exitoso)
+                return Json(new { success = true, message = "Cliente marcado como no cotizable" });
 
-                if (resultado.Exitoso)
-                    return Json(new { success = true, message = "Cliente marcado como no cotizable" });
-                else
-                    return Json(new { success = false, message = resultado.MensajeError });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = $"Error: {ex.Message}" });
-            }
-        }
-
-        // ==================== MÉTODOS AUXILIARES ====================
-
-        private async Task CargarListasAsync()
-        {
-            ViewBag.Empresas = await _empresaRepo.GetAllAsync();
-            var vendedores = await _userManager.GetUsersInRoleAsync("Vendedor");
-            ViewBag.Vendedores = vendedores.Where(v => v.Activo).ToList();
-        }
-
-        private string GetEstadoColor(EstadoCliente estado)
-        {
-            return estado switch
-            {
-                EstadoCliente.SinAsignar => "warning",
-                EstadoCliente.Asignado => "info",
-                EstadoCliente.Contactado => "primary",
-                EstadoCliente.Cotizado => "success",
-                EstadoCliente.NoCotizable => "danger",
-                EstadoCliente.Cerrado => "dark",
-                _ => "secondary"
-            };
+            return Json(new { success = false, message = resultado.MensajeError });
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CotizacionMVC.Models.Entidades.Equipo>
+﻿@model CotizacionMVC.ViewModels.Equipo.EquipoIndiceViewModel
 
 @{
     ViewData["Title"] = "Catálogo de Equipos HVAC";
@@ -28,7 +28,7 @@
         </div>
     }
 
-    @if (!Model.Any())
+    @if (!Model.Equipos.Any())
     {
         <div class="alert alert-info text-center">
             <i class="fas fa-info-circle"></i> No hay equipos registrados en el catálogo.
@@ -44,7 +44,6 @@
                     <tr>
                         <th>Marca</th>
                         <th>Modelo</th>
-                        <th>Tipo</th>
                         <th>Capacidad (TR)</th>
                         <th>Precio Base</th>
                         <th>Moneda</th>
@@ -53,16 +52,13 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var equipo in Model)
+                    @foreach (var equipo in Model.Equipos)
                     {
                         <tr>
                             <td>
-                                <span class="badge bg-info">
-                                    @equipo.Marca
-                                </span>
+                                <span class="badge bg-info">@equipo.Marca</span>
                             </td>
                             <td>@equipo.Modelo</td>
-                            <td>@(string.IsNullOrWhiteSpace(equipo.Tipo) ? "—" : equipo.Tipo)</td>
                             <td>@equipo.CapacidadToneladas.ToString("N1")</td>
                             <td>@equipo.PrecioBase.ToString("N2")</td>
                             <td>@equipo.MonedaOriginal</td>
@@ -77,13 +73,16 @@
                                 }
                             </td>
                             <td>
-                                <a asp-action="Detalles" asp-route-id="@equipo.Id" class="btn btn-sm btn-info" title="Ver detalles">
+                                <a asp-action="Detalles" asp-route-id="@equipo.Id"
+                                       class="btn btn-sm btn-info" title="Ver detalles">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a asp-action="Editar" asp-route-id="@equipo.Id" class="btn btn-sm btn-warning" title="Editar">
+                                <a asp-action="Editar" asp-route-id="@equipo.Id"
+                                       class="btn btn-sm btn-warning" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a asp-action="Eliminar" asp-route-id="@equipo.Id" class="btn btn-sm btn-danger" title="Eliminar">
+                                <a asp-action="Eliminar" asp-route-id="@equipo.Id"
+                                       class="btn btn-sm btn-danger" title="Eliminar">
                                     <i class="fas fa-trash"></i>
                                 </a>
                             </td>

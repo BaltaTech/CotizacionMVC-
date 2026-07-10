@@ -1,13 +1,12 @@
-﻿@{
+﻿@model CotizacionMVC.ViewModels.Cotizacion.CrearCotizacionViewModel
+
+@{
     ViewData["Title"] = "Nueva Cotización";
-    var clientes = ViewBag.Clientes as List<CotizacionMVC.Models.Entidades.Cliente> ?? new List<CotizacionMVC.Models.Entidades.Cliente>();
-    var equipos = ViewBag.Equipos as List<CotizacionMVC.Models.Entidades.Equipo> ?? new List<CotizacionMVC.Models.Entidades.Equipo>();
-    var instalaciones = ViewBag.Instalaciones as List<CotizacionMVC.Models.Entidades.Instalacion> ?? new List<CotizacionMVC.Models.Entidades.Instalacion>();
-    
-    var clientePreseleccionado = ViewBag.ClientePreseleccionado as CotizacionMVC.Models.Entidades.Cliente;
-    var empresaForzada = ViewBag.EmpresaForzada as CotizacionMVC.Models.Entidades.Empresa;
-    var leadId = ViewBag.LeadId as Guid?;
-    var leadProducto = ViewBag.LeadProducto as string;
+    var modoLead = ViewBag.ModoLead as bool? ?? false;
+    var lead = ViewBag.Lead as CotizacionMVC.Servicios.Aplicacion.Dtos.Cotizacion.LeadResumenDto;
+    var clientes = ViewBag.Clientes as List<CotizacionMVC.Servicios.Aplicacion.Dtos.Cotizacion.ClienteResumenDto>;
+    var equipos = ViewBag.Equipos as List<CotizacionMVC.Servicios.Aplicacion.Dtos.Cotizacion.EquipoResumenDto>;
+    var instalaciones = ViewBag.Instalaciones as List<CotizacionMVC.Servicios.Aplicacion.Dtos.Cotizacion.InstalacionResumenDto>;
 }
 
 <div class="container mt-4">
@@ -16,22 +15,22 @@
             <h2><i class="fas fa-file-invoice"></i> Nueva Cotización</h2>
         </div>
         <div class="card-body">
-            <form id="formCotizacion" method="post">
+            <form id="formCotizacion" method="post" asp-action="Crear">
                 @Html.AntiForgeryToken()
 
-                @if (clientePreseleccionado != null && empresaForzada != null)
+                @if (modoLead && lead != null)
                 {
                     @* ========== MODO LEAD: Cliente y empresa fijos ========== *@
-                    <input type="hidden" name="clienteId" value="@clientePreseleccionado.Id" />
-                    <input type="hidden" name="leadId" value="@leadId" />
+                    <input type="hidden" name="clienteId" value="@lead.ClienteId" />
+                    <input type="hidden" name="leadId" value="@lead.Id" />
 
                     <div class="row mb-4">
                         <div class="col-md-4">
                             <div class="card bg-light border">
                                 <div class="card-body py-3">
                                     <small class="text-muted text-uppercase fw-bold">Cliente</small>
-                                    <h5 class="mb-0 mt-1"><i class="fas fa-user me-2"></i>@clientePreseleccionado.Nombre</h5>
-                                    <small class="text-muted"><i class="fas fa-phone-alt me-1"></i>@clientePreseleccionado.Contacto.Telefono</small>
+                                    <h5 class="mb-0 mt-1"><i class="fas fa-user me-2"></i>@lead.ClienteNombre</h5>
+                                    <small class="text-muted"><i class="fas fa-phone-alt me-1"></i>@lead.ClienteTelefono</small>
                                 </div>
                             </div>
                         </div>
@@ -39,10 +38,10 @@
                             <div class="card bg-light border">
                                 <div class="card-body py-3">
                                     <small class="text-muted text-uppercase fw-bold">Empresa</small>
-                                    <h5 class="mb-0 mt-1" style="color: @empresaForzada.ColorPrimario;">
-                                        <i class="fas fa-building me-2"></i>@empresaForzada.NombreComercial
+                                    <h5 class="mb-0 mt-1" style="color: @(lead.EmpresaColorPrimario ?? "#000")">
+                                        <i class="fas fa-building me-2"></i>@lead.EmpresaNombre
                                     </h5>
-                                    <small class="text-muted">@empresaForzada.Eslogan</small>
+                                    <small class="text-muted">@lead.EmpresaEslogan</small>
                                 </div>
                             </div>
                         </div>
@@ -50,7 +49,7 @@
                             <div class="card bg-light border">
                                 <div class="card-body py-3">
                                     <small class="text-muted text-uppercase fw-bold">Producto Solicitado</small>
-                                    <h5 class="mb-0 mt-1"><i class="fas fa-box me-2"></i>@(leadProducto ?? "No especificado")</h5>
+                                    <h5 class="mb-0 mt-1"><i class="fas fa-box me-2"></i>@(lead.ProductoBusca ?? "No especificado")</h5>
                                     <small class="text-muted">Desde oportunidad asignada</small>
                                 </div>
                             </div>
@@ -69,7 +68,7 @@
                             <select id="clienteId" name="clienteId" class="form-select" required size="8"
                                     style="font-family: monospace; font-size: 0.9rem;">
                                 <option value="">-- Seleccione un cliente --</option>
-                                @foreach (var cliente in clientes)
+                                @foreach (var cliente in clientes ?? new())
                                 {
                                     var productoBusca = "";
                                     if (!string.IsNullOrWhiteSpace(cliente.Observaciones))
@@ -78,14 +77,14 @@
                                         if (partes.Length > 1)
                                             productoBusca = partes[1].Split(" |")[0];
                                     }
-                                    var fechaAsignacion = cliente.VendedorAsignadoId.HasValue
+                                    var fechaAsignacion = cliente.TieneVendedor
                                         ? cliente.FechaRegistro.ToString("dd/MM/yyyy")
                                         : "Sin asignar";
                                     var estadoTexto = cliente.Estado switch
                                     {
-                                        CotizacionMVC.Models.Enums.EstadoCliente.Asignado => "✅",
-                                        CotizacionMVC.Models.Enums.EstadoCliente.Contactado => "📞",
-                                        CotizacionMVC.Models.Enums.EstadoCliente.SinAsignar => "🆕",
+                                        2 => "✅",
+                                        3 => "📞",
+                                        1 => "🆕",
                                         _ => "📋"
                                     };
                     
@@ -94,7 +93,7 @@
                                             data-fecha="@fechaAsignacion"
                                             data-estado="@cliente.Estado"
                                             style="padding: 8px 12px; border-bottom: 1px solid #eee;">
-                                        @estadoTexto @cliente.Folio | @cliente.Nombre | 📱 @cliente.Contacto.Telefono | 🏷️ @productoBusca | 📅 @fechaAsignacion
+                                        @estadoTexto @cliente.Folio | @cliente.Nombre | 📱 @cliente.Telefono | 🏷️ @productoBusca | 📅 @fechaAsignacion
                                     </option>
                                 }
                             </select>
@@ -115,13 +114,13 @@
                 <!-- Área y Condiciones -->
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold">Área (m²)</label>
-                        <input type="number" id="areaMetrosCuadrados" name="areaMetrosCuadrados" class="form-control" value="100" step="1" />
+                        <label asp-for="AreaMetrosCuadrados" class="form-label fw-bold"></label>
+                        <input asp-for="AreaMetrosCuadrados" class="form-control" value="100" step="1" />
                         <div id="cargaTermicaInfo" class="mt-1 small text-muted"></div>
                     </div>
                     <div class="col-md-8 mb-3">
-                        <label class="form-label fw-bold">Condiciones de Pago</label>
-                        <input type="text" id="condicionesPago" name="condicionesPago" class="form-control" placeholder="Ej: 50% anticipo, 50% contra entrega" />
+                        <label asp-for="CondicionesPago" class="form-label fw-bold"></label>
+                        <input asp-for="CondicionesPago" class="form-control" placeholder="Ej: 50% anticipo, 50% contra entrega" />
                     </div>
                 </div>
 
@@ -205,8 +204,8 @@
                     </div>
                 </div>
 
-                <input type="hidden" id="equiposJson" name="equipos" />
-                <input type="hidden" id="instalacionesJson" name="instalaciones" />
+                <input type="hidden" asp-for="EquiposJson" id="equiposJson" />
+                <input type="hidden" asp-for="InstalacionesJson" id="instalacionesJson" />
 
                 <div class="mt-4 text-end">
                     <button type="submit" class="btn btn-success">
@@ -232,7 +231,7 @@
                     <label class="form-label">Equipo</label>
                     <select id="equipoSelect" class="form-select">
                         <option value="">-- Seleccione un equipo --</option>
-                        @foreach (var equipo in equipos)
+                        @foreach (var equipo in equipos ?? new())
                         {
                             <option value="@equipo.Id"
                                     data-precio-base="@equipo.PrecioBase"
@@ -278,7 +277,7 @@
                     <label class="form-label">Seleccionar Instalación</label>
                     <select id="instalacionSelect" class="form-select">
                         <option value="">-- Seleccione una instalación --</option>
-                        @foreach (var inst in instalaciones)
+                        @foreach (var inst in instalaciones ?? new())
                         {
                             <option value="@inst.Id" data-costo="@inst.CostoUnitario" data-desc="@inst.Descripcion">@inst.Concepto - $@inst.CostoUnitario</option>
                         }
@@ -393,7 +392,7 @@
         }
 
         $(document).ready(function() {
-        @if (clientePreseleccionado == null)
+        @if (!modoLead)
         {
             <text>
                 var totalClientes = $('#clienteId option').length - 1;
@@ -497,7 +496,7 @@
         });
 
         $('#formCotizacion').submit(function(e) {
-        @if (clientePreseleccionado == null)
+        @if (!modoLead)
         {
             <text>
                 var clienteId = $('#clienteId').val();
