@@ -1,4 +1,5 @@
-﻿using CotizacionMVC.Models.Entidades;
+﻿// Data/ApplicationDbContext.cs
+using CotizacionMVC.Models.Entidades;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -78,8 +79,6 @@ namespace CotizacionMVC.Data
 
                 entidad.Property(e => e.PlantillaPdfNombre)
                     .HasMaxLength(100);
-
-
             });
         }
 
@@ -97,7 +96,6 @@ namespace CotizacionMVC.Data
                 entidad.Property(c => c.Observaciones)
                     .HasMaxLength(1000);
 
-                // ========== NUEVOS CAMPOS (FUERA de OwnsOne) ==========
                 entidad.Property(c => c.Estado)
                     .HasConversion<int>()
                     .IsRequired();
@@ -131,7 +129,6 @@ namespace CotizacionMVC.Data
 
                 entidad.HasIndex(c => c.Folio)
                     .IsUnique();
-                //  
 
                 entidad.OwnsOne(c => c.Contacto, contacto =>
                 {
@@ -174,6 +171,7 @@ namespace CotizacionMVC.Data
             });
         }
 
+        // ========== MODIFICADO: Agregado LeadId ==========
         private void ConfigurarCotizacion(ModelBuilder constructorModelos)
         {
             constructorModelos.Entity<Cotizacion>(entidad =>
@@ -193,6 +191,13 @@ namespace CotizacionMVC.Data
 
                 entidad.Property(c => c.AreaMetrosCuadrados)
                     .HasPrecision(10, 2);
+
+                // ========== NUEVA RELACIÓN CON LEAD ==========
+                entidad.HasOne(c => c.Lead)
+                    .WithMany()
+                    .HasForeignKey(c => c.LeadId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
 
                 entidad.HasOne(c => c.Cliente)
                     .WithMany(c => c.Cotizaciones)
@@ -228,6 +233,7 @@ namespace CotizacionMVC.Data
                 });
             });
         }
+
         private void ConfigurarEquipo(ModelBuilder constructorModelos)
         {
             constructorModelos.Entity<Equipo>(entidad =>
@@ -259,6 +265,7 @@ namespace CotizacionMVC.Data
                     .HasMaxLength(3);
             });
         }
+
         private void ConfigurarItemCotizacion(ModelBuilder constructorModelos)
         {
             constructorModelos.Entity<ItemCotizacion>(entidad =>
@@ -378,6 +385,7 @@ namespace CotizacionMVC.Data
             });
         }
 
+        // ========== REFACTORIZADO: Seguimiento con LeadId y nuevos campos ==========
         private void ConfigurarSeguimiento(ModelBuilder constructorModelos)
         {
             constructorModelos.Entity<Seguimiento>(entidad =>
@@ -385,12 +393,29 @@ namespace CotizacionMVC.Data
                 entidad.ToTable("Seguimientos");
                 entidad.HasKey(s => s.Id);
 
-                entidad.Property(s => s.Comentarios)
-                    .HasMaxLength(1000);
+                entidad.Property(s => s.Notas)
+                    .HasMaxLength(500);
 
+                entidad.Property(s => s.Resultado)
+                    .HasConversion<int>()
+                    .IsRequired();
+
+                entidad.Property(s => s.MedioContacto)
+                    .HasConversion<int>()
+                    .IsRequired();
+
+                // Relación opcional con Lead
+                entidad.HasOne(s => s.Lead)
+                    .WithMany()
+                    .HasForeignKey(s => s.LeadId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Relación opcional con Cotizacion
                 entidad.HasOne(s => s.Cotizacion)
                     .WithMany(c => c.Seguimientos)
                     .HasForeignKey(s => s.CotizacionId)
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entidad.HasOne(s => s.Empresa)
@@ -405,6 +430,7 @@ namespace CotizacionMVC.Data
             });
         }
 
+        // ========== MODIFICADO: Lead con nuevos campos ==========
         private void ConfigurarLead(ModelBuilder constructorModelos)
         {
             constructorModelos.Entity<Lead>(entidad =>
@@ -432,6 +458,29 @@ namespace CotizacionMVC.Data
                 entidad.Property(l => l.ComentariosInternos)
                     .HasMaxLength(1000);
 
+                // ========== NUEVAS PROPIEDADES ==========
+                entidad.Property(l => l.Categoria)
+                    .HasConversion<int>()
+                    .IsRequired();
+
+                entidad.Property(l => l.OrigenLead)
+                    .HasConversion<int>()
+                    .IsRequired();
+
+                entidad.Property(l => l.Estado)
+                    .HasConversion<int>()
+                    .IsRequired();
+
+                entidad.Property(l => l.ProductoBusca)
+                    .HasMaxLength(300);
+
+                entidad.Property(l => l.ComentarioNoCotizable)
+                    .HasMaxLength(500);
+
+                entidad.Property(l => l.MotivoNoCotizable)
+                    .HasConversion<int>()
+                    .IsRequired(false);
+
                 entidad.HasOne(l => l.Empresa)
                     .WithMany(e => e.Leads)
                     .HasForeignKey(l => l.EmpresaId)
@@ -440,6 +489,12 @@ namespace CotizacionMVC.Data
                 entidad.HasOne(l => l.VendedorAsignado)
                     .WithMany()
                     .HasForeignKey(l => l.VendedorAsignadoId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entidad.HasOne(l => l.Cliente)
+                    .WithMany()
+                    .HasForeignKey(l => l.ClienteId)
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.SetNull);
             });
         }

@@ -65,7 +65,9 @@ namespace CotizacionMVC.Controllers
                     Estado = l.Estado,
                     FechaAsignacion = l.FechaAsignacion,
                     FechaCreacion = l.FechaCreacion,
-                    NombreContacto = l.NombreContacto
+                    NombreContacto = l.NombreContacto,
+                    ClienteTelefono = l.ClienteTelefono,   
+                    OrigenLead = l.OrigenLead
                 }).ToList()
             };
 

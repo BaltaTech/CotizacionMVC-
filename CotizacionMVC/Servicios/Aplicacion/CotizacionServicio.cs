@@ -100,7 +100,8 @@ namespace CotizacionMVC.Servicios.Aplicacion
                     ClienteTelefono = l.Cliente != null ? l.Cliente.Contacto.Telefono : l.Telefono,
                     EmpresaId = l.EmpresaId,
                     EmpresaColorPrimario = l.Empresa != null ? l.Empresa.ColorPrimario : null,
-                    EmpresaEslogan = l.Empresa != null ? l.Empresa.Eslogan : null
+                    EmpresaEslogan = l.Empresa != null ? l.Empresa.Eslogan : null,
+                    OrigenLead = (int)l.OrigenLead
                 })
                 .ToListAsync();
         }
@@ -290,7 +291,9 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 var lead = await _context.Leads.FindAsync(dto.LeadId.Value);
                 if (lead != null)
                 {
+                    cotizacion.VincularLead(lead);
                     lead.MarcarCotizado();
+                    lead.ActualizarCategoria(CategoriaLead.Cotizando);
                     await _context.SaveChangesAsync();
                 }
             }

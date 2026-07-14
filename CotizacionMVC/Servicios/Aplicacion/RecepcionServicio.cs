@@ -35,7 +35,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
         }
 
         public async Task<ResultadoRegistroCliente> RegistrarClienteAsync(
-            RegistrarClienteViewModel modelo, Guid registradoPorId, bool esRecepcion)
+      RegistrarClienteViewModel modelo, Guid registradoPorId, bool esRecepcion)
         {
             if (string.IsNullOrWhiteSpace(modelo.Nombre))
                 return ResultadoRegistroCliente.Error("El nombre es obligatorio");
@@ -77,8 +77,15 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 await _clienteRepo.AddAsync(cliente);
             }
 
-            var lead = new Lead(empresa, cliente.Nombre, modelo.Telefono,
-                CategoriaLead.Caliente, modelo.Origen.ToString(), modelo.Correo);
+            var lead = new Lead(
+                empresa,
+                cliente.Nombre,
+                modelo.Telefono,
+                CategoriaLead.Caliente,
+                modelo.Origen.ToString(),
+                OrigenLead.Recepcion,
+                modelo.Correo);
+
             lead.VincularCliente(cliente);
             lead.EstablecerProducto(modelo.ProductoBusca);
             if (!string.IsNullOrWhiteSpace(modelo.Comentarios))
@@ -90,6 +97,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 if (vendedor != null)
                 {
                     lead.AsignarVendedor(vendedor);
+                    cliente.AsignarVendedor(vendedor.Id);
                     await _notificacionServicio.EnviarNotificacionAsync(
                         modelo.VendedorAsignadoId.Value.ToString(),
                         "Nueva Oportunidad Asignada",

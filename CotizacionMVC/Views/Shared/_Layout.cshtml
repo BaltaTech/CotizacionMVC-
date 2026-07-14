@@ -291,6 +291,15 @@
                             </li>
 
                             @if (User.IsInRole("Administrador") || User.IsInRole("Recepcion"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="RecepcionDashboard" asp-action="Index">
+            <i class="fas fa-chart-bar"></i> Dashboard
+        </a>
+    </li>
+}
+
+                            @if (User.IsInRole("Administrador") || User.IsInRole("Recepcion"))
                             {
                                 <li class="nav-item position-relative">
                                     <a class="nav-link" asp-controller="Recepcion" asp-action="Indice">

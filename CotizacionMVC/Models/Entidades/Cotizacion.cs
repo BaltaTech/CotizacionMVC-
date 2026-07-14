@@ -27,6 +27,9 @@ namespace CotizacionMVC.Models.Entidades
         public Dinero Iva { get; private set; }
         public Dinero Total { get; private set; }
         public bool RequiereAutorizacion { get; private set; }
+        public Guid? LeadId { get; private set; }
+        public virtual Lead? Lead { get; private set; }
+
 
         public string? RutaPdf { get; private set; }
 
@@ -233,6 +236,15 @@ namespace CotizacionMVC.Models.Entidades
         {
             
             RutaPdf = ruta;
-        }            
+        }
+
+        public void VincularLead(Lead lead)
+        {
+            if (lead == null)
+                throw new ArgumentNullException(nameof(lead));
+
+            Lead = lead;
+            LeadId = lead.Id;
+        }
     }
 }

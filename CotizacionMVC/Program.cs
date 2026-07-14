@@ -38,13 +38,16 @@ builder.Services.AddScoped<IEmpresaServicio, EmpresaServicio>();
 builder.Services.AddScoped<ICotizacionServicio, CotizacionServicio>();
 builder.Services.AddScoped<IEquipoServicio, EquipoServicio>();
 builder.Services.AddScoped<IRecepcionServicio, RecepcionServicio>();
-
+builder.Services.AddScoped<ISeguimientoServicio, SeguimientoServicio>();
 // ========== Repositorios ==========
 builder.Services.AddScoped<ICotizacionRepository, CotizacionRepository>();
 builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
 builder.Services.AddScoped<IEquipoRepository, EquipoRepository>();
 builder.Services.AddScoped<IInstalacionRepository, InstalacionRepository>();
 builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
+
+builder.Services.AddScoped<ISeguimientoRepository, SeguimientoRepository>();
+
 
 // Registrar el DbContext con PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(opciones =>

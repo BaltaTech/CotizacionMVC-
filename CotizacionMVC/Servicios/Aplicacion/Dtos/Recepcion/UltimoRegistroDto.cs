@@ -12,6 +12,5 @@
         public Guid? VendedorAsignadoId { get; set; }
         public string? Observaciones { get; set; }
         public string FechaFormateada => Fecha.ToString("dd/MM/yyyy HH:mm");
-
     }
 }

@@ -1,0 +1,139 @@
+﻿@{
+    ViewData["Title"] = "Panel de Recepción";
+}
+
+<div class="container-fluid">
+    <h4 class="mb-3">
+        <i class="fas fa-headset"></i> Panel de Recepción
+        <small class="text-muted fs-6" id="fechaActual"></small>
+    </h4>
+
+    <div class="row g-3" id="dashboardRecepcionContent">
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2 text-muted">Cargando panel de recepción...</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function cargarDashboardRecepcion() {
+            fetch('/RecepcionDashboard/ObtenerDatos')
+                .then(response => response.json())
+                .then(data => {
+                    renderizarDashboardRecepcion(data);
+                })
+                .catch(error => {
+                    console.error('Error al cargar dashboard:', error);
+                });
+        }
+
+        function renderizarDashboardRecepcion(data) {
+            const html = `
+                <div class="col-md-4 col-lg-2">
+                    <div class="card border-info">
+                        <div class="card-body text-center py-3">
+                            <h3 class="mb-0">${data.nuevosClientesHoy}</h3>
+                            <small class="text-muted">Nuevos hoy</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-lg-2">
+                    <div class="card border-danger">
+                        <div class="card-body text-center py-3">
+                            <h3 class="mb-0">${data.clientesSinAsignar}</h3>
+                            <small class="text-muted">Sin asignar</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-lg-2">
+                    <div class="card border-warning">
+                        <div class="card-body text-center py-3">
+                            <h3 class="mb-0">${data.clientesAsignadosSinContactar}</h3>
+                            <small class="text-muted">Asignados</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-lg-2">
+                    <div class="card border-primary">
+                        <div class="card-body text-center py-3">
+                            <h3 class="mb-0">${data.clientesContactados}</h3>
+                            <small class="text-muted">Contactados</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-lg-2">
+                    <div class="card border-success">
+                        <div class="card-body text-center py-3">
+                            <h3 class="mb-0">${data.clientesCotizados}</h3>
+                            <small class="text-muted">Cotizados</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-lg-2">
+                    <div class="card border-success">
+                        <div class="card-body text-center py-3">
+                            <h3 class="mb-0">${data.cotizadosHoy}</h3>
+                            <small class="text-muted">Cotizados hoy</small>
+                        </div>
+                    </div>
+                </div>
+                ${data.alertas && data.alertas.length > 0 ? `
+                <div class="col-12">
+                    <div class="card border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <i class="fas fa-exclamation-triangle"></i> Alertas
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Tipo</th>
+                                            <th>Cliente</th>
+                                            <th>Folio</th>
+                                            <th>Vendedor</th>
+                                            <th>Alerta</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.alertas.map(a => `
+                                            <tr>
+                                                <td><span class="badge bg-${a.tipo === 'danger' ? 'danger' : 'warning'}">${a.tipo}</span></td>
+                                                <td>${a.clienteNombre}</td>
+                                                <td>${a.folio}</td>
+                                                <td>${a.vendedorNombre || 'Sin asignar'}</td>
+                                                <td><small>${a.mensaje}</small></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ` : `
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-body text-center py-3">
+                            <i class="fas fa-check-circle text-success fa-2x"></i>
+                            <p class="mt-2 mb-0 text-muted">Sin alertas pendientes</p>
+                        </div>
+                    </div>
+                </div>
+                `}
+            `;
+
+            document.getElementById('dashboardRecepcionContent').innerHTML = html;
+        }
+
+        document.getElementById('fechaActual').textContent =
+            new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+
+        cargarDashboardRecepcion();
+        setInterval(cargarDashboardRecepcion, 120000);
+    </script>
+}

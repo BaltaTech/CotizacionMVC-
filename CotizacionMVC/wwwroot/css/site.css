@@ -20,3 +20,17 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+/* Timeline de seguimientos */
+.timeline {
+    position: relative;
+}
+
+    .timeline .card {
+        transition: all 0.2s ease;
+    }
+
+        .timeline .card:hover {
+            transform: translateX(3px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }

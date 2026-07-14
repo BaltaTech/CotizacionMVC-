@@ -12,5 +12,7 @@
         public DateTime? FechaAsignacion { get; set; }
         public DateTime FechaCreacion { get; set; }
         public string? NombreContacto { get; set; }
+        public string? ClienteTelefono { get; set; }
+        public int OrigenLead { get; set; }
     }
 }

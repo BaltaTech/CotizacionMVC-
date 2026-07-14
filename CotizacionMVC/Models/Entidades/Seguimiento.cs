@@ -1,100 +1,233 @@
-﻿using CotizacionMVC.Models.Enums;
+﻿// Models/Entidades/Seguimiento.cs
+using CotizacionMVC.Models.Enums;
 
 namespace CotizacionMVC.Models.Entidades
 {
     public class Seguimiento
     {
         public Guid Id { get; private set; }
-        public Guid CotizacionId { get; private set; }
-        public virtual Cotizacion Cotizacion { get; private set; }
+
+        // --- Relaciones (ambas opcionales, pero no ambas nulas) ---
+        public Guid? LeadId { get; private set; }
+        public virtual Lead? Lead { get; private set; }
+
+        public Guid? CotizacionId { get; private set; }
+        public virtual Cotizacion? Cotizacion { get; private set; }
+
+        // --- Quién ---
         public Guid EmpresaId { get; private set; }
         public virtual Empresa Empresa { get; private set; }
+
         public Guid VendedorId { get; private set; }
         public virtual Usuario Vendedor { get; private set; }
-        public DateTime FechaProgramada { get; private set; }
+
+        // --- La interacción ---
         public DateTime FechaCreacion { get; private set; }
-        public DateTime? FechaCompletado { get; private set; }
-        public EstadoSeguimiento Estado { get; private set; }
-        public string? Comentarios { get; private set; }  
+        public DateTime FechaContacto { get; private set; }
         public MedioContacto MedioContacto { get; private set; }
+        public ResultadoSeguimiento Resultado { get; private set; }
+        public string? Notas { get; private set; }
+
+        // --- Agenda ---
+        public DateTime? ProximoContacto { get; private set; }
+        public bool RecordatorioEnviado { get; private set; }
 
         // Constructor protegido para EF Core
         protected Seguimiento()
         {
-            Cotizacion = null!;
             Empresa = null!;
             Vendedor = null!;
-            Comentarios = null;
+            Notas = null;
         }
 
+        // Constructor para seguimiento de LEAD
+        public Seguimiento(
+            Lead lead,
+            Usuario vendedor,
+            DateTime fechaContacto,
+            MedioContacto medioContacto,
+            ResultadoSeguimiento resultado,
+            string? notas = null,
+            DateTime? proximoContacto = null)
+        {
+            if (lead == null)
+                throw new ArgumentNullException(nameof(lead));
+
+            ValidarVendedor(vendedor, lead.Empresa);
+            ValidarFechaContacto(fechaContacto);
+            ValidarProximoContacto(fechaContacto, proximoContacto);
+
+            Id = Guid.NewGuid();
+            Lead = lead;
+            LeadId = lead.Id;
+            Cotizacion = null;
+            CotizacionId = null;
+            Empresa = lead.Empresa;
+            EmpresaId = lead.EmpresaId;
+            Vendedor = vendedor;
+            VendedorId = vendedor.Id;
+            FechaCreacion = DateTime.UtcNow;
+            FechaContacto = fechaContacto;
+            MedioContacto = medioContacto;
+            Resultado = resultado;
+            Notas = notas?.Trim();
+            ProximoContacto = proximoContacto;
+            RecordatorioEnviado = false;
+        }
+
+        // Constructor para seguimiento de COTIZACION
         public Seguimiento(
             Cotizacion cotizacion,
             Usuario vendedor,
-            DateTime fechaProgramada,
+            DateTime fechaContacto,
             MedioContacto medioContacto,
-            string? comentarios = null)
+            ResultadoSeguimiento resultado,
+            string? notas = null,
+            DateTime? proximoContacto = null)
         {
             if (cotizacion == null)
                 throw new ArgumentNullException(nameof(cotizacion));
 
-            if (vendedor == null)
-                throw new ArgumentNullException(nameof(vendedor));
-
-            if (fechaProgramada.Date < DateTime.UtcNow.Date)
-                throw new ArgumentException("La fecha programada no puede ser anterior a hoy");
+            ValidarVendedor(vendedor, cotizacion.Empresa);
+            ValidarFechaContacto(fechaContacto);
+            ValidarProximoContacto(fechaContacto, proximoContacto);
 
             Id = Guid.NewGuid();
+            Lead = null;
+            LeadId = null;
             Cotizacion = cotizacion;
             CotizacionId = cotizacion.Id;
-            EmpresaId = cotizacion.EmpresaId;
             Empresa = cotizacion.Empresa;
+            EmpresaId = cotizacion.EmpresaId;
             Vendedor = vendedor;
             VendedorId = vendedor.Id;
-            FechaProgramada = fechaProgramada.Date;
             FechaCreacion = DateTime.UtcNow;
-            Estado = EstadoSeguimiento.Pendiente;
+            FechaContacto = fechaContacto;
             MedioContacto = medioContacto;
-            Comentarios = comentarios?.Trim();
+            Resultado = resultado;
+            Notas = notas?.Trim();
+            ProximoContacto = proximoContacto;
+            RecordatorioEnviado = false;
         }
 
-        public void Completar(string? comentarios = null)
+        // Constructor para seguimiento de LEAD + COTIZACION (lead ya convertido)
+        public Seguimiento(
+            Lead lead,
+            Cotizacion cotizacion,
+            Usuario vendedor,
+            DateTime fechaContacto,
+            MedioContacto medioContacto,
+            ResultadoSeguimiento resultado,
+            string? notas = null,
+            DateTime? proximoContacto = null)
         {
-            if (Estado == EstadoSeguimiento.Completado)
-                throw new InvalidOperationException("Este seguimiento ya fue completado");
+            if (lead == null)
+                throw new ArgumentNullException(nameof(lead));
 
-            Estado = EstadoSeguimiento.Completado;
-            FechaCompletado = DateTime.UtcNow;
+            if (cotizacion == null)
+                throw new ArgumentNullException(nameof(cotizacion));
 
-            if (!string.IsNullOrWhiteSpace(comentarios))
-                Comentarios = comentarios.Trim();
+            ValidarVendedor(vendedor, lead.Empresa);
+            ValidarFechaContacto(fechaContacto);
+            ValidarProximoContacto(fechaContacto, proximoContacto);
+
+            Id = Guid.NewGuid();
+            Lead = lead;
+            LeadId = lead.Id;
+            Cotizacion = cotizacion;
+            CotizacionId = cotizacion.Id;
+            Empresa = lead.Empresa;
+            EmpresaId = lead.EmpresaId;
+            Vendedor = vendedor;
+            VendedorId = vendedor.Id;
+            FechaCreacion = DateTime.UtcNow;
+            FechaContacto = fechaContacto;
+            MedioContacto = medioContacto;
+            Resultado = resultado;
+            Notas = notas?.Trim();
+            ProximoContacto = proximoContacto;
+            RecordatorioEnviado = false;
+        }
+
+        // --- Métodos de dominio ---
+
+        public void MarcarRecordatorioEnviado()
+        {
+            RecordatorioEnviado = true;
+        }
+
+        public void ActualizarNotas(string notas)
+        {
+            Notas = notas?.Trim();
+        }
+
+        public void ReprogramarProximoContacto(DateTime nuevaFecha)
+        {
+            if (nuevaFecha <= DateTime.UtcNow)
+                throw new ArgumentException("El próximo contacto debe ser una fecha futura");
+
+            ProximoContacto = nuevaFecha;
+            RecordatorioEnviado = false;
+        }
+
+        public bool TieneProximoContactoPendiente()
+        {
+            return ProximoContacto.HasValue
+                && ProximoContacto.Value.Date >= DateTime.UtcNow.Date
+                && !RecordatorioEnviado;
+        }
+
+        public bool ProximoContactoEsHoy()
+        {
+            return ProximoContacto.HasValue
+                && ProximoContacto.Value.Date == DateTime.UtcNow.Date;
         }
 
         public bool EstaVencido()
         {
-            return Estado == EstadoSeguimiento.Pendiente &&
-                   FechaProgramada.Date <= DateTime.UtcNow.Date;
+            return ProximoContacto.HasValue
+                && ProximoContacto.Value.Date < DateTime.UtcNow.Date
+                && !RecordatorioEnviado;
         }
 
-        public bool EsRecordatorio()
+        public bool EsDeVendedor(Guid vendedorId)
         {
-            return Estado == EstadoSeguimiento.Pendiente &&
-                   FechaProgramada.Date <= DateTime.UtcNow.Date;
+            return VendedorId == vendedorId;
         }
 
-        public void Reprogramar(DateTime nuevaFecha)
+        public bool PerteneceAEmpresa(Guid empresaId)
         {
-            if (Estado == EstadoSeguimiento.Completado)
-                throw new InvalidOperationException("No se puede reprogramar un seguimiento ya completado");
-
-            if (nuevaFecha.Date < DateTime.UtcNow.Date)
-                throw new ArgumentException("La nueva fecha no puede ser anterior a hoy");
-
-            FechaProgramada = nuevaFecha.Date;
+            return EmpresaId == empresaId;
         }
 
-        public void ActualizarComentarios(string comentarios)
+        public bool EsDeLead()
         {
-            Comentarios = comentarios?.Trim();
+            return LeadId.HasValue;
+        }
+
+        public bool EsDeCotizacion()
+        {
+            return CotizacionId.HasValue;
+        }
+
+        // --- Validaciones privadas ---
+
+        private void ValidarVendedor(Usuario vendedor, Empresa empresa)
+        {
+            if (vendedor == null)
+                throw new ArgumentNullException(nameof(vendedor));
+        }
+
+        private void ValidarFechaContacto(DateTime fechaContacto)
+        {
+            if (fechaContacto > DateTime.UtcNow.AddMinutes(5))
+                throw new ArgumentException("La fecha de contacto no puede ser futura (máximo 5 minutos de margen)");
+        }
+
+        private void ValidarProximoContacto(DateTime fechaContacto, DateTime? proximoContacto)
+        {
+            if (proximoContacto.HasValue && proximoContacto.Value <= fechaContacto)
+                throw new ArgumentException("El próximo contacto debe ser posterior a la fecha de contacto");
         }
     }
 }

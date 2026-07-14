@@ -1,0 +1,165 @@
+﻿@* Views/Seguimiento/Dashboard.cshtml *@
+@{
+    ViewData["Title"] = "Mi Panel";
+    var vendedorId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+}
+
+<div class="container-fluid">
+    <h4 class="mb-3">
+        <i class="bi bi-speedometer2"></i> Mi Panel
+        <small class="text-muted fs-6" id="fechaActual"></small>
+    </h4>
+
+    <div class="row g-3" id="dashboardContent">
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2 text-muted">Cargando panel...</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        // ========== Dashboard en Tiempo Real ==========
+        const vendedorId = '@vendedorId';
+
+        function cargarDashboard() {
+        fetch('/Seguimiento/MiDashboard')
+        .then(response => {
+        if (!response.ok) throw new Error('Error ' + response.status);
+        return response.json();
+        })
+        .then(data => {
+        renderizarDashboard(data);
+        })
+        .catch(error => {
+        console.error('Error al cargar dashboard:', error);
+        document.getElementById('dashboardContent').innerHTML = `
+        <div class="col-12 text-center py-5 text-danger">
+        <i class="fas fa-exclamation-triangle fa-3x"></i>
+        <p class="mt-2">Error al cargar el panel</p>
+        <small>${error.message}</small>
+        </div>`;
+        });
+        }
+
+        function renderizarDashboard(data) {
+        const html = `
+        <div class="col-md-6 col-lg-3">
+        <div class="card border-danger">
+        <div class="card-body text-center">
+        <h1 class="display-4">${data.leadsSinContactar}</h1>
+        <p class="text-muted mb-0">Leads sin contactar</p>
+        </div>
+        </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+        <div class="card border-warning">
+        <div class="card-body text-center">
+        <h1 class="display-4">${data.leadsFriosSinActividad}</h1>
+        <p class="text-muted mb-0">Leads > 15 días sin actividad</p>
+        </div>
+        </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+        <div class="card border-primary">
+        <div class="card-body text-center">
+        <h1 class="display-4">${data.seguimientosPendientesHoy}</h1>
+        <p class="text-muted mb-0">Pendientes hoy</p>
+        </div>
+        </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+        <div class="card border-success">
+        <div class="card-body text-center">
+        <h1 class="display-4">${data.seguimientosRealizadosHoy}</h1>
+        <p class="text-muted mb-0">Realizados hoy</p>
+        </div>
+        </div>
+        </div>
+        <div class="col-md-4">
+        <div class="card border-info">
+        <div class="card-body text-center">
+        <h3>${data.cotizacionesActivas}</h3>
+        <p class="text-muted mb-0">Cotizaciones activas</p>
+        </div>
+        </div>
+        </div>
+        <div class="col-md-4">
+        <div class="card border-info">
+        <div class="card-body text-center">
+        <h3>${data.leadsCalificadosSinCotizar}</h3>
+        <p class="text-muted mb-0">Calificados sin cotizar</p>
+        </div>
+        </div>
+        </div>
+        <div class="col-md-4">
+        <div class="card border-danger">
+        <div class="card-body text-center">
+        <h3>${data.seguimientosVencidos}</h3>
+        <p class="text-muted mb-0">Seguimientos vencidos</p>
+        </div>
+        </div>
+        </div>
+        ${data.proximosSeguimientos && data.proximosSeguimientos.length > 0 ? `
+        <div class="col-12">
+        <div class="card">
+        <div class="card-header bg-warning text-dark">
+        <i class="bi bi-calendar-check"></i> Próximos para hoy
+        </div>
+        <div class="card-body">
+        ${data.proximosSeguimientos.map(s => `
+        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+        <div>
+        <strong>${s.leadNombre || s.cotizacionNumero || 'Sin referencia'}</strong>
+        <small class="text-muted d-block">${s.notas || 'Sin notas'}</small>
+        </div>
+        <span class="badge bg-primary">${s.medioContacto}</span>
+        </div>
+        `).join('')}
+        </div>
+        </div>
+        </div>
+        ` : ''}
+        `;
+
+        document.getElementById('dashboardContent').innerHTML = html;
+        }
+
+        // ========== SignalR (usa la conexión global del Layout) ==========
+        function conectarDashboardSignalR() {
+        // Verificar si ya existe la conexión global del Layout
+        if (typeof connection !== 'undefined') {
+        connection.on("ActualizarDashboard", function() {
+        cargarDashboard();
+        });
+
+        if (connection.state === 'Connected') {
+        connection.invoke("UnirseAGrupo", vendedorId);
+        } else {
+        connection.start().then(function() {
+        connection.invoke("UnirseAGrupo", vendedorId);
+        });
+        }
+        } else {
+        console.warn('SignalR no disponible - recargando cada 5 min');
+        }
+        }
+
+        // ========== Inicializar ==========
+        document.getElementById('fechaActual').textContent =
+        new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+
+        // Intentar conectar SignalR después de que el Layout cargue
+        setTimeout(conectarDashboardSignalR, 1000);
+
+        // Cargar dashboard inmediatamente
+        cargarDashboard();
+
+        // Refrescar cada 5 minutos como fallback
+        setInterval(cargarDashboard, 300000);
+    </script>
+}

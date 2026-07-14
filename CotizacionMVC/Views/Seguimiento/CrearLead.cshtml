@@ -1,0 +1,73 @@
+﻿@using CotizacionMVC.ViewModels.Seguimientos
+@* Views/Seguimiento/CrearLead.cshtml *@
+@model CrearLeadViewModel
+@{
+    ViewData["Title"] = "Nuevo Lead de Prospección";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-6 mx-auto">
+            <div class="card shadow">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #FF6B35, #F7931E);">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Nuevo Lead de Prospección</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="CrearLead" method="post">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="NombreContacto" class="form-label fw-bold">Nombre *</label>
+                            <input asp-for="NombreContacto" class="form-control" placeholder="Nombre del contacto" />
+                            <span asp-validation-for="NombreContacto" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Telefono" class="form-label fw-bold">Teléfono *</label>
+                            <input asp-for="Telefono" class="form-control" placeholder="5512345678" />
+                            <span asp-validation-for="Telefono" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="CorreoElectronico" class="form-label">Correo Electrónico</label>
+                            <input asp-for="CorreoElectronico" class="form-control" placeholder="correo@ejemplo.com" />
+                            <span asp-validation-for="CorreoElectronico" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="EmpresaCliente" class="form-label">Empresa del Cliente</label>
+                            <input asp-for="EmpresaCliente" class="form-control" placeholder="Nombre de la empresa" />
+                            <span asp-validation-for="EmpresaCliente" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ProductoBusca" class="form-label">Producto de Interés</label>
+                            <input asp-for="ProductoBusca" class="form-control" placeholder="¿Qué busca?" />
+                            <span asp-validation-for="ProductoBusca" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Comentarios" class="form-label">Comentarios</label>
+                            <textarea asp-for="Comentarios" class="form-control" rows="3" placeholder="Notas sobre la prospección..."></textarea>
+                            <span asp-validation-for="Comentarios" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Indice" asp-controller="Cotizacion" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save"></i> Crear Lead
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

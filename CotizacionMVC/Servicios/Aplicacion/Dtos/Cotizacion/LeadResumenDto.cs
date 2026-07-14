@@ -16,5 +16,6 @@
         public Guid? EmpresaId { get; set; }
         public string? EmpresaColorPrimario { get; set; }
         public string? EmpresaEslogan { get; set; }
+        public int OrigenLead { get; set; }  // ← NUEVO
     }
 }

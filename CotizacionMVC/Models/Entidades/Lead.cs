@@ -1,4 +1,5 @@
-﻿using CotizacionMVC.Models.Enums;
+﻿// Models/Entidades/Lead.cs
+using CotizacionMVC.Models.Enums;
 
 namespace CotizacionMVC.Models.Entidades
 {
@@ -17,17 +18,19 @@ namespace CotizacionMVC.Models.Entidades
         public string? EmpresaCliente { get; private set; }
         public CategoriaLead Categoria { get; private set; }
         public string Origen { get; private set; }
+        public OrigenLead OrigenLead { get; private set; }
         public DateTime FechaCreacion { get; private set; }
         public DateTime? FechaAsignacion { get; private set; }
         public string? ComentariosInternos { get; private set; }
-
-        // ========== NUEVOS CAMPOS ==========
         public string? ProductoBusca { get; private set; }
         public EstadoCliente Estado { get; private set; }
         public MotivoNoCotizable? MotivoNoCotizable { get; private set; }
         public string? ComentarioNoCotizable { get; private set; }
         public DateTime? FechaContacto { get; private set; }
         public DateTime? FechaCotizacion { get; private set; }
+
+        // ========== NUEVOS CAMPOS SEGUIMIENTOS ==========
+        public DateTime? UltimoSeguimiento { get; private set; }
 
         protected Lead()
         {
@@ -50,6 +53,7 @@ namespace CotizacionMVC.Models.Entidades
             string? telefono,
             CategoriaLead categoria,
             string origen,
+            OrigenLead origenLead = OrigenLead.Prospeccion,
             string? correoElectronico = null)
         {
             if (empresa == null)
@@ -75,6 +79,7 @@ namespace CotizacionMVC.Models.Entidades
             CorreoElectronico = correoElectronico?.Trim().ToLower();
             Categoria = categoria;
             Origen = origen.Trim();
+            OrigenLead = origenLead;
             FechaCreacion = DateTime.UtcNow;
             Estado = EstadoCliente.SinAsignar;
             EmpresaCliente = null;
@@ -85,7 +90,7 @@ namespace CotizacionMVC.Models.Entidades
             ComentarioNoCotizable = null;
         }
 
-        // ========== MÉTODOS EXISTENTES ==========
+        // ========== MÉTODOS EXISTENTES (SIN CAMBIOS) ==========
 
         public void AsignarVendedor(Usuario vendedor)
         {
@@ -138,12 +143,14 @@ namespace CotizacionMVC.Models.Entidades
             return "Sin medio de contacto";
         }
 
+        // ========== MÉTODO AJUSTADO ==========
         public bool EsLeadCaliente()
         {
-            return Categoria == CategoriaLead.Caliente || Categoria == CategoriaLead.Calificado;
+            return Categoria == CategoriaLead.Contactado
+                || Categoria == CategoriaLead.Caliente
+                || Categoria == CategoriaLead.Calificado
+                || Categoria == CategoriaLead.Cotizando;
         }
-
-        // ========== NUEVOS MÉTODOS ==========
 
         public void VincularCliente(Cliente cliente)
         {
@@ -199,6 +206,56 @@ namespace CotizacionMVC.Models.Entidades
             VendedorAsignado = nuevoVendedor;
             VendedorAsignadoId = nuevoVendedor.Id;
             FechaAsignacion = DateTime.UtcNow;
+        }
+
+        // ========== NUEVOS MÉTODOS PARA SEGUIMIENTOS ==========
+
+        public void RegistrarActividad(DateTime fecha)
+        {
+            UltimoSeguimiento = fecha;
+        }
+
+        public bool EstaSinActividad(int dias)
+        {
+            if (!UltimoSeguimiento.HasValue)
+                return (DateTime.UtcNow - FechaCreacion).TotalDays > dias;
+
+            return (DateTime.UtcNow - UltimoSeguimiento.Value).TotalDays > dias;
+        }
+
+        public bool EsEstadoTerminal()
+        {
+            return Categoria == CategoriaLead.NoInteresado
+                || Categoria == CategoriaLead.Convertido
+                || Categoria == CategoriaLead.Incontactable;
+        }
+
+        public bool PuedeRecibirSeguimientos()
+        {
+            return !EsEstadoTerminal();
+        }
+
+        public void MarcarComoIncontactable()
+        {
+            Categoria = CategoriaLead.Incontactable;
+            Estado = EstadoCliente.Perdido;
+        }
+
+        public void MarcarComoConvertido()
+        {
+            Categoria = CategoriaLead.Convertido;
+            Estado = EstadoCliente.Cerrado;
+        }
+
+        public void MarcarComoNoInteresado()
+        {
+            Categoria = CategoriaLead.NoInteresado;
+            Estado = EstadoCliente.Perdido;
+        }
+
+        public void EstablecerOrigenLead(OrigenLead origenLead)
+        {
+            OrigenLead = origenLead;
         }
     }
 }

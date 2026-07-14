@@ -1,0 +1,115 @@
+﻿@using CotizacionMVC.Models.Enums
+@using CotizacionMVC.ViewModels.Seguimientos
+@model CrearSeguimientoViewModel
+@{
+    ViewData["Title"] = "Registrar Seguimiento";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-journal-plus"></i> Registrar Seguimiento
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Crear" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="LeadId" />
+                        <input type="hidden" asp-for="CotizacionId" />
+
+                        @* Info de contexto *@
+                        @if (Model.LeadId.HasValue)
+                        {
+                            <div class="alert alert-info">
+                                <i class="bi bi-person-plus"></i> Seguimiento de Lead
+                            </div>
+                        }
+                        @if (Model.CotizacionId.HasValue)
+                        {
+                            <div class="alert alert-info">
+                                <i class="bi bi-file-text"></i> Seguimiento de Cotización
+                            </div>
+                        }
+
+                        @* Errores de validación *@
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="row g-3">
+                            @* Fecha de Contacto *@
+                            <div class="col-md-6">
+                                <label asp-for="FechaContacto" class="form-label">Fecha de Contacto</label>
+                                <input asp-for="FechaContacto" type="datetime-local" class="form-control" />
+                                <span asp-validation-for="FechaContacto" class="text-danger small"></span>
+                            </div>
+
+                            @* Medio de Contacto *@
+                            <div class="col-md-6">
+                                <label asp-for="MedioContacto" class="form-label">Medio de Contacto</label>
+                                <select asp-for="MedioContacto" class="form-select"
+                                        asp-items="Html.GetEnumSelectList<MedioContacto>()">
+                                </select>
+                                <span asp-validation-for="MedioContacto" class="text-danger small"></span>
+                            </div>
+
+                            @* Resultado del Seguimiento *@
+                            <div class="col-12">
+                                <label asp-for="Resultado" class="form-label">Resultado</label>
+                                <select asp-for="Resultado" class="form-select"
+                                        asp-items="Html.GetEnumSelectList<ResultadoSeguimiento>()">
+                                </select>
+                                <span asp-validation-for="Resultado" class="text-danger small"></span>
+                            </div>
+
+                            @* Notas *@
+                            <div class="col-12">
+                                <label asp-for="Notas" class="form-label">Notas</label>
+                                <textarea asp-for="Notas" class="form-control" rows="4"
+                                          placeholder="¿Qué se habló? ¿Qué necesita el cliente? ¿Observaciones?"></textarea>
+                                <span asp-validation-for="Notas" class="text-danger small"></span>
+                                <small class="text-muted">Máximo 500 caracteres</small>
+                            </div>
+
+                            @* Próximo Contacto *@
+                            <div class="col-md-6">
+                                <label asp-for="ProximoContacto" class="form-label">
+                                    Próximo Contacto <small class="text-muted">(opcional)</small>
+                                </label>
+                                <input asp-for="ProximoContacto" type="datetime-local" class="form-control" />
+                                <span asp-validation-for="ProximoContacto" class="text-danger small"></span>
+                                <small class="text-muted">Agenda un recordatorio para el siguiente contacto</small>
+                            </div>
+                        </div>
+
+                        @* Botones *@
+                        <div class="mt-4 d-flex justify-content-between">
+                            <a href="javascript:history.back()" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg"></i> Registrar Seguimiento
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Establecer fecha actual por defecto si no tiene valor
+        $(document).ready(function() {
+            if (!$('#FechaContacto').val()) {
+                const now = new Date();
+                const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+                    .toISOString().slice(0, 16);
+                $('#FechaContacto').val(local);
+            }
+        });
+    </script>
+}

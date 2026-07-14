@@ -1,17 +1,20 @@
-﻿@model CotizacionMVC.ViewModels.Cotizacion.CotizacionIndiceViewModel
+﻿
+
+@model CotizacionMVC.ViewModels.Cotizacion.CotizacionIndiceViewModel
 
 @{
     ViewData["Title"] = "Panel de Ventas";
     var cotizaciones = Model.Cotizaciones;
     var leads = Model.Leads;
+    var clientesAsignados = leads.Where(l => l.OrigenLead == 1).ToList(); // Recepcion
+    var leadsProspeccion = leads.Where(l => l.OrigenLead == 2).ToList(); // Prospeccion
     var total = cotizaciones.Count();
     var activas = cotizaciones.Count(c => c.Estado != CotizacionMVC.Models.Enums.EstadoCotizacion.Cerrada
                                 && c.Estado != CotizacionMVC.Models.Enums.EstadoCotizacion.Perdida);
-    var enviadas = cotizaciones.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCotizacion.CotizacionEnviada);
-    var aceptadas = cotizaciones.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCotizacion.Aceptada);
     var cerradas = cotizaciones.Count(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCotizacion.Cerrada);
-    var totalMonto = cotizaciones.Sum(c => c.Total);
-    var leadsPendientes = leads.Count(l => l.Estado == (int)CotizacionMVC.Models.Enums.EstadoCliente.Asignado || l.Estado == (int)CotizacionMVC.Models.Enums.EstadoCliente.Contactado);
+    var totalMonto = cotizaciones.Where(c => c.Estado == CotizacionMVC.Models.Enums.EstadoCotizacion.Cerrada).Sum(c => c.Total);
+    var pendientesAsignados = clientesAsignados.Count(l => l.Estado == 2 || l.Estado == 3);
+    var pendientesProspeccion = leadsProspeccion.Count(l => l.Estado == 2);
 }
 
 <div class="container-fluid px-4 py-3">
@@ -19,15 +22,21 @@
     @* ========== CABECERA ========== *@
     <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm">
+            <div class="d-flex flex-wrap justify-content-between align-items-center bg-white p-3 rounded shadow-sm gap-2">
                 <div>
                     <h4 class="mb-0" style="color: var(--color-primario, #C8102E);">
                         <i class="fas fa-briefcase me-2"></i>Panel de Ventas
                     </h4>
                     <small class="text-muted">Oportunidades y Cotizaciones</small>
                 </div>
-                <div>
-                    <a asp-action="Crear" class="btn btn-outline-danger me-2">
+                <div class="d-flex flex-wrap gap-2">
+                    <a asp-controller="Seguimiento" asp-action="CrearLead" class="btn btn-warning">
+                        <i class="fas fa-lightbulb me-1"></i> Nuevo Lead
+                    </a>
+                    <a asp-controller="Seguimiento" asp-action="Dashboard" class="btn btn-info text-white">
+                        <i class="fas fa-chart-line me-1"></i> Mis Seguimientos
+                    </a>
+                    <a asp-action="Crear" class="btn btn-danger">
                         <i class="fas fa-plus-circle me-1"></i> Nueva Cotización
                     </a>
                 </div>
@@ -36,60 +45,68 @@
     </div>
 
     @* ========== TARJETAS KPI ========== *@
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, var(--color-primario, #C8102E), var(--color-primario-oscuro, #A00D25));">
-                <div class="card-body text-white">
-                    <div class="d-flex justify-content-between align-items-center">
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 rounded-4 overflow-hidden">
+                <div class="card-body text-white p-4" style="background: linear-gradient(135deg, #C8102E, #A00D25);">
+                    <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h6 class="text-uppercase mb-2" style="opacity: 0.8;">Oportunidades</h6>
-                            <h1 class="display-4 fw-bold mb-0">@leads.Count</h1>
+                            <h6 class="text-uppercase mb-2" style="opacity: 0.8; font-size: 0.75rem; letter-spacing: 1px;">Clientes Asignados</h6>
+                            <h1 class="display-5 fw-bold mb-0">@clientesAsignados.Count</h1>
+                            <small style="opacity: 0.7;">@pendientesAsignados pendientes</small>
                         </div>
-                        <i class="fas fa-lightbulb fa-3x" style="opacity: 0.3;"></i>
+                        <div class="rounded-circle bg-white bg-opacity-25 p-3">
+                            <i class="fas fa-user-check fa-2x"></i>
+                        </div>
                     </div>
-                    <small style="opacity: 0.7;">@leadsPendientes pendientes</small>
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #FF6B35, #F7931E);">
-                <div class="card-body text-white">
-                    <div class="d-flex justify-content-between align-items-center">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 rounded-4 overflow-hidden">
+                <div class="card-body text-white p-4" style="background: linear-gradient(135deg, #FF6B35, #F7931E);">
+                    <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h6 class="text-uppercase mb-2" style="opacity: 0.8;">Cotizaciones Activas</h6>
-                            <h1 class="display-4 fw-bold mb-0">@activas</h1>
+                            <h6 class="text-uppercase mb-2" style="opacity: 0.8; font-size: 0.75rem; letter-spacing: 1px;">Leads Prospección</h6>
+                            <h1 class="display-5 fw-bold mb-0">@leadsProspeccion.Count</h1>
+                            <small style="opacity: 0.7;">@pendientesProspeccion sin contactar</small>
                         </div>
-                        <i class="fas fa-spinner fa-3x" style="opacity: 0.3;"></i>
+                        <div class="rounded-circle bg-white bg-opacity-25 p-3">
+                            <i class="fas fa-lightbulb fa-2x"></i>
+                        </div>
                     </div>
-                    <small style="opacity: 0.7;">En proceso</small>
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #1A73E8, #4285F4);">
-                <div class="card-body text-white">
-                    <div class="d-flex justify-content-between align-items-center">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 rounded-4 overflow-hidden">
+                <div class="card-body text-white p-4" style="background: linear-gradient(135deg, #1A73E8, #4285F4);">
+                    <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h6 class="text-uppercase mb-2" style="opacity: 0.8;">Total Cotizaciones</h6>
-                            <h1 class="display-4 fw-bold mb-0">@total</h1>
+                            <h6 class="text-uppercase mb-2" style="opacity: 0.8; font-size: 0.75rem; letter-spacing: 1px;">En Proceso</h6>
+                            <h1 class="display-5 fw-bold mb-0">@activas</h1>
+                            <small style="opacity: 0.7;">Cotizaciones activas</small>
                         </div>
-                        <i class="fas fa-file-invoice fa-3x" style="opacity: 0.3;"></i>
+                        <div class="rounded-circle bg-white bg-opacity-25 p-3">
+                            <i class="fas fa-spinner fa-2x"></i>
+                        </div>
                     </div>
-                    <small style="opacity: 0.7;">@totalMonto.ToString("C") MXN</small>
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #28A745, #20C997);">
-                <div class="card-body text-white">
-                    <div class="d-flex justify-content-between align-items-center">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 rounded-4 overflow-hidden">
+                <div class="card-body text-white p-4" style="background: linear-gradient(135deg, #28A745, #20C997);">
+                    <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h6 class="text-uppercase mb-2" style="opacity: 0.8;">Cerradas</h6>
-                            <h1 class="display-4 fw-bold mb-0">@cerradas</h1>
+                            <h6 class="text-uppercase mb-2" style="opacity: 0.8; font-size: 0.75rem; letter-spacing: 1px;">Cerradas</h6>
+                            <h1 class="display-5 fw-bold mb-0">@cerradas</h1>
+                            <small style="opacity: 0.7;">@totalMonto.ToString("C0") MXN</small>
                         </div>
-                        <i class="fas fa-check-double fa-3x" style="opacity: 0.3;"></i>
+                        <div class="rounded-circle bg-white bg-opacity-25 p-3">
+                            <i class="fas fa-check-double fa-2x"></i>
+                        </div>
                     </div>
-                    <small style="opacity: 0.7;">Completadas</small>
                 </div>
             </div>
         </div>
@@ -98,122 +115,235 @@
     @* ========== MENSAJES ========== *@
     @if (TempData["MensajeExito"] != null)
     {
-        <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show" role="alert">
+        <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show rounded-3" role="alert">
             <i class="fas fa-check-circle me-2"></i> @TempData["MensajeExito"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
     @if (TempData["MensajeError"] != null)
     {
-        <div class="alert alert-danger border-0 shadow-sm alert-dismissible fade show" role="alert">
+        <div class="alert alert-danger border-0 shadow-sm alert-dismissible fade show rounded-3" role="alert">
             <i class="fas fa-exclamation-triangle me-2"></i> @TempData["MensajeError"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
-    @* ========== OPORTUNIDADES (LEADS) ========== *@
-    @if (leads.Any())
-    {
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white border-bottom py-3">
-                <div>
-                    <i class="fas fa-lightbulb me-2" style="color: #FF6B35;"></i>
-                    <strong style="color: #FF6B35;">Mis Oportunidades</strong>
-                    <span class="badge bg-warning ms-2">@leads.Count</span>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead style="background: linear-gradient(135deg, #FF6B35, #F7931E); color: white;">
-                            <tr>
-                                <th class="ps-3">Cliente</th>
-                                <th>Producto</th>
-                                <th>Empresa</th>
-                                <th>Estado</th>
-                                <th>Fecha</th>
-                                <th class="text-center">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var lead in leads)
-                            {
-                                var estadoCliente = (CotizacionMVC.Models.Enums.EstadoCliente)lead.Estado;
-                                string colorEstado, iconoEstado, textoEstado;
-                                switch (estadoCliente)
-                                {
-                                    case CotizacionMVC.Models.Enums.EstadoCliente.SinAsignar:
-                                        colorEstado = "secondary"; iconoEstado = "fa-clock"; textoEstado = "Sin Asignar"; break;
-                                    case CotizacionMVC.Models.Enums.EstadoCliente.Asignado:
-                                        colorEstado = "warning"; iconoEstado = "fa-user-check"; textoEstado = "Asignado"; break;
-                                    case CotizacionMVC.Models.Enums.EstadoCliente.Contactado:
-                                        colorEstado = "info"; iconoEstado = "fa-phone-alt"; textoEstado = "Contactado"; break;
-                                    case CotizacionMVC.Models.Enums.EstadoCliente.Cotizado:
-                                        colorEstado = "primary"; iconoEstado = "fa-file-invoice"; textoEstado = "Cotizado"; break;
-                                    case CotizacionMVC.Models.Enums.EstadoCliente.NoCotizable:
-                                        colorEstado = "danger"; iconoEstado = "fa-ban"; textoEstado = "No Cotizable"; break;
-                                    case CotizacionMVC.Models.Enums.EstadoCliente.Cerrado:
-                                        colorEstado = "success"; iconoEstado = "fa-check-circle"; textoEstado = "Cerrado"; break;
-                                    default:
-                                        colorEstado = "secondary"; iconoEstado = "fa-circle"; textoEstado = estadoCliente.ToString(); break;
-                                }
-
-                                <tr class="align-middle">
-                                    <td class="ps-3">
-                                        <strong>@lead.ClienteNombre</strong>
-                                        @if (!string.IsNullOrWhiteSpace(lead.Telefono))
+    @* ========== OPORTUNIDADES CON PESTAÑAS ========== *@
+    <div class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-bottom p-0">
+            <ul class="nav nav-tabs border-0" id="oportunidadesTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active px-4 py-3" id="clientes-tab" data-bs-toggle="tab" 
+                            data-bs-target="#clientesPanel" type="button" role="tab">
+                        <i class="fas fa-user-check me-2" style="color: #C8102E;"></i>
+                        <strong>Clientes Asignados</strong>
+                        <span class="badge rounded-pill ms-2" style="background: #C8102E;">@clientesAsignados.Count</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link px-4 py-3" id="leads-tab" data-bs-toggle="tab" 
+                            data-bs-target="#leadsPanel" type="button" role="tab">
+                        <i class="fas fa-lightbulb me-2" style="color: #FF6B35;"></i>
+                        <strong>Mis Leads</strong>
+                        <span class="badge rounded-pill ms-2" style="background: #FF6B35;">@leadsProspeccion.Count</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body p-0">
+            <div class="tab-content" id="oportunidadesTabsContent">
+                
+                @* ===== TAB 1: CLIENTES ASIGNADOS ===== *@
+                <div class="tab-pane fade show active" id="clientesPanel" role="tabpanel">
+                    @if (!clientesAsignados.Any())
+                    {
+                        <div class="text-center py-5">
+                            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                <i class="fas fa-user-check fa-2x" style="color: #C8102E; opacity: 0.4;"></i>
+                            </div>
+                            <h6 class="text-muted">No tienes clientes asignados</h6>
+                            <small class="text-muted">Recepción te asignará clientes para cotizar</small>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead style="background: linear-gradient(135deg, #C8102E, #A00D25); color: white;">
+                                    <tr>
+                                        <th class="ps-4">Cliente</th>
+                                        <th>Folio</th>
+                                        <th>Producto</th>
+                                        <th class="text-center">Estado</th>
+                                        <th>Fecha</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var lead in clientesAsignados)
+                                    {
+                                        var estadoCliente = (CotizacionMVC.Models.Enums.EstadoCliente)lead.Estado;
+                                        string colorEstado, iconoEstado, textoEstado;
+                                        switch (estadoCliente)
                                         {
-                                            <br><small class="text-muted">@lead.Telefono</small>
+                                            case CotizacionMVC.Models.Enums.EstadoCliente.Asignado:
+                                                colorEstado = "warning"; iconoEstado = "fa-user-check"; textoEstado = "Asignado"; break;
+                                            case CotizacionMVC.Models.Enums.EstadoCliente.Contactado:
+                                                colorEstado = "info"; iconoEstado = "fa-phone-alt"; textoEstado = "Contactado"; break;
+                                            case CotizacionMVC.Models.Enums.EstadoCliente.Cotizado:
+                                                colorEstado = "primary"; iconoEstado = "fa-file-invoice"; textoEstado = "Cotizado"; break;
+                                            case CotizacionMVC.Models.Enums.EstadoCliente.NoCotizable:
+                                                colorEstado = "danger"; iconoEstado = "fa-ban"; textoEstado = "No Cotizable"; break;
+                                            case CotizacionMVC.Models.Enums.EstadoCliente.Cerrado:
+                                                colorEstado = "success"; iconoEstado = "fa-check-circle"; textoEstado = "Cerrado"; break;
+                                            default:
+                                                colorEstado = "secondary"; iconoEstado = "fa-circle"; textoEstado = estadoCliente.ToString(); break;
                                         }
-                                    </td>
-                                    <td><span class="badge bg-light text-dark">@(lead.ProductoBusca ?? "Sin producto")</span></td>
-                                    <td><small>@lead.EmpresaNombre</small></td>
-                                    <td><span class="badge bg-@colorEstado"><i class="fas @iconoEstado me-1"></i>@textoEstado</span></td>
-                                    <td><small>@(lead.FechaAsignacion?.ToString("dd/MM/yyyy") ?? lead.FechaCreacion.ToString("dd/MM/yyyy"))</small></td>
-                                    <td class="text-center">
-                                        <a asp-action="Crear" asp-route-leadId="@lead.Id" class="btn btn-sm btn-warning">
-                                            <i class="fas fa-plus-circle me-1"></i> Cotizar
-                                        </a>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+
+                                        <tr class="align-middle">
+                                            <td class="ps-4">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px;">
+                                                        <i class="fas fa-user text-secondary"></i>
+                                                    </div>
+                                                    <div>
+                                                        <strong>@lead.ClienteNombre</strong>
+                                                        <br><small class="text-muted"><i class="fas fa-phone-alt me-1"></i>@lead.ClienteTelefono</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td><span class="badge bg-light text-dark border">@(lead.ClienteId.HasValue ? "CLI" : "N/A")</span></td>
+                                            <td><span class="badge bg-light text-dark border">@(lead.ProductoBusca ?? "Sin producto")</span></td>
+                                            <td class="text-center"><span class="badge rounded-pill bg-@colorEstado px-3 py-2"><i class="fas @iconoEstado me-1"></i>@textoEstado</span></td>
+                                            <td><small class="text-muted">@(lead.FechaAsignacion?.ToString("dd MMM") ?? lead.FechaCreacion.ToString("dd MMM"))</small></td>
+                                            <td class="text-center">
+                                                <div class="btn-group btn-group-sm">
+                                                    <a asp-action="Crear" asp-route-leadId="@lead.Id" class="btn btn-sm btn-warning rounded-3">
+                                                        <i class="fas fa-plus-circle"></i> Cotizar
+                                                    </a>
+                                                    <a asp-controller="Seguimiento" asp-action="Crear" 
+                                                       asp-route-leadId="@lead.Id" class="btn btn-sm btn-info text-white rounded-3">
+                                                        <i class="fas fa-comment-medical"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+
+                @* ===== TAB 2: MIS LEADS ===== *@
+                <div class="tab-pane fade" id="leadsPanel" role="tabpanel">
+                    @if (!leadsProspeccion.Any())
+                    {
+                        <div class="text-center py-5">
+                            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                <i class="fas fa-lightbulb fa-2x" style="color: #FF6B35; opacity: 0.4;"></i>
+                            </div>
+                            <h6 class="text-muted">No tienes leads de prospección</h6>
+                            <small class="text-muted">Busca clientes potenciales y regístralos aquí</small>
+                            <br>
+                            <a asp-controller="Seguimiento" asp-action="CrearLead" class="btn btn-warning mt-3 rounded-3">
+                                <i class="fas fa-lightbulb me-1"></i> Crear Lead
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead style="background: linear-gradient(135deg, #FF6B35, #F7931E); color: white;">
+                                    <tr>
+                                        <th class="ps-4">Contacto</th>
+                                        <th>Empresa</th>
+                                        <th>Producto</th>
+                                        <th class="text-center">Temperatura</th>
+                                        <th>Último Contacto</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var lead in leadsProspeccion)
+                                    {
+                                        var estadoCliente = (CotizacionMVC.Models.Enums.EstadoCliente)lead.Estado;
+                                        string tempColor, tempIcono, tempTexto;
+                                        switch (estadoCliente)
+                                        {
+                                            case CotizacionMVC.Models.Enums.EstadoCliente.Asignado:
+                                                tempColor = "secondary"; tempIcono = "fa-circle"; tempTexto = "Sin Contactar"; break;
+                                            case CotizacionMVC.Models.Enums.EstadoCliente.Contactado:
+                                                tempColor = "warning"; tempIcono = "fa-thermometer-half"; tempTexto = "Contactado"; break;
+                                            case CotizacionMVC.Models.Enums.EstadoCliente.Cotizado:
+                                                tempColor = "danger"; tempIcono = "fa-thermometer-full"; tempTexto = "Caliente"; break;
+                                            case CotizacionMVC.Models.Enums.EstadoCliente.Cerrado:
+                                                tempColor = "success"; tempIcono = "fa-check-circle"; tempTexto = "Convertido"; break;
+                                            default:
+                                                tempColor = "secondary"; tempIcono = "fa-circle"; tempTexto = "Sin Contactar"; break;
+                                        }
+
+                                        <tr class="align-middle">
+                                            <td class="ps-4">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px;">
+                                                        <i class="fas fa-user-plus text-secondary"></i>
+                                                    </div>
+                                                    <div>
+                                                        <strong>@lead.NombreContacto</strong>
+                                                        <br><small class="text-muted"><i class="fas fa-phone-alt me-1"></i>@lead.Telefono</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td><small>@lead.EmpresaNombre</small></td>
+                                            <td><span class="badge bg-light text-dark border">@(lead.ProductoBusca ?? "Sin producto")</span></td>
+                                            <td class="text-center"><span class="badge rounded-pill bg-@tempColor px-3 py-2"><i class="fas @tempIcono me-1"></i>@tempTexto</span></td>
+                                            <td><small class="text-muted">@lead.FechaCreacion.ToString("dd MMM")</small></td>
+                                            <td class="text-center">
+                                                <div class="btn-group btn-group-sm">
+                                                    <a asp-action="Crear" asp-route-leadId="@lead.Id" class="btn btn-sm btn-warning rounded-3">
+                                                        <i class="fas fa-plus-circle"></i> Cotizar
+                                                    </a>
+                                                    <a asp-controller="Seguimiento" asp-action="Crear" 
+                                                       asp-route-leadId="@lead.Id" class="btn btn-sm btn-info text-white rounded-3">
+                                                        <i class="fas fa-comment-medical"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
-    }
-    else
-    {
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body text-center py-4">
-                <i class="fas fa-lightbulb fa-3x mb-2" style="opacity: 0.2; color: #FF6B35;"></i>
-                <h6 class="text-muted">No tienes oportunidades asignadas</h6>
-                <small class="text-muted">Recepcion te asignará clientes para cotizar</small>
-            </div>
-        </div>
-    }
+    </div>
 
     @* ========== TABLA DE COTIZACIONES ========== *@
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-bottom d-flex flex-wrap justify-content-between align-items-center py-3 gap-2">
             <div>
                 <i class="fas fa-list-ul me-2" style="color: var(--color-primario, #C8102E);"></i>
                 <strong style="color: var(--color-primario, #C8102E);">Cotizaciones</strong>
-                <span class="badge bg-danger ms-2">@total</span>
+                <span class="badge rounded-pill ms-2" style="background: var(--color-primario, #C8102E);">@total</span>
             </div>
-            <div class="input-group input-group-sm" style="width: 280px;">
-                <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
-                <input type="text" class="form-control" placeholder="Buscar cotización..." id="buscarCotizacion">
+            <div class="input-group input-group-sm" style="width: 250px;">
+                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" class="form-control border-start-0" placeholder="Buscar..." id="buscarCotizacion">
             </div>
         </div>
         <div class="card-body p-0">
             @if (!cotizaciones.Any())
             {
                 <div class="text-center py-5">
-                    <i class="fas fa-file-invoice fa-5x mb-3" style="opacity: 0.2; color: var(--color-primario, #C8102E);"></i>
+                    <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-file-invoice fa-2x" style="color: var(--color-primario, #C8102E); opacity: 0.4;"></i>
+                    </div>
                     <h5 class="text-muted">No hay cotizaciones registradas</h5>
-                    <a asp-action="Crear" class="btn btn-danger mt-2">
+                    <a asp-action="Crear" class="btn btn-danger mt-2 rounded-3">
                         <i class="fas fa-plus-circle me-2"></i> Nueva Cotización
                     </a>
                 </div>
@@ -224,13 +354,13 @@
                     <table class="table table-hover mb-0" id="tablaCotizaciones">
                         <thead style="background: linear-gradient(135deg, var(--color-primario, #C8102E), var(--color-primario-oscuro, #A00D25)); color: white;">
                             <tr>
-                                <th class="ps-3">N°</th>
+                                <th class="ps-4">Folio</th>
                                 <th>Cliente</th>
                                 <th>Empresa</th>
                                 <th>Fecha</th>
                                 <th class="text-end">Total</th>
                                 <th class="text-center">Estado</th>
-                                <th class="text-center">Acciones</th>
+                                <th class="text-center" style="width: 140px;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -263,20 +393,23 @@
                                 }
 
                                 <tr class="align-middle">
-                                    <td class="ps-3"><span class="badge bg-light text-dark border fw-bold">@cotizacion.NumeroCotizacion</span></td>
+                                    <td class="ps-4"><span class="badge bg-light text-dark border fw-bold">@cotizacion.NumeroCotizacion</span></td>
                                     <td><strong>@cotizacion.ClienteNombre</strong></td>
                                     <td><span class="badge bg-light text-dark">@cotizacion.EmpresaNombre</span></td>
-                                    <td><small>@cotizacion.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy")</small></td>
-                                    <td class="text-end"><strong>@cotizacion.Total.ToString("N2") @cotizacion.Moneda</strong></td>
+                                    <td><small class="text-muted">@cotizacion.FechaCreacion.ToLocalTime().ToString("dd MMM yyyy")</small></td>
+                                    <td class="text-end"><strong>@cotizacion.Total.ToString("N0") @cotizacion.Moneda</strong></td>
                                     <td class="text-center">
-                                        <span class="badge bg-@colorBadge py-2 px-3"><i class="fas @iconoEstado me-1"></i>@textoEstado</span>
-                                        <div class="progress mt-1" style="height: 4px;"><div class="progress-bar bg-@colorBadge" style="width: @porcentaje%;"></div></div>
+                                        <span class="badge rounded-pill bg-@colorBadge px-3 py-2"><i class="fas @iconoEstado me-1"></i>@textoEstado</span>
+                                        <div class="progress mt-1" style="height: 3px;"><div class="progress-bar bg-@colorBadge" style="width: @porcentaje%;"></div></div>
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group btn-group-sm">
-                                            <a asp-action="Detalles" asp-route-id="@cotizacion.Id" class="btn btn-outline-secondary" title="Ver" data-bs-toggle="tooltip"><i class="fas fa-eye"></i></a>
-                                            <a asp-action="DescargarPdf" asp-route-id="@cotizacion.Id" class="btn btn-outline-danger" title="PDF" data-bs-toggle="tooltip"><i class="fas fa-file-pdf"></i></a>
-                                            <a asp-action="Editar" asp-route-id="@cotizacion.Id" class="btn btn-outline-warning" title="Editar" data-bs-toggle="tooltip"><i class="fas fa-edit"></i></a>
+                                            <a asp-action="Detalles" asp-route-id="@cotizacion.Id" class="btn btn-outline-secondary rounded-3" title="Ver"><i class="fas fa-eye"></i></a>
+                                            <a asp-action="DescargarPdf" asp-route-id="@cotizacion.Id" class="btn btn-outline-danger rounded-3" title="PDF"><i class="fas fa-file-pdf"></i></a>
+                                            <a asp-controller="Seguimiento" asp-action="Crear" 
+                                               asp-route-cotizacionId="@cotizacion.Id" class="btn btn-outline-success rounded-3" title="Seguimiento">
+                                                <i class="fas fa-comment-medical"></i>
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>
@@ -290,7 +423,7 @@
         {
             <div class="card-footer bg-white d-flex justify-content-between align-items-center">
                 <small class="text-muted"><i class="fas fa-sync-alt me-1"></i> Actualizado: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</small>
-                <small class="text-muted">Mostrando @total cotización(es)</small>
+                <small class="text-muted">@total cotizaciones</small>
             </div>
         }
     </div>
@@ -299,11 +432,26 @@
 @section Styles {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        .card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.12) !important; }
-        .table-hover tbody tr:hover { background-color: rgba(200, 16, 46, 0.04) !important; }
-        .btn-danger { background: linear-gradient(135deg, var(--color-primario, #C8102E), var(--color-primario-oscuro, #A00D25)); border: none; transition: all 0.3s ease; }
-        .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(200, 16, 46, 0.3); }
+        .card { transition: all 0.2s ease; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important; }
+        .table-hover tbody tr:hover { background-color: rgba(200, 16, 46, 0.03) !important; }
+        .btn-danger { background: linear-gradient(135deg, var(--color-primario, #C8102E), var(--color-primario-oscuro, #A00D25)); border: none; }
+        .btn-danger:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(200, 16, 46, 0.3); }
+        .rounded-4 { border-radius: 1rem !important; }
+        .nav-tabs .nav-link {
+            color: #6c757d;
+            border: none;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            color: #C8102E;
+            border-bottom: 3px solid #C8102E;
+            background: transparent;
+        }
+        .nav-tabs .nav-link:hover {
+            color: #C8102E;
+            border-bottom: 3px solid transparent;
+        }
     </style>
 }
 

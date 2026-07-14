@@ -1,0 +1,67 @@
+﻿@using CotizacionMVC.Servicios.Aplicacion.Dtos.Seguimientos
+ 
+@model IReadOnlyList<SeguimientoListaDto>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="text-center py-4 text-muted">
+        <i class="bi bi-journal-x" style="font-size: 2rem;"></i>
+        <p class="mt-2">Sin seguimientos registrados</p>
+    </div>
+}
+else
+{
+    <div class="timeline">
+        @foreach (var seg in Model)
+        {
+            <div class="card mb-2 border-start border-3
+                @(seg.Resultado == "Cerrada" ? "border-success" :
+                                   seg.Resultado == "Perdida" || seg.Resultado == "NoInteresado" ? "border-danger" :
+                                   seg.Resultado == "CotizacionEnviada" || seg.Resultado == "AnticipoRecibido" ? "border-primary" :
+                                   "border-warning")">
+                <div class="card-body py-2 px-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="badge
+                                @(seg.Resultado == "Cerrada" ? "bg-success" :
+                                                                    seg.Resultado == "Perdida" || seg.Resultado == "NoInteresado" ? "bg-danger" :
+                                                                    seg.Resultado == "CotizacionEnviada" || seg.Resultado == "AnticipoRecibido" ? "bg-primary" :
+                                                                    "bg-warning text-dark")">
+                                @seg.Resultado
+                            </span>
+                            <small class="text-muted ms-2">
+                                <i class="bi bi-@(seg.MedioContacto == "LlamadaTelefonica" ? "telephone" :
+                                                                                                                  seg.MedioContacto == "WhatsApp" ? "whatsapp" :
+                                                                                                                  seg.MedioContacto == "CorreoElectronico" ? "envelope" :
+                                                                                                                  seg.MedioContacto == "VisitaTecnica" || seg.MedioContacto == "VisitaComercial" ? "person-check" :
+                                                                                                                  "chat-dots")"></i>
+                                @seg.MedioContacto
+                            </small>
+                        </div>
+                        <small class="text-muted">
+                            @seg.FechaContacto.ToString("dd/MM/yyyy HH:mm")
+                        </small>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(seg.Notas))
+                    {
+                        <p class="mt-1 mb-0 small">@seg.Notas</p>
+                    }
+
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <small class="text-muted">
+                            <i class="bi bi-person"></i> @seg.VendedorNombre
+                        </small>
+                        @if (seg.ProximoContacto.HasValue)
+                        {
+                            <small class="text-primary">
+                                <i class="bi bi-calendar-event"></i>
+                                Próximo: @seg.ProximoContacto.Value.ToString("dd/MM/yyyy HH:mm")
+                            </small>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

@@ -32,7 +32,6 @@
 
   <ItemGroup>
     <Folder Include="Mocks\" />
-    <Folder Include="Pruebas Unitarias\Entidades\" />
     <Folder Include="Pruebas Unitarias\Reglas\" />
   </ItemGroup>
 
