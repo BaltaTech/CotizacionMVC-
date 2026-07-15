@@ -1,0 +1,160 @@
+﻿@{
+    var marcas = ViewBag.Marcas as List<CotizacionMVC.Models.Enums.TipoMarca>;
+    var marcaSeleccionada = ViewBag.MarcaSeleccionada as CotizacionMVC.Models.Enums.TipoMarca?;
+}
+
+<div class="catalogo-panel">
+    @* ===== SELECTOR DE MARCA ===== *@
+    <div class="d-flex flex-wrap gap-1 mb-3" id="selectorMarcas">
+        @foreach (var marca in marcas ?? new())
+        {
+            var activa = marcaSeleccionada.HasValue && marcaSeleccionada.Value == marca;
+            <button class="btn btn-sm btn-marca @(activa ? "btn-danger active" : "btn-outline-secondary") rounded-pill"
+                    data-marca="@((int)marca)">
+                @marca.ToString().Substring(0, Math.Min(4, marca.ToString().Length))
+            </button>
+        }
+    </div>
+
+    @* ===== SISTEMAS ===== *@
+    <div class="mb-2">
+        <small class="text-muted fw-bold text-uppercase">Sistema</small>
+        <select class="form-select form-select-sm" id="catalogoSistema">
+            <option value="">Selecciona un sistema...</option>
+        </select>
+    </div>
+
+    @* ===== MODOS ===== *@
+    <div class="mb-2">
+        <small class="text-muted fw-bold text-uppercase">Modo</small>
+        <select class="form-select form-select-sm" id="catalogoModo" disabled>
+            <option value="">Primero elige sistema</option>
+        </select>
+    </div>
+
+    @* ===== MODELOS ===== *@
+    <div>
+        <small class="text-muted fw-bold text-uppercase">Modelos <span id="catalogoCount" class="badge bg-light text-dark ms-1"></span></small>
+        <div id="catalogoModelos" style="max-height: 350px; overflow-y: auto;" class="mt-1">
+            <p class="text-muted small text-center py-3">Elige sistema y modo</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        function cargarSistemas(marca) {
+            var sel = document.getElementById('catalogoSistema');
+            sel.innerHTML = '<option value="">Cargando...</option>';
+            fetch('/Equipo/ObtenerSistemasPorMarca?marca=' + marca)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var html = '<option value="">Selecciona sistema...</option>';
+                    data.forEach(function(s) { html += '<option value="' + s + '">' + s + '</option>'; });
+                    sel.innerHTML = html;
+                    sel.disabled = false;
+                });
+        }
+
+        function cargarModos(sistema) {
+            var sel = document.getElementById('catalogoModo');
+            sel.innerHTML = '<option value="">Cargando...</option>';
+            sel.disabled = true;
+            fetch('/Equipo/ObtenerModos?sistema=' + encodeURIComponent(sistema))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var html = '<option value="">Selecciona modo...</option>';
+                    data.forEach(function(m) { html += '<option value="' + m + '">' + m + '</option>'; });
+                    sel.innerHTML = html;
+                    sel.disabled = false;
+                });
+        }
+
+        function cargarModelos(sistema, modo) {
+            var div = document.getElementById('catalogoModelos');
+            div.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-secondary"></div></div>';
+            fetch('/Equipo/ObtenerModelos?sistema=' + encodeURIComponent(sistema) + '&modo=' + encodeURIComponent(modo))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    document.getElementById('catalogoCount').textContent = data.length;
+                    if (!data.length) {
+                        div.innerHTML = '<p class="text-muted small text-center">Sin equipos</p>';
+                        return;
+                    }
+                    var html = '';
+                    data.forEach(function(eq) {
+                        html +=
+                        '<div class="card mb-1 border-start border-2 border-danger">' +
+                            '<div class="card-body py-2 px-2">' +
+                                '<div class="d-flex justify-content-between align-items-start">' +
+                                    '<div class="small">' +
+                                        '<strong>' + eq.modelo + '</strong>' +
+                                        '<br><span class="text-muted">' + eq.marcaNombre + ' | ' + eq.capacidadToneladas + ' TR | ' + eq.monedaOriginal + ' ' + eq.precioBase.toLocaleString() + '</span>' +
+                                        (eq.descripcion ? '<br><small class="text-muted">' + eq.descripcion.substring(0, 60) + '...</small>' : '') +
+                                    '</div>' +
+                                    '<button class="btn btn-sm btn-outline-danger agregar-equipo-catalogo"' +
+                                        ' data-id="' + eq.id + '"' +
+                                        ' data-modelo="' + eq.modelo + '"' +
+                                        ' data-marca="' + eq.marcaNombre + '"' +
+                                        ' data-capacidad="' + eq.capacidadToneladas + '"' +
+                                        ' data-precio="' + eq.precioBase + '"' +
+                                        ' data-moneda="' + eq.monedaOriginal + '">' +
+                                        '<i class="fas fa-plus"></i>' +
+                                    '</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
+                    });
+                    div.innerHTML = html;
+                });
+        }
+
+        function resetModos() {
+            var sel = document.getElementById('catalogoModo');
+            sel.innerHTML = '<option value="">Primero elige sistema</option>';
+            sel.disabled = true;
+        }
+
+        function resetModelos() {
+            document.getElementById('catalogoModelos').innerHTML = '<p class="text-muted small text-center py-3">Elige sistema y modo</p>';
+            document.getElementById('catalogoCount').textContent = '';
+        }
+
+        // Eventos
+        document.getElementById('selectorMarcas').addEventListener('click', function(e) {
+            var btn = e.target.closest('.btn-marca');
+            if (!btn) return;
+            document.querySelectorAll('.btn-marca').forEach(function(b) {
+                b.classList.remove('btn-danger', 'active');
+                b.classList.add('btn-outline-secondary');
+            });
+            btn.classList.add('btn-danger', 'active');
+            btn.classList.remove('btn-outline-secondary');
+            cargarSistemas(btn.dataset.marca);
+            resetModos();
+            resetModelos();
+        });
+
+        document.getElementById('catalogoSistema').addEventListener('change', function() {
+            var sistema = this.value;
+            if (!sistema) { resetModos(); resetModelos(); return; }
+            cargarModos(sistema);
+            resetModelos();
+        });
+
+        document.getElementById('catalogoModo').addEventListener('change', function() {
+            var sistema = document.getElementById('catalogoSistema').value;
+            var modo = this.value;
+            if (!modo) { resetModelos(); return; }
+            cargarModelos(sistema, modo);
+        });
+
+        // Auto-cargar si solo hay una marca
+        var marcas = document.querySelectorAll('.btn-marca');
+        if (marcas.length === 1) {
+            marcas[0].classList.add('btn-danger', 'active');
+            marcas[0].classList.remove('btn-outline-secondary');
+            cargarSistemas(marcas[0].dataset.marca);
+        }
+    })();
+</script>

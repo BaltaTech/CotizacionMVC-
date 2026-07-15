@@ -1,0 +1,138 @@
+﻿@{
+    ViewData["Title"] = "Catálogo de Equipos";
+    var marcas = ViewBag.Marcas as List<CotizacionMVC.Models.Enums.TipoMarca>;
+    var marcaSeleccionada = ViewBag.MarcaSeleccionada as CotizacionMVC.Models.Enums.TipoMarca?;
+    var sistemas = ViewBag.Sistemas as List<string>;
+}
+
+<div class="container-fluid px-4 py-3">
+    <h4 class="mb-3">
+        <i class="fas fa-microchip me-2" style="color: var(--color-primario, #C8102E);"></i>Catálogo de Equipos
+    </h4>
+
+    @* ===== SELECTOR DE MARCA ===== *@
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        @foreach (var marca in marcas ?? new())
+        {
+            var activa = marcaSeleccionada.HasValue && marcaSeleccionada.Value == marca;
+            <a asp-action="Catalogo" asp-route-marca="@((int)marca)"
+                   class="btn @(activa ? "btn-danger" : "btn-outline-secondary") rounded-pill px-4">
+                @marca
+            </a>
+        }
+    </div>
+
+    <div class="row g-3">
+        @* ===== SISTEMAS ===== *@
+        <div class="col-md-4">
+            <div class="card rounded-4 shadow-sm">
+                <div class="card-header text-white" style="background: var(--color-primario, #C8102E);">
+                    <i class="fas fa-sitemap me-2"></i>Sistemas
+                </div>
+                <div class="card-body p-2" style="max-height: 500px; overflow-y: auto;">
+                    <div class="list-group list-group-flush" id="listaSistemas">
+                        @if (sistemas != null)
+                        {
+                            foreach (var sistema in sistemas)
+                            {
+                                <button class="list-group-item list-group-item-action border-0 sistema-item"
+                                        data-sistema="@sistema">
+                                    @sistema
+                                </button>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ===== MODOS ===== *@
+        <div class="col-md-4">
+            <div class="card rounded-4 shadow-sm">
+                <div class="card-header text-white" style="background: #FF6B35;">
+                    <i class="fas fa-filter me-2"></i>Modos
+                </div>
+                <div class="card-body p-2" style="max-height: 500px; overflow-y: auto;" id="panelModos">
+                    <p class="text-muted text-center py-4">Selecciona un sistema</p>
+                </div>
+            </div>
+        </div>
+
+        @* ===== MODELOS ===== *@
+        <div class="col-md-4">
+            <div class="card rounded-4 shadow-sm">
+                <div class="card-header text-white" style="background: #1A73E8;">
+                    <i class="fas fa-list me-2"></i>Modelos <span id="contadorModelos" class="badge bg-light text-dark ms-1"></span>
+                </div>
+                <div class="card-body p-2" style="max-height: 500px; overflow-y: auto;" id="panelModelos">
+                    <p class="text-muted text-center py-4">Selecciona un modo</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('.sistema-item').click(function() {
+                var sistema = $(this).data('sistema');
+
+                // Activar visual
+                $('.sistema-item').removeClass('active');
+                $(this).addClass('active');
+
+                // Cargar modos
+                $('#panelModos').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-warning"></div></div>');
+                $('#panelModelos').html('<p class="text-muted text-center py-4">Selecciona un modo</p>');
+                $('#contadorModelos').text('');
+
+                $.get('/Equipo/ObtenerModos?sistema=' + encodeURIComponent(sistema), function(modos) {
+                    if (modos.length === 0) {
+                        $('#panelModos').html('<p class="text-muted text-center py-4">Sin modos disponibles</p>');
+                        return;
+                    }
+                    var html = '<div class="list-group list-group-flush">';
+                    modos.forEach(function(modo) {
+                        html += '<button class="list-group-item list-group-item-action border-0 modo-item" data-modo="' + modo + '" data-sistema="' + sistema + '">' + modo + '</button>';
+                    });
+                    html += '</div>';
+                    $('#panelModos').html(html);
+                });
+            });
+
+            $(document).on('click', '.modo-item', function() {
+                var sistema = $(this).data('sistema');
+                var modo = $(this).data('modo');
+
+                $('.modo-item').removeClass('active');
+                $(this).addClass('active');
+
+                $('#panelModelos').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>');
+
+                $.get('/Equipo/ObtenerModelos?sistema=' + encodeURIComponent(sistema) + '&modo=' + encodeURIComponent(modo), function(equipos) {
+                    $('#contadorModelos').text(equipos.length);
+                    if (equipos.length === 0) {
+                        $('#panelModelos').html('<p class="text-muted text-center py-4">Sin equipos</p>');
+                        return;
+                    }
+                    var html = '';
+                    equipos.forEach(function(eq) {
+                        html += `
+                            <div class="card mb-2 border-start border-3 border-primary">
+                                <div class="card-body py-2 px-3">
+                                    <div class="d-flex justify-content-between">
+                                        <strong class="small">${eq.modelo}</strong>
+                                        <span class="badge bg-primary">${eq.monedaOriginal} ${eq.precioBase.toLocaleString()}</span>
+                                    </div>
+                                    <small class="text-muted">${eq.marcaNombre} | ${eq.capacidadToneladas} TR</small>
+                                    ${eq.descripcion ? `<br><small class="text-muted">${eq.descripcion.substring(0, 80)}...</small>` : ''}
+                                </div>
+                            </div>`;
+                    });
+                    $('#panelModelos').html(html);
+                });
+            });
+        });
+    </script>
+}
