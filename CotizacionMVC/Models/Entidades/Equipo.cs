@@ -15,44 +15,57 @@ namespace CotizacionMVC.Models.Entidades
         public string MonedaOriginal { get; private set; }
         public bool Activo { get; private set; }
         public DateTime FechaCreacion { get; private set; }
+        public string Sistema { get; private set; }
+        public string Modo { get; private set; }
+        public string? Descripcion { get; private set; }
 
-        // Constructor público sin parámetros para Model Binding de ASP.NET Core
+        // Constructor sin parámetros para EF Core y Model Binding
         public Equipo()
         {
             Modelo = null!;
             MonedaOriginal = null!;
+            Sistema = null!;
+            Modo = null!;
             Tipo = null;
             Tension = null;
             Tecnologia = null;
+            Descripcion = null;
         }
-
-    
 
         public Equipo(
             TipoMarca marca,
             string modelo,
             decimal capacidadToneladas,
             decimal precioBase,
-            string monedaOriginal)
+            string monedaOriginal,
+            string sistema,
+            string modo,
+            string? descripcion = null)
         {
             if (string.IsNullOrWhiteSpace(modelo))
                 throw new ArgumentException("El modelo es obligatorio");
 
-            if (capacidadToneladas <= 0)
-                throw new ArgumentException("La capacidad debe ser mayor a cero");
+            if (string.IsNullOrWhiteSpace(sistema))
+                throw new ArgumentException("El sistema es obligatorio");
 
-            if (precioBase <= 0)
-                throw new ArgumentException("El precio base debe ser mayor a cero");
+            if (string.IsNullOrWhiteSpace(modo))
+                throw new ArgumentException("El modo es obligatorio");
+
+            if (capacidadToneladas < 0)
+                throw new ArgumentException("La capacidad no puede ser negativa");
+
+            if (precioBase < 0)
+                throw new ArgumentException("El precio base no puede ser negativo");
 
             if (monedaOriginal != "MXN" && monedaOriginal != "USD")
                 throw new ArgumentException("La moneda debe ser MXN o USD");
 
-            // Regla: Trane y York solo en USD
+            // TRANE y YORK → solo USD
             if ((marca == TipoMarca.Trane || marca == TipoMarca.York) && monedaOriginal != "USD")
-                throw new InvalidOperationException("Los equipos Trane y York solo pueden tener precio en USD");
+                throw new InvalidOperationException($"Los equipos {marca} solo pueden tener precio en USD");
 
-            // Regla: Las demás marcas solo en MXN
-            if (marca != TipoMarca.Trane && marca != TipoMarca.York && monedaOriginal != "MXN")
+            // TCL y HISENSE → solo MXN
+            if ((marca == TipoMarca.TCL || marca == TipoMarca.Hisense) && monedaOriginal != "MXN")
                 throw new InvalidOperationException($"Los equipos {marca} solo pueden tener precio en MXN");
 
             Id = Guid.NewGuid();
@@ -61,6 +74,9 @@ namespace CotizacionMVC.Models.Entidades
             CapacidadToneladas = capacidadToneladas;
             PrecioBase = precioBase;
             MonedaOriginal = monedaOriginal;
+            Sistema = sistema.Trim();
+            Modo = modo.Trim();
+            Descripcion = descripcion?.Trim();
             Activo = true;
             FechaCreacion = DateTime.UtcNow;
 
@@ -76,6 +92,11 @@ namespace CotizacionMVC.Models.Entidades
             Tecnologia = tecnologia ?? throw new ArgumentNullException(nameof(tecnologia));
         }
 
+        public void ActualizarDescripcion(string? descripcion)
+        {
+            Descripcion = descripcion?.Trim();
+        }
+
         public void Desactivar()
         {
             Activo = false;
@@ -88,8 +109,8 @@ namespace CotizacionMVC.Models.Entidades
 
         public void ActualizarPrecio(decimal nuevoPrecio)
         {
-            if (nuevoPrecio <= 0)
-                throw new ArgumentException("El precio debe ser mayor a cero");
+            if (nuevoPrecio < 0)
+                throw new ArgumentException("El precio no puede ser negativo");
 
             PrecioBase = nuevoPrecio;
         }
@@ -104,6 +125,11 @@ namespace CotizacionMVC.Models.Entidades
             return !string.IsNullOrWhiteSpace(Tipo) &&
                    !string.IsNullOrWhiteSpace(Tension) &&
                    !string.IsNullOrWhiteSpace(Tecnologia);
+        }
+
+        public bool TieneCapacidad()
+        {
+            return CapacidadToneladas > 0;
         }
     }
 }

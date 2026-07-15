@@ -1,4 +1,5 @@
-﻿using CotizacionMVC.Models.Valor;
+﻿using CotizacionMVC.Models.Reglas;
+using CotizacionMVC.Models.Valor;
 
 namespace CotizacionMVC.Models.Entidades
 {
@@ -14,9 +15,8 @@ namespace CotizacionMVC.Models.Entidades
         public Dinero Subtotal { get; private set; }
         public decimal UtilidadEmpresaPorcentaje { get; private set; }
         public decimal UtilidadVendedorPorcentaje { get; private set; }
-        public string? DescripcionPersonalizada { get; private set; }  
+        public string? DescripcionPersonalizada { get; private set; }
 
-        // Constructor protegido para EF Core
         protected ItemCotizacion()
         {
             Cotizacion = null!;
@@ -59,24 +59,7 @@ namespace CotizacionMVC.Models.Entidades
             UtilidadVendedorPorcentaje = utilidadVendedorPorcentaje;
             DescripcionPersonalizada = descripcionPersonalizada?.Trim();
 
-            // Calcular precio unitario
-            var precioBase = equipo.PrecioBase;
-
-            // Si el equipo está en USD y la cotización en MXN, convertir
-            if (equipo.MonedaOriginal == "USD" && cotizacion.Empresa.MonedaBase == "MXN")
-            {
-                precioBase = precioBase * cotizacion.ObtenerTipoCambioActual();
-            }
-            // Si el equipo está en MXN y la cotización en USD, convertir
-            else if (equipo.MonedaOriginal == "MXN" && cotizacion.Empresa.MonedaBase == "USD")
-            {
-                precioBase = precioBase / cotizacion.ObtenerTipoCambioActual();
-            }
-
-            var precioConUtilidadEmpresa = precioBase * (1 + utilidadEmpresaPorcentaje / 100);
-            var precioFinal = precioConUtilidadEmpresa * (1 + utilidadVendedorPorcentaje / 100);
-
-            PrecioUnitario = new Dinero(precioFinal, cotizacion.Empresa.MonedaBase);
+            CalcularPrecio();
             Subtotal = PrecioUnitario.Multiplicar(Cantidad);
         }
 
@@ -84,7 +67,6 @@ namespace CotizacionMVC.Models.Entidades
         {
             if (nuevaCantidad <= 0)
                 throw new ArgumentException("La cantidad debe ser mayor a cero");
-
             Cantidad = nuevaCantidad;
             Subtotal = PrecioUnitario.Multiplicar(Cantidad);
         }
@@ -95,26 +77,9 @@ namespace CotizacionMVC.Models.Entidades
                 DescripcionPersonalizada = descripcion.Trim();
         }
 
-        // Método para recalcular el precio (útil si cambian las utilidades)
         public void RecalcularPrecio()
         {
-            var precioBase = Equipo.PrecioBase;
-
-            // Si el equipo está en USD y la cotización en MXN, convertir
-            if (Equipo.MonedaOriginal == "USD" && Cotizacion.Empresa.MonedaBase == "MXN")
-            {
-                precioBase = precioBase * Cotizacion.ObtenerTipoCambioActual();
-            }
-            // Si el equipo está en MXN y la cotización en USD, convertir
-            else if (Equipo.MonedaOriginal == "MXN" && Cotizacion.Empresa.MonedaBase == "USD")
-            {
-                precioBase = precioBase / Cotizacion.ObtenerTipoCambioActual();
-            }
-
-            var precioConUtilidadEmpresa = precioBase * (1 + UtilidadEmpresaPorcentaje / 100);
-            var precioFinal = precioConUtilidadEmpresa * (1 + UtilidadVendedorPorcentaje / 100);
-
-            PrecioUnitario = new Dinero(precioFinal, Cotizacion.Empresa.MonedaBase);
+            CalcularPrecio();
             Subtotal = PrecioUnitario.Multiplicar(Cantidad);
         }
 
@@ -122,8 +87,21 @@ namespace CotizacionMVC.Models.Entidades
         {
             if (!string.IsNullOrWhiteSpace(DescripcionPersonalizada))
                 return DescripcionPersonalizada;
-
             return $"{Equipo.Marca} {Equipo.Modelo} - {Equipo.CapacidadToneladas} TR";
+        }
+
+        private void CalcularPrecio()
+        {
+            var precioUnitarioMxn = ReglasNegocio.CalcularPrecioUnitarioMxn(
+                Equipo.Marca.ToString(),
+                Equipo.PrecioBase,
+                Equipo.MonedaOriginal,
+                Cotizacion.ObtenerTipoCambioActual(),
+                UtilidadEmpresaPorcentaje,
+                UtilidadVendedorPorcentaje
+            );
+
+            PrecioUnitario = new Dinero(precioUnitarioMxn, Cotizacion.Empresa.MonedaBase);
         }
     }
 }

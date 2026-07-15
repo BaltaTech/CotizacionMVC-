@@ -192,7 +192,12 @@ namespace CotizacionMVC.Data
                 entidad.Property(c => c.AreaMetrosCuadrados)
                     .HasPrecision(10, 2);
 
-                // ========== NUEVA RELACIÓN CON LEAD ==========
+                entidad.Property(c => c.TipoCambio)
+                    .HasPrecision(10, 4);
+
+                entidad.Property(c => c.RecargoCiudadPorcentaje)
+                    .HasPrecision(10, 2);
+
                 entidad.HasOne(c => c.Lead)
                     .WithMany()
                     .HasForeignKey(c => c.LeadId)
@@ -231,6 +236,12 @@ namespace CotizacionMVC.Data
                     dinero.Property(d => d.Monto).HasPrecision(18, 2);
                     dinero.Property(d => d.Moneda).HasMaxLength(3);
                 });
+
+                entidad.OwnsOne(c => c.RecargoCiudad, dinero =>
+                {
+                    dinero.Property(d => d.Monto).HasPrecision(18, 2);
+                    dinero.Property(d => d.Moneda).HasMaxLength(3);
+                });
             });
         }
 
@@ -263,6 +274,17 @@ namespace CotizacionMVC.Data
                 entidad.Property(e => e.MonedaOriginal)
                     .IsRequired()
                     .HasMaxLength(3);
+
+                 entidad.Property(e => e.Sistema)
+                    .IsRequired()
+                    .HasMaxLength(200);
+
+                entidad.Property(e => e.Modo)
+                    .IsRequired()
+                    .HasMaxLength(200);
+
+                entidad.Property(e => e.Descripcion)
+                    .HasMaxLength(500);
             });
         }
 

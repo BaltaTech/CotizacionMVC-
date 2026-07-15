@@ -2,11 +2,13 @@
 {
     public enum TipoMarca
     {
+        Otro = 0,
         Trane = 1,
         York = 2,
-        Hisense = 3,
-        Carrier = 4,
-        Duventus = 5,
-        Rheem = 6
+        Carrier = 3,
+        Daikin = 4,
+        Mitsubishi = 5,
+        Hisense = 6,
+        TCL = 7
     }
 }

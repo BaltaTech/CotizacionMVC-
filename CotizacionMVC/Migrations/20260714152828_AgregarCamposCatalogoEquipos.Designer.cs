@@ -3,6 +3,7 @@ using System;
 using CotizacionMVC.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CotizacionMVC.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260714152828_AgregarCamposCatalogoEquipos")]
+    partial class AgregarCamposCatalogoEquipos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -116,19 +119,11 @@ namespace CotizacionMVC.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.Property<decimal>("RecargoCiudadPorcentaje")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("numeric(10,2)");
-
                     b.Property<bool>("RequiereAutorizacion")
                         .HasColumnType("boolean");
 
                     b.Property<string>("RutaPdf")
                         .HasColumnType("text");
-
-                    b.Property<decimal>("TipoCambio")
-                        .HasPrecision(10, 4)
-                        .HasColumnType("numeric(10,4)");
 
                     b.Property<Guid>("VendedorId")
                         .HasColumnType("uuid");
@@ -883,31 +878,6 @@ namespace CotizacionMVC.Migrations
                                 .HasForeignKey("CotizacionId");
                         });
 
-                    b.OwnsOne("CotizacionMVC.Models.Valor.Dinero", "RecargoCiudad", b1 =>
-                        {
-                            b1.Property<Guid>("CotizacionId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<string>("Moneda")
-                                .IsRequired()
-                                .HasMaxLength(3)
-                                .HasColumnType("character varying(3)");
-
-                            b1.Property<decimal>("Monto")
-                                .HasPrecision(18, 2)
-                                .HasColumnType("numeric(18,2)");
-
-                            b1.Property<decimal?>("TipoCambio")
-                                .HasColumnType("numeric");
-
-                            b1.HasKey("CotizacionId");
-
-                            b1.ToTable("Cotizaciones");
-
-                            b1.WithOwner()
-                                .HasForeignKey("CotizacionId");
-                        });
-
                     b.OwnsOne("CotizacionMVC.Models.Valor.Dinero", "Subtotal", b1 =>
                         {
                             b1.Property<Guid>("CotizacionId")
@@ -966,9 +936,6 @@ namespace CotizacionMVC.Migrations
                         .IsRequired();
 
                     b.Navigation("Lead");
-
-                    b.Navigation("RecargoCiudad")
-                        .IsRequired();
 
                     b.Navigation("Subtotal")
                         .IsRequired();
