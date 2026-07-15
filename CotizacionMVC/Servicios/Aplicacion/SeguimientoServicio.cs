@@ -101,9 +101,25 @@ namespace CotizacionMVC.Servicios.Aplicacion
             await AplicarTransicionesAsync(lead, cotizacion, resultado);
             await _seguimientoRepo.SaveChangesAsync();
 
+            // Notificar al vendedor si hay próximo contacto agendado
+            if (dto.ProximoContacto.HasValue)
+            {
+                await _notificacionServicio.EnviarNotificacionAsync(
+                    dto.VendedorId.ToString(),
+                    "📅 Recordatorio de Seguimiento",
+                    $"Tienes un seguimiento agendado para el {dto.ProximoContacto.Value:dd/MM/yyyy HH:mm}",
+                    "warning");
+            }
+
+            // Actualizar dashboard del vendedor en tiempo real
+            await _notificacionServicio.EnviarNotificacionAsync(
+                dto.VendedorId.ToString(),
+                "📊 Dashboard Actualizado",
+                "Se ha registrado un nuevo seguimiento",
+                "info");
+
             return MapearADto(seguimiento);
         }
-
         private async Task AplicarTransicionesAsync(Lead? lead, Cotizacion? cotizacion, ResultadoSeguimiento resultado)
         {
             switch (resultado)

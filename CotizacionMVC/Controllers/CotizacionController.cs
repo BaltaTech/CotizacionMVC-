@@ -18,16 +18,19 @@ namespace CotizacionMVC.Controllers
         private readonly UserManager<Usuario> _userManager;
         private readonly IEmpresaRepository _empresaRepo;
 
+        private readonly IInstalacionServicio _instalacionServicio;
+
         public CotizacionController(
             ICotizacionServicio cotizacionServicio,
             UserManager<Usuario> userManager,
-            IEmpresaRepository empresaRepo)
+            IEmpresaRepository empresaRepo,
+            IInstalacionServicio instalacionServicio)
         {
             _cotizacionServicio = cotizacionServicio;
             _userManager = userManager;
             _empresaRepo = empresaRepo;
+            _instalacionServicio = instalacionServicio;
         }
-
         // GET: Cotizacion/Indice
         public async Task<IActionResult> Indice()
         {
@@ -153,7 +156,10 @@ namespace CotizacionMVC.Controllers
                     .ToList();
             }
 
+
             ViewBag.MarcaSeleccionada = ViewBag.Marcas.Count == 1 ? ViewBag.Marcas[0] : (TipoMarca?)null;
+
+            ViewBag.InstalacionesCatalogo = await _instalacionServicio.ObtenerCatalogoAsync();
 
             return View(viewModel);
         }

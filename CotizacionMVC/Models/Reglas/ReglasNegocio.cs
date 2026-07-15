@@ -34,17 +34,13 @@
         }
 
         // ========== CÁLCULO DE PRECIO POR MARCA ==========
-
-        /// <summary>
-        /// Calcula el precio unitario en MXN según la marca y factores ajustables.
-        /// </summary>
         public static decimal CalcularPrecioUnitarioMxn(
             string marca,
             decimal precioCatalogo,
             string monedaOriginal,
             decimal tipoCambio,
-            decimal factorA,   // utilidadEmpresa% para TRANE, margen% para otros
-            decimal factorB)   // utilidadVendedor% para TRANE, 0 para otros
+            decimal factorA,    
+            decimal factorB)    
         {
             decimal precioMxn;
 
@@ -71,41 +67,26 @@
             return Math.Round(precioMxn, 2);
         }
 
-        /// <summary>
-        /// Convierte un monto MXN a USD.
-        /// </summary>
+       
         public static decimal ConvertirMxnAUsd(decimal montoMxn, decimal tipoCambio)
         {
             return tipoCambio > 0 ? Math.Round(montoMxn / tipoCambio, 2) : 0;
         }
 
-        /// <summary>
-        /// Convierte un monto USD a MXN.
-        /// </summary>
+       
         public static decimal ConvertirUsdAMxn(decimal montoUsd, decimal tipoCambio)
         {
             return Math.Round(montoUsd * tipoCambio, 2);
         }
-
-        /// <summary>
-        /// Calcula el recargo por ciudad foránea.
-        /// </summary>
         public static decimal CalcularRecargoCiudad(decimal subtotalEquipos, decimal porcentajeCiudad)
         {
             return Math.Round(subtotalEquipos * porcentajeCiudad / 100, 2);
         }
 
-        /// <summary>
-        /// Calcula el IVA sobre un subtotal.
-        /// </summary>
         public static decimal CalcularIva(decimal subtotal)
         {
             return Math.Round(subtotal * IVA_PORCENTAJE, 2);
         }
-
-        /// <summary>
-        /// Calcula el total (subtotal + IVA).
-        /// </summary>
         public static decimal CalcularTotal(decimal subtotal)
         {
             return Math.Round(subtotal + CalcularIva(subtotal), 2);
