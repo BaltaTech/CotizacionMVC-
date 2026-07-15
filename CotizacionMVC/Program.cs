@@ -31,6 +31,7 @@ builder.Services.AddSignalR();
 
 // ========== Servicios de infraestructura ==========
 builder.Services.AddScoped<NotificacionServicio>();
+builder.Services.AddHostedService<RecordatorioBackgroundService>();
 
 // ========== Servicios de aplicación ==========
 builder.Services.AddScoped<IDocumento, PdfCotizacion>();
@@ -40,6 +41,7 @@ builder.Services.AddScoped<ICotizacionServicio, CotizacionServicio>();
 builder.Services.AddScoped<IEquipoServicio, EquipoServicio>();
 builder.Services.AddScoped<IRecepcionServicio, RecepcionServicio>();
 builder.Services.AddScoped<ISeguimientoServicio, SeguimientoServicio>();
+builder.Services.AddScoped<IInstalacionServicio, InstalacionServicio>();
 
 // ========== Repositorios ==========
 builder.Services.AddScoped<ICotizacionRepository, CotizacionRepository>();
@@ -91,15 +93,23 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-// ========== Cargar datos iniciales e importar equipos ==========
+// ========== Cargar datos iniciales e importaciones ==========
 using (var scope = app.Services.CreateScope())
 {
     var servicios = scope.ServiceProvider;
     await CargadorDatosIniciales.CargarAsync(servicios);
 
     var context = servicios.GetRequiredService<ApplicationDbContext>();
-    var rutaCsv = @"C:\Users\Airey\source\repos\CotizacionMVC\CotizacionMVC\equipos.csv";
-    await ImportadorEquipos.ImportarDesdeCsvAsync(context, rutaCsv);
+
+    // Importar instalaciones (solo primera vez)
+    if (!await context.Instalaciones.AnyAsync())
+    {
+        var rutaCsvServicios = @"C:\Users\Airey\source\repos\CotizacionMVC\CotizacionMVC\servicios.csv";
+        if (File.Exists(rutaCsvServicios))
+        {
+            await ImportadorInstalaciones.ImportarDesdeCsvAsync(context, rutaCsvServicios);
+        }
+    }
 }
 
 // Configure the HTTP request pipeline.

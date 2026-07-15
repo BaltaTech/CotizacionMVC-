@@ -19,6 +19,7 @@ namespace CotizacionMVC.Data
         public DbSet<Seguimiento> Seguimientos { get; set; }
         public DbSet<Lead> Leads { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<Notificacion> Notificaciones { get; set; }
 
         protected override void OnModelCreating(ModelBuilder constructorModelos)
         {
@@ -32,8 +33,24 @@ namespace CotizacionMVC.Data
             ConfigurarItemInstalacion(constructorModelos);
             ConfigurarSeguimiento(constructorModelos);
             ConfigurarLead(constructorModelos);
+            ConfigurarNotificacion(constructorModelos);
         }
+        private void ConfigurarNotificacion(ModelBuilder constructorModelos)
+        {
+            constructorModelos.Entity<Notificacion>(entidad =>
+            {
+                entidad.ToTable("Notificaciones");
+                entidad.HasKey(n => n.Id);
 
+                entidad.Property(n => n.Titulo).IsRequired().HasMaxLength(200);
+                entidad.Property(n => n.Mensaje).IsRequired().HasMaxLength(500);
+                entidad.Property(n => n.Tipo).IsRequired().HasMaxLength(20);
+                entidad.Property(n => n.Url).HasMaxLength(500);
+
+                entidad.HasIndex(n => n.UsuarioId);
+                entidad.HasIndex(n => new { n.UsuarioId, n.Leida });
+            });
+        }
         private void ConfigurarEmpresa(ModelBuilder constructorModelos)
         {
             constructorModelos.Entity<Empresa>(entidad =>
