@@ -15,5 +15,8 @@ namespace CotizacionMVC.Servicios.Aplicacion.Dtos.Equipo
         public string MonedaOriginal { get; set; } = string.Empty;
         public bool Activo { get; set; }
         public DateTime FechaCreacion { get; set; }
+        public string Sistema { get; set; } = string.Empty;
+        public string Modo { get; set; } = string.Empty;
+        public string? Descripcion { get; set; }
     }
 }

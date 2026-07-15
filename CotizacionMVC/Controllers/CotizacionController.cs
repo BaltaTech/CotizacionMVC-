@@ -90,7 +90,6 @@ namespace CotizacionMVC.Controllers
         }
 
         // GET: Cotizacion/Crear
-        // GET: Cotizacion/Crear
         public async Task<IActionResult> Crear(Guid? leadId = null)
         {
             var usuarioActual = await _userManager.GetUserAsync(User);
@@ -103,22 +102,58 @@ namespace CotizacionMVC.Controllers
 
             if (datos.Lead != null)
             {
-                // MODO LEAD: solo este cliente, sin dropdown
                 viewModel.LeadId = datos.Lead.Id;
                 viewModel.ClienteId = datos.Lead.ClienteId.GetValueOrDefault();
-
                 ViewBag.ModoLead = true;
                 ViewBag.Lead = datos.Lead;
             }
             else
             {
-                // MODO NORMAL: dropdown con todos los clientes
                 ViewBag.ModoLead = false;
                 ViewBag.Clientes = datos.Clientes;
             }
 
             ViewBag.Equipos = datos.Equipos;
             ViewBag.Instalaciones = datos.Instalaciones;
+
+            // ========== Catálogo lateral: filtrar por empresa ==========
+            Guid? empresaId = null;
+
+            if (datos.Lead?.EmpresaId != null)
+            {
+                empresaId = datos.Lead.EmpresaId.Value;
+            }
+            else
+            {
+                var empresaIdString = HttpContext.Session.GetString("EmpresaActivaId");
+                if (!string.IsNullOrEmpty(empresaIdString))
+                    empresaId = Guid.Parse(empresaIdString);
+            }
+
+            if (empresaId.HasValue)
+            {
+                var empresa = await _empresaRepo.GetByIdAsync(empresaId.Value);
+                if (empresa != null && empresa.EsExclusivaTrane)
+                {
+                    ViewBag.Marcas = new List<TipoMarca> { TipoMarca.Trane };
+                }
+                else
+                {
+                    ViewBag.Marcas = Enum.GetValues(typeof(TipoMarca))
+                        .Cast<TipoMarca>()
+                        .Where(m => m != TipoMarca.Otro)
+                        .ToList();
+                }
+            }
+            else
+            {
+                ViewBag.Marcas = Enum.GetValues(typeof(TipoMarca))
+                    .Cast<TipoMarca>()
+                    .Where(m => m != TipoMarca.Otro)
+                    .ToList();
+            }
+
+            ViewBag.MarcaSeleccionada = ViewBag.Marcas.Count == 1 ? ViewBag.Marcas[0] : (TipoMarca?)null;
 
             return View(viewModel);
         }

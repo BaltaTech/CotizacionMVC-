@@ -12,5 +12,8 @@ namespace CotizacionMVC.Servicios.Aplicacion.Dtos.Equipo
         public string? Tecnologia { get; set; }
         public decimal PrecioBase { get; set; }
         public string MonedaOriginal { get; set; } = string.Empty;
+        public string Sistema { get; set; } = string.Empty;
+        public string Modo { get; set; } = string.Empty;
+        public string? Descripcion { get; set; }
     }
 }

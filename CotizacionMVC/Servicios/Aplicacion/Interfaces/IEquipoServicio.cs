@@ -1,4 +1,5 @@
-﻿using CotizacionMVC.Servicios.Aplicacion.Dtos.Equipo;
+﻿using CotizacionMVC.Models.Enums;
+using CotizacionMVC.Servicios.Aplicacion.Dtos.Equipo;
 
 namespace CotizacionMVC.Servicios.Aplicacion.Interfaces
 {
@@ -9,5 +10,9 @@ namespace CotizacionMVC.Servicios.Aplicacion.Interfaces
         Task<EquipoDetalleDto> CrearAsync(CrearEquipoDto dto);
         Task<EquipoDetalleDto> ActualizarAsync(ActualizarEquipoDto dto);
         Task<EliminarEquipoResultado> EliminarAsync(Guid id);
+        Task<IReadOnlyList<string>> ObtenerSistemasAsync();
+        Task<IReadOnlyList<string>> ObtenerModosPorSistemaAsync(string sistema);
+        Task<IReadOnlyList<EquipoResumenDto>> ObtenerPorSistemaYModoAsync(string sistema, string modo);
+        Task<IReadOnlyList<string>> ObtenerSistemasPorMarcaAsync(TipoMarca marca);
     }
 }

@@ -26,7 +26,7 @@ namespace CotizacionMVC.Tests.Pruebas_Integracion
             var empresa = new Empresa("Test", null, "test", false, "MXN", 30, 5, "5512345678", "a@a.com");
             var cliente = new Cliente("Cliente", new Contacto("5512345678", null, null, null));
             var vendedor = new Usuario("Vendedor", "v@v.com");
-            var equipo = new Equipo(TipoMarca.Trane, "XR14", 2.5m, 1000m, "USD");
+            var equipo = new Equipo(TipoMarca.Trane, "XR14", 2.5m, 1000m, "USD", "Precedent", "Cooling Only", "Standard Efficiency");
 
             var cotizacion = new Cotizacion("COT-0001", cliente, empresa, vendedor, 100m, "Contado");
 
@@ -50,7 +50,7 @@ namespace CotizacionMVC.Tests.Pruebas_Integracion
             var empresa = new Empresa("Test", null, "test", false, "MXN", 30, 5, "5512345678", "a@a.com");
             var cliente = new Cliente("Cliente", new Contacto("5512345678", null, null, null));
             var vendedor = new Usuario("Vendedor", "v@v.com");
-            var equipo = new Equipo(TipoMarca.Trane, "XR14", 2.5m, 1000m, "USD");
+            var equipo = new Equipo(TipoMarca.Trane, "XR14", 2.5m, 1000m, "USD", "Precedent", "Cooling Only", "Standard Efficiency");
 
             contexto.Empresas.Add(empresa);
             contexto.Clientes.Add(cliente);
@@ -103,7 +103,7 @@ namespace CotizacionMVC.Tests.Pruebas_Integracion
             var empresa = new Empresa("Test", null, "test", false, "MXN", 30, 5, "5512345678", "a@a.com");
             var cliente = new Cliente("Cliente", new Contacto("5512345678", null, null, null));
             var vendedor = new Usuario("Vendedor", "v@v.com");
-            var equipo = new Equipo(TipoMarca.Trane, "XR14", 2.5m, 1000m, "USD");
+            var equipo = new Equipo(TipoMarca.Trane, "XR14", 2.5m, 1000m, "USD", "Precedent", "Cooling Only", "Standard Efficiency");
 
             var cotizacion = new Cotizacion("COT-0001", cliente, empresa, vendedor, 100m, "Contado");
 

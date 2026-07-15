@@ -10,15 +10,9 @@
         public static readonly string[] MARCAS_USD = { "TRANE", "YORK" };
         public static readonly string[] MONEDAS_VALIDAS = { "MXN", "USD" };
 
-        public static int CalcularNumeroSecuencia(string prefijo, int ultimoNumero)
-        {
-            return ultimoNumero + 1;
-        }
+        public static int CalcularNumeroSecuencia(string prefijo, int ultimoNumero) => ultimoNumero + 1;
 
-        public static string FormatearNumeroCotizacion(string prefijo, int numero)
-        {
-            return $"{prefijo}-{numero:D3}";
-        }
+        public static string FormatearNumeroCotizacion(string prefijo, int numero) => $"{prefijo}-{numero:D3}";
 
         public static decimal CalcularCargaTermicaRecomendada(decimal metrosCuadrados, decimal factorAjuste = 1)
         {
@@ -37,6 +31,84 @@
                 "industrial" => 1.50m,
                 _ => 1.0m
             };
+        }
+
+        // ========== CÁLCULO DE PRECIO POR MARCA ==========
+
+        /// <summary>
+        /// Calcula el precio unitario en MXN según la marca y factores ajustables.
+        /// </summary>
+        public static decimal CalcularPrecioUnitarioMxn(
+            string marca,
+            decimal precioCatalogo,
+            string monedaOriginal,
+            decimal tipoCambio,
+            decimal factorA,   // utilidadEmpresa% para TRANE, margen% para otros
+            decimal factorB)   // utilidadVendedor% para TRANE, 0 para otros
+        {
+            decimal precioMxn;
+
+            switch (marca.ToUpper())
+            {
+                case "TRANE":
+                    // Precio USD × tipoCambio × (1 + factorA/100) × (1 + factorB/100)
+                    var precioUsd = precioCatalogo * (1 + factorA / 100) * (1 + factorB / 100);
+                    precioMxn = precioUsd * tipoCambio;
+                    break;
+
+                case "YORK":
+                    // Precio USD × tipoCambio × (1 + factorA/100)
+                    var precioYorkUsd = precioCatalogo * (1 + factorA / 100);
+                    precioMxn = precioYorkUsd * tipoCambio;
+                    break;
+
+                default:
+                    // TCL, HISENSE, etc. Precio MXN × (1 + factorA/100)
+                    precioMxn = precioCatalogo * (1 + factorA / 100);
+                    break;
+            }
+
+            return Math.Round(precioMxn, 2);
+        }
+
+        /// <summary>
+        /// Convierte un monto MXN a USD.
+        /// </summary>
+        public static decimal ConvertirMxnAUsd(decimal montoMxn, decimal tipoCambio)
+        {
+            return tipoCambio > 0 ? Math.Round(montoMxn / tipoCambio, 2) : 0;
+        }
+
+        /// <summary>
+        /// Convierte un monto USD a MXN.
+        /// </summary>
+        public static decimal ConvertirUsdAMxn(decimal montoUsd, decimal tipoCambio)
+        {
+            return Math.Round(montoUsd * tipoCambio, 2);
+        }
+
+        /// <summary>
+        /// Calcula el recargo por ciudad foránea.
+        /// </summary>
+        public static decimal CalcularRecargoCiudad(decimal subtotalEquipos, decimal porcentajeCiudad)
+        {
+            return Math.Round(subtotalEquipos * porcentajeCiudad / 100, 2);
+        }
+
+        /// <summary>
+        /// Calcula el IVA sobre un subtotal.
+        /// </summary>
+        public static decimal CalcularIva(decimal subtotal)
+        {
+            return Math.Round(subtotal * IVA_PORCENTAJE, 2);
+        }
+
+        /// <summary>
+        /// Calcula el total (subtotal + IVA).
+        /// </summary>
+        public static decimal CalcularTotal(decimal subtotal)
+        {
+            return Math.Round(subtotal + CalcularIva(subtotal), 2);
         }
     }
 }

@@ -255,7 +255,8 @@ namespace CotizacionMVC.Servicios.Aplicacion
             try
             {
                 cotizacion = new Cotizacion(numeroCotizacion, cliente, empresa, vendedor,
-                    dto.AreaMetrosCuadrados, dto.CondicionesPago);
+     dto.AreaMetrosCuadrados, dto.CondicionesPago,
+     dto.TipoCambio, dto.RecargoCiudadPorcentaje);
             }
             catch (ArgumentException ex)
             {

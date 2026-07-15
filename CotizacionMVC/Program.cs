@@ -1,4 +1,5 @@
-﻿using CotizacionMVC.Data;
+﻿using CotizacionMVC.Data.Importadores;
+using CotizacionMVC.Data;
 using CotizacionMVC.Data.CargaDatos;
 using CotizacionMVC.Data.Repositorios.Implementaciones;
 using CotizacionMVC.Data.Repositorios.Interfaces;
@@ -6,8 +7,8 @@ using CotizacionMVC.Hubs;
 using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Servicios;
 using CotizacionMVC.Servicios.Aplicacion;
-using CotizacionMVC.Servicios.Infraestructura;
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
+using CotizacionMVC.Servicios.Infraestructura;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
@@ -39,15 +40,14 @@ builder.Services.AddScoped<ICotizacionServicio, CotizacionServicio>();
 builder.Services.AddScoped<IEquipoServicio, EquipoServicio>();
 builder.Services.AddScoped<IRecepcionServicio, RecepcionServicio>();
 builder.Services.AddScoped<ISeguimientoServicio, SeguimientoServicio>();
+
 // ========== Repositorios ==========
 builder.Services.AddScoped<ICotizacionRepository, CotizacionRepository>();
 builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
 builder.Services.AddScoped<IEquipoRepository, EquipoRepository>();
 builder.Services.AddScoped<IInstalacionRepository, InstalacionRepository>();
 builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
-
 builder.Services.AddScoped<ISeguimientoRepository, SeguimientoRepository>();
-
 
 // Registrar el DbContext con PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(opciones =>
@@ -91,11 +91,15 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-// ========== Cargar datos iniciales (roles y admin) ==========
+// ========== Cargar datos iniciales e importar equipos ==========
 using (var scope = app.Services.CreateScope())
 {
     var servicios = scope.ServiceProvider;
     await CargadorDatosIniciales.CargarAsync(servicios);
+
+    var context = servicios.GetRequiredService<ApplicationDbContext>();
+    var rutaCsv = @"C:\Users\Airey\source\repos\CotizacionMVC\CotizacionMVC\equipos.csv";
+    await ImportadorEquipos.ImportarDesdeCsvAsync(context, rutaCsv);
 }
 
 // Configure the HTTP request pipeline.
@@ -110,11 +114,10 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// ========== Primero autenticación, luego autorización ==========
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseSession(); // Para el selector de empresa
+app.UseSession();
 
 app.MapControllerRoute(
     name: "default",
