@@ -4,68 +4,89 @@
     ViewData["Title"] = "Clientes";
 }
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-users"></i> Clientes</h1>
-        <a asp-action="Crear" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Nuevo Cliente
-        </a>
+<div class="clientes-container">
+    
+    @* ========== HEADER ========== *@
+    <div class="page-header">
+        <div class="header-content">
+            <div>
+                <h1 class="page-title">Clientes</h1>
+                <p class="page-subtitle">@(Model.Clientes.Any() ? $"{Model.Clientes.Count()} clientes registrados" : "Administra tu cartera de clientes")</p>
+            </div>
+            <a asp-action="Crear" class="btn-primary-custom">
+                <i class="fas fa-plus me-2"></i>Nuevo Cliente
+            </a>
+        </div>
     </div>
 
+    @* ========== ALERTS ========== *@
     @if (TempData["MensajeExito"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle"></i> @TempData["MensajeExito"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="alert-custom alert-success-custom">
+            <div class="alert-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="alert-content">
+                <span>@TempData["MensajeExito"]</span>
+            </div>
+            <button type="button" class="alert-close" data-bs-dismiss="alert">&times;</button>
         </div>
     }
-
     @if (TempData["MensajeError"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle"></i> @TempData["MensajeError"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="alert-custom alert-error-custom">
+            <div class="alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="alert-content">
+                <span>@TempData["MensajeError"]</span>
+            </div>
+            <button type="button" class="alert-close" data-bs-dismiss="alert">&times;</button>
         </div>
     }
 
-    <!-- Búsqueda -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="get" asp-action="Indice" class="row g-3">
-                <div class="col-md-10">
-                    <input type="text" name="termino" class="form-control"
-                           placeholder="Buscar por nombre, teléfono o email..."
-                           value="@Model.TerminoBusqueda" />
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-search"></i> Buscar
-                    </button>
-                </div>
-            </form>
-        </div>
+    @* ========== SEARCH BAR ========== *@
+    <div class="search-section">
+        <form method="get" asp-action="Indice" class="search-form">
+            <div class="search-input-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text"
+                       name="termino"
+                       class="search-input"
+                       placeholder="Buscar por nombre, teléfono o correo..."
+                       value="@Model.TerminoBusqueda" />
+                @if (!string.IsNullOrEmpty(Model.TerminoBusqueda))
+                {
+                    <a asp-action="Indice" class="search-clear" title="Limpiar búsqueda">
+                        <i class="fas fa-times"></i>
+                    </a>
+                }
+            </div>
+            <button type="submit" class="btn-search">Buscar</button>
+        </form>
     </div>
 
+    @* ========== EMPTY STATE ========== *@
     @if (!Model.Clientes.Any())
     {
-        <div class="alert alert-info text-center">
-            <i class="fas fa-info-circle"></i> No hay clientes registrados.
-            <br />
-            <a asp-action="Crear" class="btn btn-primary mt-2">Registrar el primer cliente</a>
+        <div class="empty-state-full">
+            <div class="empty-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3 class="empty-title">No hay clientes registrados</h3>
+            <p class="empty-description">Comienza registrando tu primer cliente para empezar a cotizar.</p>
+            <a asp-action="Crear" class="btn-primary-custom mt-3">
+                <i class="fas fa-plus me-2"></i>Registrar primer cliente
+            </a>
         </div>
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
+        @* ========== TABLE ========== *@
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
                     <tr>
-                        <th>Nombre</th>
-                        <th>Empresa</th>
-                        <th>Teléfono</th>
-                        <th>Email</th>
-                        <th>Cotizaciones</th>
-                        <th>Acciones</th>
+                        <th>Cliente</th>
+                        <th>Contacto</th>
+                        <th class="text-center">Cotizaciones</th>
+                        <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -73,66 +94,460 @@
                     {
                         <tr>
                             <td>
-                                <strong>@cliente.Nombre</strong>
+                                <div class="cliente-info">
+                                    <div class="cliente-avatar">
+                                        @cliente.Nombre.Substring(0, 1).ToUpper()
+                                    </div>
+                                    <div>
+                                        <div class="cliente-nombre">@cliente.Nombre</div>
+                                        @if (!string.IsNullOrWhiteSpace(cliente.Empresa))
+                                        {
+                                            <div class="cliente-empresa">@cliente.Empresa</div>
+                                        }
+                                    </div>
+                                </div>
                             </td>
                             <td>
-                                @if (!string.IsNullOrWhiteSpace(cliente.Empresa))
-                                {
-                                    @cliente.Empresa
-                                }
-                                else
-                                {
-                                    <span class="text-muted">—</span>
-                                }
+                                <div class="contacto-info">
+                                    @if (!string.IsNullOrWhiteSpace(cliente.Telefono))
+                                    {
+                                        <div class="contacto-item">
+                                            <i class="fas fa-phone-alt"></i>
+                                            <span>@cliente.Telefono</span>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(cliente.Correo))
+                                    {
+                                        <div class="contacto-item">
+                                            <i class="fas fa-envelope"></i>
+                                            <a href="mailto:@cliente.Correo">@cliente.Correo</a>
+                                        </div>
+                                    }
+                                    @if (string.IsNullOrWhiteSpace(cliente.Telefono) && string.IsNullOrWhiteSpace(cliente.Correo))
+                                    {
+                                        <span class="text-muted">Sin contacto</span>
+                                    }
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="cotizacion-badge">@cliente.CantidadCotizaciones</span>
                             </td>
                             <td>
-                                @if (!string.IsNullOrWhiteSpace(cliente.Telefono))
-                                {
-                                    @cliente.Telefono
-                                }
-                                else
-                                {
-                                    <span class="text-muted">—</span>
-                                }
-                            </td>
-                            <td>
-                                @if (!string.IsNullOrWhiteSpace(cliente.Correo))
-                                {
-                                    <a href="mailto:@cliente.Correo">@cliente.Correo</a>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">—</span>
-                                }
-                            </td>
-                            <td>
-                                <span class="badge bg-info">@cliente.CantidadCotizaciones</span>
-                            </td>
-                            <td>
-                                <a asp-action="Detalles" asp-route-id="@cliente.Id"
-                                       class="btn btn-sm btn-info" title="Detalles">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a asp-action="Editar" asp-route-id="@cliente.Id"
-                                       class="btn btn-sm btn-warning" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                @if (User.IsInRole("Administrador"))
-                                {
-                                    <a asp-action="Eliminar" asp-route-id="@cliente.Id"
-                                           class="btn btn-sm btn-danger" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
+                                <div class="action-buttons">
+                                    <a asp-action="Detalles" asp-route-id="@cliente.Id"
+                                           class="btn-icon" title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
                                     </a>
-                                }
+                                    <a asp-action="Editar" asp-route-id="@cliente.Id"
+                                           class="btn-icon" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    @if (User.IsInRole("Administrador"))
+                                    {
+                                        <a asp-action="Eliminar" asp-route-id="@cliente.Id"
+                                               class="btn-icon btn-icon-danger" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
+
+        @* ========== FOOTER ========== *@
+        <div class="table-footer">
+            <span>@Model.Clientes.Count() cliente(s)</span>
+        </div>
     }
 </div>
 
 @section Styles {
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        /* ===== CONTAINER ===== */
+        .clientes-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        /* ===== HEADER ===== */
+        .page-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-subtitle {
+            font-size: 0.85rem;
+            color: #888;
+            margin: 0;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn-primary-custom {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.6rem 1.5rem;
+            background: #c62828;
+            color: white;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+            .btn-primary-custom:hover {
+                background: #b71c1c;
+                color: white;
+                box-shadow: 0 4px 12px rgba(198,40,40,0.3);
+                transform: translateY(-1px);
+            }
+
+        /* ===== ALERTS ===== */
+        .alert-custom {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border: 1px solid;
+            font-size: 0.9rem;
+        }
+
+        .alert-success-custom {
+            background: #f1f8f4;
+            border-color: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .alert-error-custom {
+            background: #fef3f2;
+            border-color: #ffcdd2;
+            color: #c62828;
+        }
+
+        .alert-icon {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            opacity: 0.6;
+            color: inherit;
+            padding: 0 0.25rem;
+        }
+
+            .alert-close:hover {
+                opacity: 1;
+            }
+
+        /* ===== SEARCH ===== */
+        .search-section {
+            margin-bottom: 1.25rem;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.7rem 1rem 0.7rem 2.5rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #333;
+            background: white;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+            .search-input:focus {
+                outline: none;
+                border-color: #c62828;
+                box-shadow: 0 0 0 3px rgba(198,40,40,0.08);
+            }
+
+        .search-clear {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+
+            .search-clear:hover {
+                color: #666;
+            }
+
+        .btn-search {
+            padding: 0.7rem 1.5rem;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+            .btn-search:hover {
+                background: #555;
+            }
+
+        /* ===== TABLE ===== */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            overflow: hidden;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            .data-table thead {
+                background: #fafafa;
+                border-bottom: 1px solid #eee;
+            }
+
+            .data-table th {
+                padding: 0.85rem 1.25rem;
+                font-size: 0.78rem;
+                font-weight: 600;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                text-align: left;
+            }
+
+                .data-table th.text-center {
+                    text-align: center;
+                }
+
+            .data-table td {
+                padding: 1rem 1.25rem;
+                font-size: 0.9rem;
+                color: #333;
+                border-bottom: 1px solid #f5f5f5;
+                vertical-align: middle;
+            }
+
+            .data-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+            .data-table tbody tr {
+                transition: background 0.15s ease;
+            }
+
+                .data-table tbody tr:hover {
+                    background: #fafafa;
+                }
+
+        /* ===== CLIENTE INFO ===== */
+        .cliente-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .cliente-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: #fce4e4;
+            color: #c62828;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .cliente-nombre {
+            font-weight: 600;
+            color: #222;
+        }
+
+        .cliente-empresa {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        /* ===== CONTACTO ===== */
+        .contacto-info {
+            font-size: 0.85rem;
+        }
+
+        .contacto-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.15rem;
+            color: #555;
+        }
+
+            .contacto-item i {
+                font-size: 0.75rem;
+                color: #aaa;
+                width: 16px;
+                text-align: center;
+            }
+
+            .contacto-item a {
+                color: #555;
+                text-decoration: none;
+            }
+
+                .contacto-item a:hover {
+                    color: #c62828;
+                }
+
+        /* ===== COTIZACION BADGE ===== */
+        .cotizacion-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            padding: 0.3rem 0.6rem;
+            border-radius: 100px;
+            background: #e3f2fd;
+            color: #1565c0;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        /* ===== ACTION BUTTONS ===== */
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .btn-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            font-size: 0.85rem;
+        }
+
+            .btn-icon:hover {
+                background: #f5f5f5;
+                color: #333;
+            }
+
+        .btn-icon-danger:hover {
+            background: #fef3f2;
+            color: #c62828;
+        }
+
+        /* ===== TABLE FOOTER ===== */
+        .table-footer {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state-full {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #eee;
+        }
+
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: #f5f5f5;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+            color: #ccc;
+        }
+
+        .empty-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-description {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin: 0;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @@media (max-width: 768px) {
+            .search-form {
+                flex-direction: column;
+            }
+            
+            .data-table th:nth-child(2),
+            .data-table td:nth-child(2) {
+                display: none;
+            }
+        }
+    </style>
 }

@@ -5,72 +5,389 @@
     var sistemas = ViewBag.Sistemas as List<string>;
 }
 
-<div class="container-fluid px-4 py-3">
-    <h4 class="mb-3">
-        <i class="fas fa-microchip me-2" style="color: var(--color-primario, #C8102E);"></i>Catálogo de Equipos
-    </h4>
-
-    @* ===== SELECTOR DE MARCA ===== *@
-    <div class="d-flex flex-wrap gap-2 mb-4">
-        @foreach (var marca in marcas ?? new())
-        {
-            var activa = marcaSeleccionada.HasValue && marcaSeleccionada.Value == marca;
-            <a asp-action="Catalogo" asp-route-marca="@((int)marca)"
-                   class="btn @(activa ? "btn-danger" : "btn-outline-secondary") rounded-pill px-4">
-                @marca
-            </a>
-        }
+<div class="catalogo-container">
+    
+    @* ========== HEADER ========== *@
+    <div class="catalogo-header">
+        <div>
+            <h1 class="catalogo-title">Catálogo de Equipos</h1>
+            <p class="catalogo-subtitle">Selecciona marca, sistema y modo para explorar el catálogo</p>
+        </div>
+        <div class="marca-selector">
+            @foreach (var marca in marcas ?? new())
+            {
+                var activa = marcaSeleccionada.HasValue && marcaSeleccionada.Value == marca;
+                <a asp-action="Catalogo" asp-route-marca="@((int)marca)"
+                       class="marca-chip @(activa ? "active" : "")">
+                    @marca
+                </a>
+            }
+        </div>
     </div>
 
-    <div class="row g-3">
+    @* ========== PANEL PRINCIPAL ========== *@
+    <div class="catalogo-grid">
+        
         @* ===== SISTEMAS ===== *@
-        <div class="col-md-4">
-            <div class="card rounded-4 shadow-sm">
-                <div class="card-header text-white" style="background: var(--color-primario, #C8102E);">
-                    <i class="fas fa-sitemap me-2"></i>Sistemas
-                </div>
-                <div class="card-body p-2" style="max-height: 500px; overflow-y: auto;">
-                    <div class="list-group list-group-flush" id="listaSistemas">
-                        @if (sistemas != null)
-                        {
-                            foreach (var sistema in sistemas)
-                            {
-                                <button class="list-group-item list-group-item-action border-0 sistema-item"
-                                        data-sistema="@sistema">
-                                    @sistema
-                                </button>
-                            }
-                        }
+        <div class="catalogo-panel" id="panelSistemas">
+            <div class="panel-header">
+                <span class="panel-icon" style="background:#fce4e4;color:#c62828;">
+                    <i class="fas fa-sitemap"></i>
+                </span>
+                <span class="panel-label">Sistemas</span>
+                <span class="panel-hint" id="hintSistemas">@(sistemas?.Count ?? 0) disponibles</span>
+            </div>
+            <div class="panel-body scrollable">
+                @if (sistemas != null && sistemas.Any())
+                {
+                    foreach (var sistema in sistemas)
+                    {
+                        <button class="selectable-item sistema-item" data-sistema="@sistema">
+                            <span class="item-text">@sistema</span>
+                            <i class="fas fa-chevron-right item-arrow"></i>
+                        </button>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="fas fa-arrow-left mb-2"></i>
+                        <span>Selecciona una marca</span>
                     </div>
-                </div>
+                }
             </div>
         </div>
 
         @* ===== MODOS ===== *@
-        <div class="col-md-4">
-            <div class="card rounded-4 shadow-sm">
-                <div class="card-header text-white" style="background: #FF6B35;">
-                    <i class="fas fa-filter me-2"></i>Modos
-                </div>
-                <div class="card-body p-2" style="max-height: 500px; overflow-y: auto;" id="panelModos">
-                    <p class="text-muted text-center py-4">Selecciona un sistema</p>
+        <div class="catalogo-panel" id="panelModosContainer">
+            <div class="panel-header">
+                <span class="panel-icon" style="background:#fff3e0;color:#e65100;">
+                    <i class="fas fa-filter"></i>
+                </span>
+                <span class="panel-label">Modos</span>
+                <span class="panel-hint" id="hintModos"></span>
+            </div>
+            <div class="panel-body scrollable" id="panelModos">
+                <div class="empty-state muted">
+                    <i class="fas fa-arrow-left mb-2"></i>
+                    <span>Selecciona un sistema</span>
                 </div>
             </div>
         </div>
 
-        @* ===== MODELOS ===== *@
-        <div class="col-md-4">
-            <div class="card rounded-4 shadow-sm">
-                <div class="card-header text-white" style="background: #1A73E8;">
-                    <i class="fas fa-list me-2"></i>Modelos <span id="contadorModelos" class="badge bg-light text-dark ms-1"></span>
-                </div>
-                <div class="card-body p-2" style="max-height: 500px; overflow-y: auto;" id="panelModelos">
-                    <p class="text-muted text-center py-4">Selecciona un modo</p>
+        @* ===== EQUIPOS ===== *@
+        <div class="catalogo-panel catalogo-panel-wide" id="panelEquiposContainer">
+            <div class="panel-header">
+                <span class="panel-icon" style="background:#e3f2fd;color:#1565c0;">
+                    <i class="fas fa-microchip"></i>
+                </span>
+                <span class="panel-label">Equipos</span>
+                <span class="panel-hint" id="hintEquipos"></span>
+            </div>
+            <div class="panel-body scrollable" id="panelModelos">
+                <div class="empty-state muted">
+                    <i class="fas fa-arrow-left mb-2"></i>
+                    <span>Selecciona un modo</span>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Styles {
+    <style>
+        /* ===== CONTAINER ===== */
+        .catalogo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .catalogo-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .catalogo-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 0.25rem;
+        }
+
+        .catalogo-subtitle {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 1rem;
+        }
+
+        /* ===== MARCA CHIPS ===== */
+        .marca-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .marca-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1.25rem;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            background: #f5f5f5;
+            color: #555;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+            .marca-chip:hover {
+                background: #eee;
+                color: #333;
+            }
+
+            .marca-chip.active {
+                background: #c62828;
+                color: white;
+                border-color: #c62828;
+                box-shadow: 0 2px 8px rgba(198,40,40,0.25);
+            }
+
+        /* ===== GRID ===== */
+        .catalogo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 2fr;
+            gap: 1rem;
+            min-height: 480px;
+        }
+
+        /* ===== PANEL ===== */
+        .catalogo-panel {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+
+            .catalogo-panel:hover {
+                box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            }
+
+        .catalogo-panel-wide {
+            /* Ocupa el doble si se redefine el grid */;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #f0f0f0;
+            background: #fafafa;
+        }
+
+        .panel-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
+
+        .panel-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #333;
+            flex: 1;
+        }
+
+        .panel-hint {
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+
+        .panel-body {
+            flex: 1;
+            padding: 0.5rem;
+        }
+
+            .panel-body.scrollable {
+                overflow-y: auto;
+                max-height: 420px;
+            }
+
+        /* ===== SELECTABLE ITEMS ===== */
+        .selectable-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0.7rem 1rem;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #444;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: left;
+            margin-bottom: 2px;
+        }
+
+            .selectable-item:hover {
+                background: #f9f9f9;
+            }
+
+            .selectable-item.active {
+                background: #fce4e4;
+                color: #c62828;
+                font-weight: 600;
+            }
+
+        .modo-item.active {
+            background: #fff3e0;
+            color: #e65100;
+            font-weight: 600;
+        }
+
+        .item-arrow {
+            font-size: 0.7rem;
+            color: #ccc;
+            transition: transform 0.2s;
+        }
+
+        .selectable-item:hover .item-arrow {
+            transform: translateX(2px);
+            color: #999;
+        }
+
+        .selectable-item.active .item-arrow {
+            color: inherit;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 200px;
+            color: #bbb;
+            font-size: 0.85rem;
+            text-align: center;
+            padding: 2rem;
+        }
+
+            .empty-state.muted {
+                color: #ddd;
+            }
+
+            .empty-state i {
+                font-size: 1.5rem;
+                opacity: 0.5;
+            }
+
+        /* ===== EQUIPO CARD ===== */
+        .equipo-card {
+            background: white;
+            border: 1px solid #f0f0f0;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.15s ease;
+        }
+
+            .equipo-card:hover {
+                border-color: #e0e0e0;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            }
+
+        .equipo-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .equipo-modelo {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #222;
+        }
+
+        .equipo-precio {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #1565c0;
+            white-space: nowrap;
+        }
+
+        .equipo-tags {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+
+        .equipo-tag {
+            font-size: 0.72rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 100px;
+            background: #f5f5f5;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .equipo-descripcion {
+            font-size: 0.8rem;
+            color: #888;
+            line-height: 1.4;
+            margin-bottom: 0;
+        }
+
+        /* ===== SPINNER ===== */
+        .loading-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+        }
+
+            .loading-spinner .spinner-border {
+                width: 1.5rem;
+                height: 1.5rem;
+                border-width: 2px;
+            }
+
+        /* ===== SCROLLBAR ===== */
+        .panel-body.scrollable::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .panel-body.scrollable::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .panel-body.scrollable::-webkit-scrollbar-thumb {
+            background: #e0e0e0;
+            border-radius: 4px;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @@media (max-width: 768px) {
+            .catalogo-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+}
 
 @section Scripts {
     <script>
@@ -78,25 +395,30 @@
             $('.sistema-item').click(function() {
                 var sistema = $(this).data('sistema');
 
-                // Activar visual
                 $('.sistema-item').removeClass('active');
                 $(this).addClass('active');
 
-                // Cargar modos
-                $('#panelModos').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-warning"></div></div>');
-                $('#panelModelos').html('<p class="text-muted text-center py-4">Selecciona un modo</p>');
-                $('#contadorModelos').text('');
+                $('#panelModos').html('<div class="loading-spinner"><div class="spinner-border text-warning"></div></div>');
+                $('#hintModos').text('');
+                $('#panelModelos').html('<div class="empty-state muted"><i class="fas fa-arrow-left mb-2"></i><span>Selecciona un modo</span></div>');
+                $('#hintEquipos').text('');
 
                 $.get('/Equipo/ObtenerModos?sistema=' + encodeURIComponent(sistema), function(modos) {
-                    if (modos.length === 0) {
-                        $('#panelModos').html('<p class="text-muted text-center py-4">Sin modos disponibles</p>');
+                    $('#hintModos').text(modos.length + ' disponibles');
+                    
+                    if (!modos.length) {
+                        $('#panelModos').html('<div class="empty-state muted"><span>Sin modos</span></div>');
                         return;
                     }
-                    var html = '<div class="list-group list-group-flush">';
+
+                    var html = '';
                     modos.forEach(function(modo) {
-                        html += '<button class="list-group-item list-group-item-action border-0 modo-item" data-modo="' + modo + '" data-sistema="' + sistema + '">' + modo + '</button>';
+                        html += `
+                            <button class="selectable-item modo-item" data-modo="${modo}" data-sistema="${sistema}">
+                                <span class="item-text">${modo}</span>
+                                <i class="fas fa-chevron-right item-arrow"></i>
+                            </button>`;
                     });
-                    html += '</div>';
                     $('#panelModos').html(html);
                 });
             });
@@ -108,26 +430,29 @@
                 $('.modo-item').removeClass('active');
                 $(this).addClass('active');
 
-                $('#panelModelos').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>');
+                $('#panelModelos').html('<div class="loading-spinner"><div class="spinner-border text-primary"></div></div>');
 
                 $.get('/Equipo/ObtenerModelos?sistema=' + encodeURIComponent(sistema) + '&modo=' + encodeURIComponent(modo), function(equipos) {
-                    $('#contadorModelos').text(equipos.length);
-                    if (equipos.length === 0) {
-                        $('#panelModelos').html('<p class="text-muted text-center py-4">Sin equipos</p>');
+                    $('#hintEquipos').text(equipos.length + ' equipos');
+
+                    if (!equipos.length) {
+                        $('#panelModelos').html('<div class="empty-state muted"><span>Sin equipos</span></div>');
                         return;
                     }
+
                     var html = '';
                     equipos.forEach(function(eq) {
                         html += `
-                            <div class="card mb-2 border-start border-3 border-primary">
-                                <div class="card-body py-2 px-3">
-                                    <div class="d-flex justify-content-between">
-                                        <strong class="small">${eq.modelo}</strong>
-                                        <span class="badge bg-primary">${eq.monedaOriginal} ${eq.precioBase.toLocaleString()}</span>
-                                    </div>
-                                    <small class="text-muted">${eq.marcaNombre} | ${eq.capacidadToneladas} TR</small>
-                                    ${eq.descripcion ? `<br><small class="text-muted">${eq.descripcion.substring(0, 80)}...</small>` : ''}
+                            <div class="equipo-card">
+                                <div class="equipo-card-header">
+                                    <span class="equipo-modelo">${eq.modelo}</span>
+                                    <span class="equipo-precio">${eq.monedaOriginal} ${eq.precioBase.toLocaleString()}</span>
                                 </div>
+                                <div class="equipo-tags">
+                                    <span class="equipo-tag">${eq.marcaNombre}</span>
+                                    <span class="equipo-tag">${eq.capacidadToneladas} TR</span>
+                                </div>
+                                ${eq.descripcion ? `<p class="equipo-descripcion">${eq.descripcion}</p>` : ''}
                             </div>`;
                     });
                     $('#panelModelos').html(html);

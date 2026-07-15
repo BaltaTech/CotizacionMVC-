@@ -1,298 +1,415 @@
 ﻿@model CotizacionMVC.ViewModels.Cotizacion.CrearCotizacionViewModel
-
 @{
     ViewData["Title"] = "Nueva Cotización";
     var modoLead = ViewBag.ModoLead as bool? ?? false;
     var lead = ViewBag.Lead as CotizacionMVC.Servicios.Aplicacion.Dtos.Cotizacion.LeadResumenDto;
     var clientes = ViewBag.Clientes as List<CotizacionMVC.Servicios.Aplicacion.Dtos.Cotizacion.ClienteResumenDto>;
-    var instalaciones = ViewBag.Instalaciones as List<CotizacionMVC.Servicios.Aplicacion.Dtos.Cotizacion.InstalacionResumenDto>;
+    var instalacionesCatalogo = ViewBag.InstalacionesCatalogo as CotizacionMVC.ViewModels.Instalacion.InstalacionCatalogoViewModel;
 }
 
-<div class="container-fluid px-3 py-3">
-    <div class="row g-3">
-        @* ===== COLUMNA IZQUIERDA: FORMULARIO (65%) ===== *@
-        <div class="col-lg-8">
-            <form id="formCotizacion" method="post" asp-action="Crear">
-                @Html.AntiForgeryToken()
+<div class="cotizacion-layout">
+    @* ===== COLUMNA IZQUIERDA: FORMULARIO ===== *@
+    <div class="cotizacion-main">
+        <form id="formCotizacion" method="post" asp-action="Crear">
+            @Html.AntiForgeryToken()
 
-                @if (modoLead && lead != null)
-                {
-                    <input type="hidden" name="clienteId" value="@lead.ClienteId" />
-                    <input type="hidden" name="leadId" value="@lead.Id" />
-                    <div class="row g-2 mb-3">
-                        <div class="col-sm-4">
-                            <div class="border rounded-3 p-3 bg-white">
-                                <small class="text-muted text-uppercase" style="font-size:0.7rem;letter-spacing:1px;">Cliente</small>
-                                <p class="mb-0 fw-bold">@lead.ClienteNombre</p>
-                                <small class="text-muted">@lead.ClienteTelefono</small>
-                            </div>
-                        </div>
-                        <div class="col-sm-4">
-                            <div class="border rounded-3 p-3 bg-white">
-                                <small class="text-muted text-uppercase" style="font-size:0.7rem;letter-spacing:1px;">Empresa</small>
-                                <p class="mb-0 fw-bold">@lead.EmpresaNombre</p>
-                            </div>
-                        </div>
-                        <div class="col-sm-4">
-                            <div class="border rounded-3 p-3 bg-white">
-                                <small class="text-muted text-uppercase" style="font-size:0.7rem;letter-spacing:1px;">Producto</small>
-                                <p class="mb-0 fw-bold">@(lead.ProductoBusca ?? "No especificado")</p>
-                            </div>
-                        </div>
-                    </div>
-                }
-                else
-                {
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-uppercase text-muted">Cliente</label>
-                        <select id="clienteId" name="clienteId" class="form-select" required>
-                            <option value="">Seleccione un cliente...</option>
-                            @foreach (var c in clientes ?? new())
-                            {
-                                <option value="@c.Id">@c.Folio | @c.Nombre | @c.Telefono</option>
-                            }
-                        </select>
-                    </div>
-                }
-
-                <div class="row g-2 mb-3">
-                    <div class="col-sm-4">
-                        <label class="form-label fw-bold small text-uppercase text-muted">Área (m²)</label>
-                        <input asp-for="AreaMetrosCuadrados" class="form-control" value="100" step="1" />
-                        <div id="cargaTermicaInfo" class="small text-danger mt-1"></div>
-                    </div>
-                    <div class="col-sm-8">
-                        <label class="form-label fw-bold small text-uppercase text-muted">Condiciones de Pago</label>
-                        <input asp-for="CondicionesPago" class="form-control" placeholder="Ej: 50% anticipo, 50% contra entrega" />
-                    </div>
+            @* CLIENTE *@
+            @if (modoLead && lead != null)
+            {
+                <input type="hidden" name="clienteId" value="@lead.ClienteId" />
+                <input type="hidden" name="leadId" value="@lead.Id" />
+                <div class="lead-info">
+                    <div class="lead-info-item"><small>Cliente</small><strong>@lead.ClienteNombre</strong></div>
+                    <div class="lead-info-item"><small>Teléfono</small><strong>@lead.ClienteTelefono</strong></div>
+                    <div class="lead-info-item"><small>Empresa</small><strong>@lead.EmpresaNombre</strong></div>
+                    <div class="lead-info-item"><small>Producto</small><strong>@(lead.ProductoBusca ?? "No especificado")</strong></div>
                 </div>
-
-                @* PARÁMETROS DE CÁLCULO *@
-                <div class="row g-2 mb-3 bg-light p-3 rounded-3">
-                    <div class="col-sm-4">
-                        <label class="form-label small fw-bold text-muted">💱 Tipo de Cambio</label>
-                        <input type="number" id="tipoCambio" class="form-control form-control-sm" value="17.43" step="0.01" />
-                    </div>
-                    <div class="col-sm-4">
-                        <label class="form-label small fw-bold text-muted">📊 Utilidad Empresa (%)</label>
-                        <input type="number" id="utilidadEmpresa" class="form-control form-control-sm" value="18" step="0.5" />
-                    </div>
-                    <div class="col-sm-4">
-                        <label class="form-label small fw-bold text-muted">👤 Utilidad Vendedor (%)</label>
-                        <input type="number" id="utilidadVendedor" class="form-control form-control-sm" value="10" step="0.5" />
-                    </div>
-                    <div class="col-sm-4 mt-2">
-                        <label class="form-label small fw-bold text-muted">🏙️ Recargo Ciudad (%)</label>
-                        <div class="input-group input-group-sm">
-                            <input type="number" id="recargoCiudad" class="form-control" value="0" step="0.5" min="0" max="20" />
-                            <span class="input-group-text">%</span>
-                        </div>
-                    </div>
-                    <div class="col-sm-4 mt-2 d-flex align-items-end">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="toggleMoneda" />
-                            <label class="form-check-label small" for="toggleMoneda">Mostrar en USD</label>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <small class="text-muted">* Precios estimados. El cálculo final se realiza al guardar.</small>
-                    </div>
-                </div>
-
-                @* EQUIPOS *@
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0 text-uppercase" style="color:#C8102E;font-size:0.8rem;letter-spacing:1px;">
-                        <i class="fas fa-microchip me-1"></i>Equipos
-                    </h6>
-                    <span class="badge bg-danger" id="contadorEquipos">0</span>
-                </div>
-                <div class="table-responsive" style="max-height:250px;overflow-y:auto;">
-                    <table class="table table-sm table-borderless align-middle mb-0" id="tablaEquipos">
-                        <thead class="bg-light sticky-top">
-                            <tr style="font-size:0.75rem;">
-                                <th>Equipo</th><th style="width:60px;">Cant</th><th class="text-end">P.Unit</th><th class="text-end">Subtotal</th><th style="width:30px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="equiposBody">
-                            <tr><td colspan="5" class="text-center text-muted py-3 small">Selecciona equipos del catálogo lateral</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                @* INSTALACIONES *@
-                <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
-                    <h6 class="mb-0 text-uppercase" style="color:#C8102E;font-size:0.8rem;letter-spacing:1px;">
-                        <i class="fas fa-tools me-1"></i>Instalaciones
-                    </h6>
-                    <button type="button" id="btnAgregarInstalacion" class="btn btn-sm btn-outline-danger">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-                <div class="table-responsive" style="max-height:200px;overflow-y:auto;">
-                    <table class="table table-sm table-borderless align-middle mb-0" id="tablaInstalaciones">
-                        <thead class="bg-light sticky-top">
-                            <tr style="font-size:0.75rem;">
-                                <th>Concepto</th><th style="width:60px;">Cant</th><th class="text-end">C.Unit</th><th class="text-end">Subtotal</th><th style="width:30px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="instalacionesBody">
-                            <tr><td colspan="5" class="text-center text-muted py-3 small">Sin instalaciones</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                @* TOTALES *@
-                <div class="d-flex justify-content-end mt-3">
-                    <div style="width:280px;">
-                        <div class="d-flex justify-content-between small"><span>Subtotal Equipos</span><strong id="subtotalEquipos">$0.00</strong></div>
-                        <div class="d-flex justify-content-between small" id="filaRecargo" style="display:none;"><span>Recargo Ciudad</span><strong id="recargoMonto">$0.00</strong></div>
-                        <div class="d-flex justify-content-between small"><span>Instalaciones</span><strong id="subtotalInstalaciones">$0.00</strong></div>
-                        <hr class="my-1">
-                        <div class="d-flex justify-content-between small"><span>Subtotal</span><strong id="subtotal">$0.00</strong></div>
-                        <div class="d-flex justify-content-between small"><span>IVA (16%)</span><strong id="iva">$0.00</strong></div>
-                        <hr class="my-1">
-                        <div class="d-flex justify-content-between fs-5 fw-bold" style="color:#C8102E;"><span>TOTAL</span><strong id="total">$0.00</strong></div>
-                    </div>
-                </div>
-
-                <input type="hidden" asp-for="EquiposJson" id="equiposJson" />
-                <input type="hidden" asp-for="InstalacionesJson" id="instalacionesJson" />
-                <input type="hidden" name="tipoCambio" id="hiddenTipoCambio" value="17.43" />
-                <input type="hidden" name="utilidadPorcentaje" id="hiddenUtilidadEmpresa" value="18" />
-                <input type="hidden" name="utilidadVendedorPorcentaje" id="hiddenUtilidadVendedor" value="10" />
-                <input type="hidden" name="recargoCiudadPorcentaje" id="hiddenRecargoCiudad" value="0" />
-
-                <div class="d-flex justify-content-end gap-2 mt-3">
-                    <a asp-action="Indice" class="btn btn-outline-secondary">Cancelar</a>
-                    <button type="submit" class="btn btn-danger"><i class="fas fa-save me-1"></i>Guardar Cotización</button>
-                </div>
-            </form>
-        </div>
-
-        @* ===== COLUMNA DERECHA: CATÁLOGO (35%) ===== *@
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top:20px;">
-                <div class="card-header text-white rounded-top-4" style="background: linear-gradient(135deg, #C8102E, #A00D25);">
-                    <i class="fas fa-microchip me-1"></i>Catálogo de Equipos
-                </div>
-                <div class="card-body p-3">
-                    <partial name="~/Views/Equipo/_CatalogoPanel.cshtml" />
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-@* MODAL INSTALACIÓN *@
-<div class="modal fade" id="modalInstalacion" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-header text-white" style="background:#C8102E;"><h6 class="modal-title"><i class="fas fa-tools me-1"></i>Instalación</h6><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body">
-                <select id="instalacionTipoSelect" class="form-select form-select-sm mb-2">
-                    <option value="predefinida">Predefinida</option>
-                    <option value="personalizada">Personalizada</option>
-                </select>
-                <div id="instalacionPredefinidaDiv">
-                    <select id="instalacionSelect" class="form-select form-select-sm mb-2">
-                        <option value="">Seleccione...</option>
-                        @foreach (var inst in instalaciones ?? new())
+            }
+            else
+            {
+                <div class="mb-2">
+                    <label class="form-label fw-bold small text-uppercase text-muted">Cliente</label>
+                    <select id="clienteId" name="clienteId" class="form-select" required>
+                        <option value="">Seleccione un cliente...</option>
+                        @foreach (var c in clientes ?? new())
                         {
-                            <option value="@inst.Id" data-costo="@inst.CostoUnitario" data-desc="@inst.Descripcion">@inst.Concepto - $@inst.CostoUnitario</option>
+                            <option value="@c.Id">@c.Folio | @c.Nombre | @c.Telefono</option>
                         }
                     </select>
                 </div>
-                <div id="instalacionPersonalizadaDiv" style="display:none;">
-                    <input type="text" id="instConcepto" class="form-control form-control-sm mb-2" placeholder="Concepto" />
-                    <input type="text" id="instDescripcion" class="form-control form-control-sm mb-2" placeholder="Descripción" />
-                    <input type="number" id="instCostoPersonalizado" class="form-control form-control-sm mb-2" placeholder="Costo unitario" step="0.01" />
+            }
+
+            @* DATOS BÁSICOS *@
+            <div class="row g-2 mb-2">
+                <div class="col-sm-4">
+                    <label class="form-label fw-bold small text-uppercase text-muted">Área (m²)</label>
+                    <input asp-for="AreaMetrosCuadrados" class="form-control form-control-sm" value="100" step="1" />
+                    <div id="cargaTermicaInfo" class="small text-danger mt-1"></div>
                 </div>
-                <input type="number" id="instalacionCantidad" class="form-control form-control-sm" value="1" min="1" placeholder="Cantidad" />
+                <div class="col-sm-8">
+                    <label class="form-label fw-bold small text-uppercase text-muted">Condiciones de Pago</label>
+                    <input asp-for="CondicionesPago" class="form-control form-control-sm" placeholder="Ej: 50% anticipo, 50% contra entrega" />
+                </div>
             </div>
-            <div class="modal-footer"><button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" id="btnConfirmarInstalacion" class="btn btn-sm btn-danger">Agregar</button></div>
+
+            @* PARÁMETROS DE CÁLCULO *@
+            <div class="params-bar">
+                <div class="param-item">
+                    <label>💱 Tipo de Cambio</label>
+                    <input type="number" id="tipoCambio" value="17.43" step="0.01" />
+                </div>
+                <div class="param-item">
+                    <label>📊 Utilidad Empresa (%)</label>
+                    <input type="number" id="utilidadEmpresa" value="18" step="0.5" />
+                </div>
+                <div class="param-item">
+                    <label>👤 Utilidad Vendedor (%)</label>
+                    <input type="number" id="utilidadVendedor" value="10" step="0.5" />
+                </div>
+                <div class="param-item">
+                    <label>🏙️ Recargo Ciudad (%)</label>
+                    <input type="number" id="recargoCiudad" value="0" step="0.5" min="0" max="20" />
+                </div>
+                <div class="param-item param-toggle">
+                    <label class="switch">
+                        <input type="checkbox" id="toggleMoneda" />
+                        <span class="slider"></span>
+                    </label>
+                    <span class="switch-label">USD</span>
+                </div>
+            </div>
+
+            @* EQUIPOS *@
+            <div class="section-header">
+                <span><i class="fas fa-microchip"></i> Equipos</span>
+                <span class="badge" id="contadorEquipos">0</span>
+            </div>
+            <div class="table-scroll">
+                <table id="tablaEquipos">
+                    <thead><tr><th>Equipo</th><th class="w-60">Cant</th><th class="text-right">P.Unit</th><th class="text-right">Subtotal</th><th class="w-30"></th></tr></thead>
+                    <tbody id="equiposBody">
+                        <tr><td colspan="5" class="empty-row">Selecciona equipos del catálogo lateral</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            @* INSTALACIONES *@
+            <div class="section-header">
+                <span><i class="fas fa-tools"></i> Instalaciones</span>
+            </div>
+            <div class="table-scroll">
+                <table id="tablaInstalaciones">
+                    <thead><tr><th>Concepto</th><th class="w-60">Cant</th><th class="text-right">C.Unit</th><th class="text-right">Subtotal</th><th class="w-30"></th></tr></thead>
+                    <tbody id="instalacionesBody">
+                        <tr><td colspan="5" class="empty-row">Selecciona instalaciones del catálogo lateral</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            @* TOTALES *@
+            <div class="totales">
+                <div class="total-row"><span>Subtotal Equipos</span><strong id="subtotalEquipos">$0.00</strong></div>
+                <div class="total-row" id="filaRecargo" style="display:none;"><span>Recargo Ciudad</span><strong id="recargoMonto">$0.00</strong></div>
+                <div class="total-row"><span>Instalaciones</span><strong id="subtotalInstalaciones">$0.00</strong></div>
+                <hr />
+                <div class="total-row"><span>Subtotal</span><strong id="subtotal">$0.00</strong></div>
+                <div class="total-row"><span>IVA (16%)</span><strong id="iva">$0.00</strong></div>
+                <hr />
+                <div class="total-row total-final"><span>TOTAL</span><strong id="total">$0.00</strong></div>
+            </div>
+
+            <input type="hidden" asp-for="EquiposJson" id="equiposJson" />
+            <input type="hidden" asp-for="InstalacionesJson" id="instalacionesJson" />
+            <input type="hidden" name="tipoCambio" id="hiddenTipoCambio" value="17.43" />
+            <input type="hidden" name="utilidadPorcentaje" id="hiddenUtilidadEmpresa" value="18" />
+            <input type="hidden" name="utilidadVendedorPorcentaje" id="hiddenUtilidadVendedor" value="10" />
+            <input type="hidden" name="recargoCiudadPorcentaje" id="hiddenRecargoCiudad" value="0" />
+
+            <div class="form-actions">
+                <a asp-action="Indice" class="btn btn-outline-secondary btn-sm">Cancelar</a>
+                <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-save me-1"></i>Guardar Cotización</button>
+            </div>
+        </form>
+    </div>
+
+    @* ===== COLUMNA DERECHA: CATÁLOGO ===== *@
+    <div class="cotizacion-sidebar">
+        <div class="sidebar-card">
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" data-tab="panelEquipos"><i class="fas fa-microchip"></i> Equipos</button>
+                <button class="sidebar-tab" data-tab="panelInstalaciones"><i class="fas fa-tools"></i> Instalaciones</button>
+            </div>
+            <div class="sidebar-content">
+                <div class="sidebar-panel active" id="panelEquipos">
+                    <partial name="~/Views/Equipo/_CatalogoPanel.cshtml" />
+                </div>
+                <div class="sidebar-panel" id="panelInstalaciones">
+                    @if (instalacionesCatalogo != null)
+                    {
+                        <partial name="~/Views/Instalacion/_CatalogoPanel.cshtml" model="instalacionesCatalogo" />
+                    }
+                    else
+                    {
+                        <p class="text-muted small text-center py-3">Cargando catálogo...</p>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    .cotizacion-layout {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 1.25rem;
+        min-height: calc(100vh - 120px);
+    }
+    .cotizacion-main {
+        background: #fff;
+        border-radius: 1rem;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .cotizacion-sidebar {
+        position: sticky;
+        top: 80px;
+        align-self: start;
+        max-height: calc(100vh - 120px);
+    }
+    .sidebar-card {
+        background: #fff;
+        border-radius: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 120px);
+    }
+    .sidebar-tabs {
+        display: flex;
+        background: linear-gradient(135deg, #C8102E, #A00D25);
+    }
+    .sidebar-tab {
+        flex: 1;
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.7);
+        padding: 0.6rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .sidebar-tab.active {
+        color: #fff;
+        background: rgba(255,255,255,0.15);
+    }
+    .sidebar-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.75rem;
+    }
+    .sidebar-panel { display: none; }
+    .sidebar-panel.active { display: block; }
+
+    .lead-info {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    .lead-info-item {
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 0.6rem 0.75rem;
+    }
+    .lead-info-item small {
+        display: block;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+    }
+    .lead-info-item strong {
+        font-size: 0.85rem;
+        color: #212529;
+    }
+
+    .params-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 0.6rem 0.75rem;
+        margin-bottom: 1rem;
+        align-items: flex-end;
+    }
+    .param-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .param-item label {
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+    .param-item input {
+        width: 90px;
+        padding: 0.3rem 0.4rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.35rem;
+        font-size: 0.8rem;
+    }
+    .param-toggle {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 36px;
+        height: 20px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: #ccc;
+        transition: 0.3s;
+        border-radius: 20px;
+    }
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+    input:checked + .slider { background-color: #C8102E; }
+    input:checked + .slider:before { transform: translateX(16px); }
+    .switch-label { font-size: 0.7rem; font-weight: 600; color: #6c757d; }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.4rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #C8102E;
+    }
+    .section-header .badge {
+        background: #C8102E;
+        color: #fff;
+        border-radius: 20px;
+        padding: 0.15rem 0.5rem;
+        font-size: 0.65rem;
+    }
+
+    .table-scroll {
+        max-height: 180px;
+        overflow-y: auto;
+        margin-bottom: 0.75rem;
+        border: 1px solid #f1f3f5;
+        border-radius: 0.5rem;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.75rem;
+    }
+    thead {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        z-index: 1;
+    }
+    th {
+        padding: 0.4rem 0.5rem;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 1px solid #dee2e6;
+    }
+    td {
+        padding: 0.35rem 0.5rem;
+        border-bottom: 1px solid #f1f3f5;
+    }
+    .w-60 { width: 60px; }
+    .w-30 { width: 30px; }
+    .text-right { text-align: right; }
+    .empty-row {
+        text-align: center;
+        color: #adb5bd;
+        padding: 2rem !important;
+        font-size: 0.8rem;
+    }
+    table input[type="number"] {
+        width: 55px;
+        padding: 0.2rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.3rem;
+        font-size: 0.75rem;
+        text-align: center;
+    }
+
+    .totales {
+        width: 260px;
+        margin-left: auto;
+    }
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        padding: 0.15rem 0;
+    }
+    .total-final {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #C8102E;
+    }
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #f1f3f5;
+    }
+</style>
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        var equiposAgregados=[],instalacionesAgregadas=[];
-        var tipoCambio=17.43,utilidadEmpresa=18,utilidadVendedor=10,recargoCiudadPct=0,mostrarUSD=false;
-
-        function pf(p,m,marca){
-            var x=m==='USD'?p*tipoCambio:p;
-            if(marca==='TRANE')return Math.round(x*(1+utilidadEmpresa/100)*(1+utilidadVendedor/100)*100)/100;
-            if(marca==='YORK')return Math.round(x*(1+utilidadEmpresa/100)*100)/100;
-            return Math.round(x*(1+utilidadEmpresa/100)*100)/100;
-        }
-
+        var equiposAgregados=[],instalacionesAgregadas=[],tipoCambio=17.43,utilidadEmpresa=18,utilidadVendedor=10,recargoCiudadPct=0,mostrarUSD=false;
+        function pf(p,m,marca){var x=m==='USD'?p*tipoCambio:p;if(marca==='TRANE')return Math.round(x*(1+utilidadEmpresa/100)*(1+utilidadVendedor/100)*100)/100;if(marca==='YORK')return Math.round(x*(1+utilidadEmpresa/100)*100)/100;return Math.round(x*(1+utilidadEmpresa/100)*100)/100;}
         function aUSD(v){return tipoCambio>0?Math.round(v/tipoCambio*100)/100:0;}
         function fmt(v){return '$'+v.toFixed(2);}
-
-        function at(){
-            var te=0,ti=0;
-            equiposAgregados.forEach(e=>te+=e.subtotal);
-            instalacionesAgregadas.forEach(i=>ti+=i.subtotal);
-            var rc=te*recargoCiudadPct/100;
-            var s=te+rc+ti,iv=s*.16,t=s+iv;
-            if(mostrarUSD){s=aUSD(s);iv=aUSD(iv);t=aUSD(t);rc=aUSD(rc);te=aUSD(te);ti=aUSD(ti);}
-
-            $('#subtotalEquipos').text(fmt(te));
-            $('#subtotalInstalaciones').text(fmt(ti));
-            $('#subtotal').text(fmt(s));
-            $('#iva').text(fmt(iv));
-            $('#total').text(fmt(t));
-            $('#contadorEquipos').text(equiposAgregados.length);
-
-            if(recargoCiudadPct>0){
-                $('#filaRecargo').show();
-                $('#recargoMonto').text(fmt(rc));
-            }else{$('#filaRecargo').hide();}
-        }
-
-        function re(){
-            var h='';
-            if(!equiposAgregados.length)h='<tr><td colspan="5" class="text-center text-muted py-3 small">Selecciona equipos del catálogo lateral</td></tr>';
-            else equiposAgregados.forEach((e,i)=>{
-                var pu=mostrarUSD?aUSD(e.precioUnitario):e.precioUnitario;
-                var st=mostrarUSD?aUSD(e.subtotal):e.subtotal;
-                h+=`<tr><td><strong>${e.marca}</strong> <span class="text-muted">${e.modelo}</span><br><small class="text-muted">${e.capacidad} TR</small></td><td><input type="number" class="form-control form-control-sm cantidad-equipo" data-indice="${i}" value="${e.cantidad}" min="1" style="width:60px;"></td><td class="text-end small">${fmt(pu)}</td><td class="text-end small">${fmt(st)}</td><td><button class="btn btn-sm text-danger eliminar-equipo" data-indice="${i}"><i class="fas fa-times"></i></button></td></tr>`;
-            });
-            $('#equiposBody').html(h);at();
-        }
-
-        function ri(){
-            var h='';
-            if(!instalacionesAgregadas.length)h='<tr><td colspan="5" class="text-center text-muted py-3 small">Sin instalaciones</td></tr>';
-            else instalacionesAgregadas.forEach((ins,i)=>{
-                var cu=mostrarUSD?aUSD(ins.costoUnitario):ins.costoUnitario;
-                var st=mostrarUSD?aUSD(ins.subtotal):ins.subtotal;
-                h+=`<tr><td><strong>${ins.concepto}</strong><br><small class="text-muted">${ins.descripcion||''}</small></td><td><input type="number" class="form-control form-control-sm cantidad-instalacion" data-indice="${i}" value="${ins.cantidad}" min="1" style="width:60px;"></td><td class="text-end small">${fmt(cu)}</td><td class="text-end small">${fmt(st)}</td><td><button class="btn btn-sm text-danger eliminar-instalacion" data-indice="${i}"><i class="fas fa-times"></i></button></td></tr>`;
-            });
-            $('#instalacionesBody').html(h);at();
-        }
-
-        function recalcularTodo(){
-            equiposAgregados.forEach(function(eq){
-                eq.precioUnitario=pf(eq.precioBase,eq.monedaOriginal,eq.marca);
-                eq.subtotal=eq.precioUnitario*eq.cantidad;
-            });
-            re();ri();
-        }
+        function at(){var te=0,ti=0;equiposAgregados.forEach(e=>te+=e.subtotal);instalacionesAgregadas.forEach(i=>ti+=i.subtotal);var rc=te*recargoCiudadPct/100,s=te+rc+ti,iv=s*.16,t=s+iv;if(mostrarUSD){s=aUSD(s);iv=aUSD(iv);t=aUSD(t);rc=aUSD(rc);te=aUSD(te);ti=aUSD(ti);}$('#subtotalEquipos').text(fmt(te));$('#subtotalInstalaciones').text(fmt(ti));$('#subtotal').text(fmt(s));$('#iva').text(fmt(iv));$('#total').text(fmt(t));$('#contadorEquipos').text(equiposAgregados.length);if(recargoCiudadPct>0){$('#filaRecargo').show();$('#recargoMonto').text(fmt(rc));}else{$('#filaRecargo').hide();}}
+        function re(){var h='';if(!equiposAgregados.length)h='<tr><td colspan="5" class="empty-row">Selecciona equipos del catálogo lateral</td></tr>';else equiposAgregados.forEach((e,i)=>{var pu=mostrarUSD?aUSD(e.precioUnitario):e.precioUnitario,st=mostrarUSD?aUSD(e.subtotal):e.subtotal;h+=`<tr><td><strong>${e.marca}</strong> <span class="text-muted">${e.modelo}</span><br><small class="text-muted">${e.capacidad} TR</small></td><td><input type="number" class="cantidad-equipo" data-indice="${i}" value="${e.cantidad}" min="1"></td><td class="text-right">${fmt(pu)}</td><td class="text-right">${fmt(st)}</td><td><button class="btn btn-sm text-danger eliminar-equipo" data-indice="${i}"><i class="fas fa-times"></i></button></td></tr>`;});$('#equiposBody').html(h);at();}
+        function ri(){var h='';if(!instalacionesAgregadas.length)h='<tr><td colspan="5" class="empty-row">Selecciona instalaciones del catálogo lateral</td></tr>';else instalacionesAgregadas.forEach((ins,i)=>{var cu=mostrarUSD?aUSD(ins.costoUnitario):ins.costoUnitario,st=mostrarUSD?aUSD(ins.subtotal):ins.subtotal;h+=`<tr><td><strong>${ins.concepto}</strong><br><small class="text-muted">${ins.descripcion||''}</small></td><td><input type="number" class="cantidad-instalacion" data-indice="${i}" value="${ins.cantidad}" min="1"></td><td class="text-right">${fmt(cu)}</td><td class="text-right">${fmt(st)}</td><td><button class="btn btn-sm text-danger eliminar-instalacion" data-indice="${i}"><i class="fas fa-times"></i></button></td></tr>`;});$('#instalacionesBody').html(h);at();}
+        function recalcularTodo(){equiposAgregados.forEach(eq=>{eq.precioUnitario=pf(eq.precioBase,eq.monedaOriginal,eq.marca);eq.subtotal=eq.precioUnitario*eq.cantidad;});re();ri();}
 
         $(function(){
-            $(document).on('click','.agregar-equipo-catalogo',function(){
-                var b=$(this);
-                equiposAgregados.push({
-                    equipoId:b.data('id'),marca:b.data('marca'),modelo:b.data('modelo'),
-                    capacidad:b.data('capacidad'),cantidad:1,
-                    precioBase:parseFloat(b.data('precio')),monedaOriginal:b.data('moneda'),
-                    precioUnitario:pf(parseFloat(b.data('precio')),b.data('moneda'),b.data('marca')),subtotal:0
-                });
-                equiposAgregados[equiposAgregados.length-1].subtotal=equiposAgregados[equiposAgregados.length-1].precioUnitario;
-                re();
-            });
+            // Pestañas
+            $('.sidebar-tab').click(function(){var t=$(this).data('tab');$('.sidebar-tab').removeClass('active');$(this).addClass('active');$('.sidebar-panel').removeClass('active');$('#'+t).addClass('active');});
+
+            $(document).on('click','.agregar-equipo-catalogo',function(){var b=$(this);equiposAgregados.push({equipoId:b.data('id'),marca:b.data('marca'),modelo:b.data('modelo'),capacidad:b.data('capacidad'),cantidad:1,precioBase:parseFloat(b.data('precio')),monedaOriginal:b.data('moneda'),precioUnitario:pf(parseFloat(b.data('precio')),b.data('moneda'),b.data('marca')),subtotal:0});equiposAgregados[equiposAgregados.length-1].subtotal=equiposAgregados[equiposAgregados.length-1].precioUnitario;re();});
+            $(document).on('click','.agregar-instalacion-catalogo',function(){var b=$(this);instalacionesAgregadas.push({instalacionId:b.data('id'),concepto:b.data('concepto'),descripcion:b.data('descripcion')||'',cantidad:1,costoUnitario:parseFloat(b.data('costo')),subtotal:parseFloat(b.data('costo'))});ri();});
 
             $('#tipoCambio').on('input',function(){tipoCambio=parseFloat($(this).val())||17.43;$('#hiddenTipoCambio').val(tipoCambio);recalcularTodo();});
             $('#utilidadEmpresa').on('input',function(){utilidadEmpresa=parseFloat($(this).val())||18;$('#hiddenUtilidadEmpresa').val(utilidadEmpresa);recalcularTodo();});
@@ -300,27 +417,14 @@
             $('#recargoCiudad').on('input',function(){recargoCiudadPct=parseFloat($(this).val())||0;$('#hiddenRecargoCiudad').val(recargoCiudadPct);at();});
             $('#toggleMoneda').on('change',function(){mostrarUSD=$(this).is(':checked');re();ri();});
 
-            $('#btnAgregarInstalacion').click(function(){$('#modalInstalacion').modal('show');});
-            $('#instalacionTipoSelect').change(function(){$(this).val()=='predefinida'?($('#instalacionPredefinidaDiv').show(),$('#instalacionPersonalizadaDiv').hide()):($('#instalacionPredefinidaDiv').hide(),$('#instalacionPersonalizadaDiv').show());}).trigger('change');
-            $('#instalacionSelect').change(function(){var c=$(this).find(':selected').data('costo');if(c)$('#instCostoPersonalizado').val(c);});
-            $('#btnConfirmarInstalacion').click(function(){
-                var t=$('#instalacionTipoSelect').val(),q=parseInt($('#instalacionCantidad').val())||1,iid=null,co='',de='',cc=0;
-                if(t=='predefinida'){iid=$('#instalacionSelect').val();if(!iid){alert('Seleccione instalación');return;}var s=$('#instalacionSelect').find(':selected');co=s.text().split(' - ')[0];cc=s.data('costo');de=s.data('desc')||'';}
-                else{co=$('#instConcepto').val();de=$('#instDescripcion').val();cc=parseFloat($('#instCostoPersonalizado').val());if(!co){alert('Concepto requerido');return;}if(isNaN(cc)||cc<=0){alert('Costo requerido');return;}}
-                instalacionesAgregadas.push({instalacionId:iid,concepto:co,descripcion:de,cantidad:q,costoUnitario:cc,subtotal:q*cc});ri();
-                $('#modalInstalacion').modal('hide');$('#instalacionCantidad').val(1);$('#instConcepto,#instDescripcion,#instCostoPersonalizado').val('');
-            });
-
             $('#formCotizacion').submit(function(e){
                 @if(!modoLead){<text>if(!$('#clienteId').val()){alert('Seleccione un cliente');e.preventDefault();return false;}</text>}
                 if(!equiposAgregados.length){alert('Agregue al menos un equipo');e.preventDefault();return false;}
                 $('#equiposJson').val(JSON.stringify(equiposAgregados.map(e=>({equipoId:e.equipoId,cantidad:e.cantidad}))));
                 $('#instalacionesJson').val(JSON.stringify(instalacionesAgregadas.map(i=>({instalacionId:i.instalacionId,concepto:i.concepto,descripcion:i.descripcion,cantidad:i.cantidad,costoUnitario:i.costoUnitario}))));
             });
-
             $('#areaMetrosCuadrados').on('input',function(){var a=$(this).val();if(a>0)$.get('/Cotizacion/CalcularCargaTermica',{area:a},d=>$('#cargaTermicaInfo').html('<i class="fas fa-thermometer-half"></i> '+d.tr+' TR sugeridos'));}).trigger('input');
         });
-
         $(document).on('change','.cantidad-equipo',function(){var i=$(this).data('indice'),c=parseInt($(this).val())||1;equiposAgregados[i].cantidad=c;equiposAgregados[i].subtotal=equiposAgregados[i].precioUnitario*c;re();});
         $(document).on('click','.eliminar-equipo',function(){equiposAgregados.splice($(this).data('indice'),1);re();});
         $(document).on('change','.cantidad-instalacion',function(){var i=$(this).data('indice'),c=parseInt($(this).val())||1;instalacionesAgregadas[i].cantidad=c;instalacionesAgregadas[i].subtotal=instalacionesAgregadas[i].costoUnitario*c;ri();});

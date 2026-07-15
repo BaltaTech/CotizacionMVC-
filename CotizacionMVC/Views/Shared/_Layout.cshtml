@@ -8,7 +8,6 @@
     var colorPrimario = Context.Session.GetString("EmpresaColorPrimario") ?? "#C8102E";
     var colorSecundario = Context.Session.GetString("EmpresaColorSecundario") ?? "#FFFFFF";
     
-    // Calcular variaciones del color primario
     var r = Convert.ToInt32(colorPrimario.Substring(1, 2), 16);
     var g = Convert.ToInt32(colorPrimario.Substring(3, 2), 16);
     var b = Convert.ToInt32(colorPrimario.Substring(5, 2), 16);
@@ -23,7 +22,8 @@
     var bClaro = Math.Min(255, (int)(b * 1.2 + 30));
     var colorClaro = $"#{rClaro:X2}{gClaro:X2}{bClaro:X2}";
     
-    var empresaActivaNombre = Context.Session.GetString("EmpresaActivaNombre") ?? "Todas las empresas";}
+    var empresaActivaNombre = Context.Session.GetString("EmpresaActivaNombre") ?? "Todas las empresas";
+}
 
 <!DOCTYPE html>
 <html lang="es">
@@ -32,13 +32,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - @empresaActivaNombre</title>
     
-    @* Bootstrap *@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    
-    @* Font Awesome *@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    
-    @* Estilos personalizados *@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CotizacionMVC.styles.css" asp-append-version="true" />
     
@@ -50,103 +45,306 @@
             --color-oscuro: @colorOscuro;
             --color-claro: @colorClaro;
             --color-secundario: @colorSecundario;
+            --bg-general: color-mix(in srgb, @colorPrimario 5%, #f5f5f5);
+            --bg-sidebar: color-mix(in srgb, @colorPrimario 3%, #ffffff);
+            --bg-topbar: color-mix(in srgb, @colorPrimario 2%, #fafafa);
+            --text-main: #1a1a1a;
+            --text-muted: #888;
+            --border-color: #eef0f2;
+            --sidebar-width: 240px;
+            --topbar-height: 56px;
         }
 
         body {
-            background: #F8F9FA;
+            background-color: var(--bg-general);
+            color: var(--text-main);
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            overflow: hidden;
         }
 
-        .navbar-hvac {
-            background: linear-gradient(135deg, var(--color-primario) 0%, var(--color-oscuro) 100%) !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        /* ================= LAYOUT PRINCIPAL ================= */
+        .app-wrapper {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
         }
 
-        .navbar-hvac .navbar-brand {
-            color: white !important;
-            font-weight: 700;
-            font-size: 1.3rem;
+        /* ================= SIDEBAR ================= */
+        .app-sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+            z-index: 1040;
         }
 
-        .navbar-hvac .nav-link {
-            color: rgba(255, 255, 255, 0.9) !important;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            padding: 0.5rem 1rem;
+        .sidebar-brand {
+            height: var(--topbar-height);
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+            text-decoration: none;
+        }
+
+        .sidebar-brand i {
+            color: var(--color-primario);
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+        }
+
+        .sidebar-nav {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1rem 0.75rem;
+        }
+
+        .sidebar-nav::-webkit-scrollbar { width: 3px; }
+        .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-nav::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+        .nav-section-title {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin: 1rem 0 0.5rem 0.75rem;
+        }
+
+        .sb-link {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            color: #555;
+            text-decoration: none;
+            font-size: 0.85rem;
             border-radius: 6px;
-            margin: 0 2px;
+            margin-bottom: 2px;
+            transition: background-color 0.15s ease, color 0.15s ease;
         }
 
-        .navbar-hvac .nav-link:hover {
-            color: white !important;
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
+        .sb-link i {
+            width: 20px;
+            margin-right: 0.75rem;
+            text-align: center;
+            font-size: 1rem;
+            color: #888;
+            transition: color 0.15s ease;
+        }
+
+        .sb-link:hover {
+            background-color: color-mix(in srgb, var(--color-primario) 6%, #f5f5f5);
+            color: var(--text-main);
+        }
+
+        .sb-link.active {
+            background-color: color-mix(in srgb, var(--color-primario) 12%, transparent);
+            color: var(--color-primario);
+            font-weight: 600;
+        }
+        
+        .sb-link.active i {
+            color: var(--color-primario);
+        }
+
+        .sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            background: transparent;
+        }
+
+        /* ================= MAIN AREA ================= */
+        .app-main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        /* ================= TOPBAR ================= */
+        .app-topbar {
+            height: var(--topbar-height);
+            background-color: var(--bg-topbar);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .topbar-left, .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn-menu-mobile {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .page-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text-main);
+        }
+
+        /* Notificaciones en Topbar */
+        .btn-notification {
+            background: none;
+            border: none;
+            position: relative;
+            color: #555;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background-color 0.15s ease;
+        }
+
+        .btn-notification:hover {
+            background-color: color-mix(in srgb, var(--color-primario) 6%, #f5f5f5);
+            color: var(--color-primario);
         }
 
         .badge-notificacion {
             position: absolute;
             top: 2px;
             right: 2px;
-            font-size: 0.6rem;
-            background: #FFD700 !important;
-            color: var(--color-primario) !important;
+            width: 8px;
+            height: 8px;
+            padding: 0;
+            border-radius: 50%;
+            background-color: var(--color-primario) !important;
+            color: transparent !important;
+            border: 2px solid #fff;
         }
 
-        /* Campanita de notificaciones */
-        #liNotificaciones .nav-link {
-            position: relative;
-        }
-
-        #badgeNotificaciones {
-            position: absolute;
-            top: 0px;
-            right: -2px;
-            font-size: 0.6rem;
-            background: #FFD700 !important;
-            color: var(--color-primario) !important;
-            animation: pulseBadge 2s infinite;
-        }
-
-        @@keyframes pulseBadge {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.3); }
-        }
-
-        #listaNotificaciones .dropdown-item:hover {
-            background-color: #f8f9fa;
-        }
-
-        .btn-empresa {
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .btn-empresa:hover {
-            background: rgba(255, 255, 255, 0.25);
-            color: white;
-        }
-
-        .footer-hvac {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            color: rgba(255, 255, 255, 0.7);
-            padding: 1rem 0;
+        /* Selector de Empresa */
+        .company-selector {
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
             font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+        
+        .company-selector:hover {
+            background-color: color-mix(in srgb, var(--color-primario) 4%, #ffffff);
         }
 
-        /* Toast de notificación */
+        .company-selector i:first-child {
+            color: var(--color-primario);
+        }
+
+        /* ================= CONTENIDO Y FOOTER ================= */
+        .app-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background-color: var(--bg-general);
+        }
+
+        .app-footer {
+            padding: 1rem 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            background-color: var(--bg-sidebar);
+            text-align: center;
+        }
+
+        /* ================= COLOR DE EMPRESA EN TODOS LOS COMPONENTES ================= */
+        
+        .badge.bg-danger,
+        .badge.bg-danger-subtle {
+            background-color: var(--color-primario) !important;
+        }
+
+        .btn-danger {
+            background-color: var(--color-primario) !important;
+            border-color: var(--color-primario) !important;
+        }
+
+        .btn-danger:hover {
+            background-color: color-mix(in srgb, var(--color-primario) 85%, black) !important;
+            border-color: color-mix(in srgb, var(--color-primario) 85%, black) !important;
+        }
+
+        .btn-outline-danger {
+            color: var(--color-primario);
+            border-color: var(--color-primario);
+        }
+
+        .btn-outline-danger:hover {
+            background-color: var(--color-primario);
+            border-color: var(--color-primario);
+            color: white;
+        }
+
+        .text-danger {
+            color: var(--color-primario) !important;
+        }
+
+        .bg-danger {
+            background-color: var(--color-primario) !important;
+        }
+
+        .bg-danger.bg-opacity-10 {
+            background-color: color-mix(in srgb, var(--color-primario) 10%, transparent) !important;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--color-primario) !important;
+            border-bottom-color: var(--color-primario) !important;
+        }
+
+        .progress-bar {
+            background-color: var(--color-primario) !important;
+        }
+
+        .border-primary {
+            border-color: var(--color-primario) !important;
+        }
+
+        .border-start.border-3.border-primary {
+            border-left-color: var(--color-primario) !important;
+        }
+
+        /* ================= TOAST ================= */
         .toast-notificacion {
             position: fixed;
-            top: 20px;
+            bottom: 20px;
             right: 20px;
             background: white;
-            border-left: 4px solid #28a745;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border-left: 4px solid var(--color-primario);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             padding: 15px 20px;
             border-radius: 8px;
             z-index: 99999;
             min-width: 300px;
             max-width: 400px;
+            animation: slideIn 0.3s ease-out forwards;
         }
 
         @@keyframes slideIn {
@@ -154,11 +352,24 @@
             to { transform: translateX(0); opacity: 1; }
         }
 
-        @@keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
+        .dropdown-menu {
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            padding: 0.5rem 0;
+        }
+        
+        .dropdown-item {
+            padding: 0.5rem 1rem;
+            transition: background-color 0.15s ease;
         }
 
+        .dropdown-item:hover {
+            background-color: color-mix(in srgb, var(--color-primario) 4%, #f5f5f5);
+        }
+
+        /* ================= NIEVE SUTIL ================= */
         .snowflake-container {
             position: fixed;
             top: 0;
@@ -173,7 +384,7 @@
         .snowflake {
             position: absolute;
             color: var(--color-primario);
-            opacity: 0.06;
+            opacity: 0.04;
             animation: snowflake linear infinite;
         }
 
@@ -183,27 +394,25 @@
             100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
         }
 
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: var(--color-primario); border-radius: 4px; }
-
-        /* Scrollbar para el dropdown de notificaciones */
-        #listaNotificaciones::-webkit-scrollbar { width: 4px; }
-        #listaNotificaciones::-webkit-scrollbar-track { background: transparent; }
-        #listaNotificaciones::-webkit-scrollbar-thumb { background: var(--color-primario); border-radius: 2px; }
-
-        .dropdown-header i {
-            color: var(--color-primario) !important;
-        }
-        
-        .btn-outline-danger {
-            color: var(--color-primario);
-            border-color: var(--color-primario);
-        }
-        
-        .btn-outline-danger:hover {
-            background-color: var(--color-primario);
-            color: white;
+        /* ================= RESPONSIVE ================= */
+        @@media (max-width: 768px) {
+            .app-sidebar {
+                position: fixed;
+                height: 100vh;
+                left: -240px;
+            }
+            .app-sidebar.show {
+                transform: translateX(240px);
+            }
+            .btn-menu-mobile {
+                display: block;
+            }
+            .app-content {
+                padding: 1rem;
+            }
+            .page-title {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -211,332 +420,282 @@
 
     @if (SignInManager.IsSignedIn(User))
     {
-        <header>
-            <nav class="navbar navbar-expand-lg navbar-hvac">
-                <div class="container-fluid px-4">
-                    <a class="navbar-brand d-flex align-items-center" asp-controller="Home" asp-action="Index">
-                        <i class="fas fa-wind fa-lg me-2"></i>
-                        <span>@empresaActivaNombre</span>
+        <div class="app-wrapper">
+            
+            <aside class="app-sidebar" id="sidebar">
+                <a href="@Url.Action("Index", "Home")" class="sidebar-brand">
+                    <i class="fas fa-wind"></i>
+                    <span>@empresaActivaNombre</span>
+                </a>
+                
+                <nav class="sidebar-nav">
+                    <div class="nav-section-title">Navegación</div>
+                    <a class="sb-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "active" : "")" asp-controller="Home" asp-action="Index">
+                        <i class="fas fa-home"></i> Inicio
+                    </a>
+                    <a class="sb-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Equipo" ? "active" : "")" asp-controller="Equipo" asp-action="Catalogo">
+                        <i class="fas fa-microchip"></i> Catálogo
+                    </a>
+                    <a class="sb-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Instalacion" ? "active" : "")" asp-controller="Instalacion" asp-action="Catalogo">
+                        <i class="fas fa-tools"></i> Instalaciones
+                    </a>
+                    <a class="sb-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Cliente" ? "active" : "")" asp-controller="Cliente" asp-action="Indice">
+                        <i class="fas fa-address-book"></i> Clientes
+                    </a>
+                    <a class="sb-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Cotizacion" ? "active" : "")" asp-controller="Cotizacion" asp-action="Indice">
+                        <i class="fas fa-file-invoice-dollar"></i> Cotizaciones
                     </a>
 
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarHVAC" 
-                            style="border-color: rgba(255,255,255,0.5);">
-                        <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
-                    </button>
+                    @if (User.IsInRole("Administrador") || User.IsInRole("Recepcion") || User.IsInRole("Vendedor"))
+                    {
+                        <div class="nav-section-title">Gestión</div>
+                    }
 
-                    <div class="collapse navbar-collapse" id="navbarHVAC">
-                        <ul class="navbar-nav me-auto">
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Home" asp-action="Index">
-                                    <i class="fas fa-home"></i> Inicio
-                                </a>
-                            </li>
-                           <li class="nav-item">
-    <a class="nav-link" asp-controller="Equipo" asp-action="Catalogo">
-        <i class="fas fa-microchip"></i> Catálogo
-    </a>
-</li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Cliente" asp-action="Indice">
-                                    <i class="fas fa-address-book"></i> Clientes
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Cotizacion" asp-action="Indice">
-                                    <i class="fas fa-file-invoice-dollar"></i> Cotizaciones
-                                </a>
-                            </li>
+                    @if (User.IsInRole("Administrador") || User.IsInRole("Recepcion"))
+                    {
+                        <a class="sb-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "RecepcionDashboard" ? "active" : "")" asp-controller="RecepcionDashboard" asp-action="Index">
+                            <i class="fas fa-chart-bar"></i> Dashboard
+                        </a>
+                        <a class="sb-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Recepcion" ? "active" : "")" asp-controller="Recepcion" asp-action="Indice">
+                            <i class="fas fa-headset"></i> Recepción
+                        </a>
+                    }
+                    
+                    @if (User.IsInRole("Administrador"))
+                    {
+                        <a class="sb-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Empresa" ? "active" : "")" asp-controller="Empresa" asp-action="Indice">
+                            <i class="fas fa-building"></i> Empresas
+                        </a>
+                        <a class="sb-link" asp-controller="Usuarios" asp-action="Indice">
+                            <i class="fas fa-users-cog"></i> Usuarios
+                        </a>
+                    }
 
-                            @* ========== CAMPANITA DE NOTIFICACIONES (VISIBLE PARA TODOS) ========== *@
-                            <li class="nav-item dropdown" id="liNotificaciones" style="display:none;">
-                                <a class="nav-link dropdown-toggle position-relative" href="#" 
-                                   id="dropdownNotificaciones" role="button" 
-                                   data-bs-toggle="dropdown" aria-expanded="false"
-                                   title="Notificaciones">
-                                    <i class="fas fa-bell fa-lg"></i>
-                                    <span class="badge rounded-pill" 
-                                          id="badgeNotificaciones" 
-                                          style="display:none;">0</span>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end shadow-lg p-0" 
-                                    aria-labelledby="dropdownNotificaciones" 
-                                    style="width: 360px; max-height: 420px; overflow-y: auto;">
-                                    <li>
-                                        <h6 class="dropdown-header bg-light py-2 d-flex justify-content-between align-items-center">
-                                            <span>
-                                                <i class="fas fa-bell me-2" style="color: var(--color-primario);"></i>Notificaciones
-                                            </span>
-                                            <button class="btn btn-sm btn-outline-danger" id="btnLimpiarNotificaciones" 
-                                                    style="font-size: 0.7rem;">
-                                                <i class="fas fa-check-double"></i> Limpiar
-                                            </button>
-                                        </h6>
-                                    </li>
-                                    <div id="listaNotificaciones">
-                                        <li>
-                                            <span class="dropdown-item text-muted text-center py-4">
-                                                <i class="fas fa-inbox fa-3x mb-2" style="opacity: 0.2;"></i><br>
-                                                <small>No hay notificaciones nuevas</small>
-                                            </span>
-                                        </li>
-                                    </div>
-                                    <li><hr class="dropdown-divider m-0" /></li>
-                                    <li>
-                                        <a class="dropdown-item text-center small text-muted py-2" 
-                                           asp-controller="Cotizacion" asp-action="Indice">
-                                            <i class="fas fa-list me-1"></i> Ver todas mis cotizaciones
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
+                    @if (User.IsInRole("Vendedor"))
+                    {
+                        <a class="sb-link" asp-controller="Recepcion" asp-action="Registrar">
+                            <i class="fas fa-user-plus"></i> Nuevo Cliente
+                        </a>
+                    }
+                </nav>
 
-                            @if (User.IsInRole("Administrador") || User.IsInRole("Recepcion"))
-{
-    <li class="nav-item">
-        <a class="nav-link" asp-controller="RecepcionDashboard" asp-action="Index">
-            <i class="fas fa-chart-bar"></i> Dashboard
-        </a>
-    </li>
-}
-
-                            @if (User.IsInRole("Administrador") || User.IsInRole("Recepcion"))
-                            {
-                                <li class="nav-item position-relative">
-                                    <a class="nav-link" asp-controller="Recepcion" asp-action="Indice">
-                                        <i class="fas fa-headset"></i> Recepción
-                                        <span class="badge badge-notificacion rounded-pill" id="badgePendientes" style="display:none;">0</span>
-                                    </a>
-                                </li>
-                            }
-                            @if (User.IsInRole("Administrador"))
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-controller="Empresa" asp-action="Indice">
-                                        <i class="fas fa-building"></i> Empresas
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-controller="Usuarios" asp-action="Indice">
-                                        <i class="fas fa-users-cog"></i> Usuarios
-                                    </a>
-                                </li>
-                            }
-
-                            @if (User.IsInRole("Vendedor"))
-{
-    <li class="nav-item">
-        <a class="nav-link text-white" asp-controller="Recepcion" asp-action="Registrar">
-            <i class="fas fa-user-plus"></i> Nuevo Cliente
-        </a>
-    </li>
-}
-                        </ul>
-
-                        <div class="d-flex align-items-center">
-                            @{
-                                var usuarioActual = await UserManager.GetUserAsync(User);
-                                var roles = await UserManager.GetRolesAsync(usuarioActual!);
-                                var rolActual = roles.FirstOrDefault() ?? "Usuario";
-                            }
-                            
-                            <div class="text-white me-3 d-none d-lg-block">
-                                <small style="opacity: 0.7;">
-                                    <i class="far fa-user-circle me-1"></i>@usuarioActual!.NombreCompleto
-                                </small>
-                                <span class="badge bg-white text-danger ms-1">@rolActual</span>
-                            </div>
-
-                            <div class="dropdown">
-                                <button class="btn btn-empresa dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    <i class="far fa-building me-1"></i> @empresaActivaNombre
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow">
-                                  <li><h6 class="dropdown-header">Cambiar Empresa</h6></li>
-<li>
-    <form asp-controller="Empresa" asp-action="VerTodasLasEmpresas" method="post">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-        <button type="submit" class="dropdown-item fw-bold">
-            🌐 Todas las empresas
-        </button>
-    </form>
-</li>
-<li><hr class="dropdown-divider" /></li>
-<li>
-    <form asp-controller="Empresa" asp-action="CambiarEmpresaActiva" method="post">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="empresaId" value="d7b0a6c5-e8c8-4b7e-a390-176813056c15" />
-        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-        <button type="submit" class="dropdown-item">
-            ❄️ Aire y Clima
-        </button>
-    </form>
-</li>
-<li>
-    <form asp-controller="Empresa" asp-action="CambiarEmpresaActiva" method="post">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="empresaId" value="3a7f3e5b-4d3b-407e-8003-094b20c006ee" />
-        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-        <button type="submit" class="dropdown-item">
-            🌐 Air and Weather
-        </button>
-    </form>
-</li>
-<li><hr class="dropdown-divider" /></li>
-                                    <li>
-                                        <form asp-controller="Autenticacion" asp-action="Logout" method="post">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="dropdown-item text-danger">
-                                                <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
-                                            </button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </div>
+                <div class="sidebar-footer">
+                    @{
+                        var usuarioActual = await UserManager.GetUserAsync(User);
+                        var roles = await UserManager.GetRolesAsync(usuarioActual!);
+                        var rolActual = roles.FirstOrDefault() ?? "Usuario";
+                    }
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle bg-light d-flex justify-content-center align-items-center text-secondary me-2" style="width:36px; height:36px;">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="text-truncate fw-semibold" style="font-size: 0.85rem; color: var(--text-main);">@usuarioActual!.NombreCompleto</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">@rolActual</div>
                         </div>
                     </div>
+                    
+                    <form asp-controller="Autenticacion" asp-action="Logout" method="post" class="w-100">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-light btn-sm w-100 text-start border-0" style="background-color: color-mix(in srgb, var(--color-primario) 6%, #f5f5f5);">
+                            <i class="fas fa-sign-out-alt me-2" style="color: var(--color-primario);"></i> Cerrar Sesión
+                        </button>
+                    </form>
                 </div>
-            </nav>
-        </header>
+            </aside>
+
+            <div class="app-main">
+                
+                <header class="app-topbar">
+                    <div class="topbar-left">
+                        <button class="btn-menu-mobile" onclick="document.getElementById('sidebar').classList.toggle('show')">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <h1 class="page-title">@ViewData["Title"]</h1>
+                    </div>
+
+                    <div class="topbar-right">
+                        
+                        <div class="dropdown" id="divNotificaciones">
+                            <button class="btn-notification" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notificaciones">
+                                <i class="fas fa-bell"></i>
+                                <span class="badge-notificacion" id="badgeNotificaciones" style="display:none;"></span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end p-0" style="width: 360px; max-height: 420px; overflow-y: auto;">
+                                <li>
+                                    <h6 class="dropdown-header bg-light py-2 border-bottom d-flex justify-content-between align-items-center">
+                                        <span class="text-dark"><i class="fas fa-bell me-2" style="color: var(--color-primario);"></i>Notificaciones</span>
+                                        <button class="btn btn-sm p-0 border-0 bg-transparent" onclick="marcarTodasLeidas()" style="font-size: 0.75rem; color: var(--color-primario);">
+                                            Limpiar
+                                        </button>
+                                    </h6>
+                                </li>
+                                <div id="listaNotificaciones">
+                                    <li><span class="dropdown-item text-muted text-center py-4"><small>Cargando...</small></span></li>
+                                </div>
+                            </ul>
+                        </div>
+
+                        <div class="dropdown">
+                            <button class="company-selector" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="far fa-building"></i>
+                                <span class="text-truncate" style="max-width: 150px;">@empresaActivaNombre</span>
+                                <i class="fas fa-chevron-down text-muted" style="font-size: 0.7rem;"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><h6 class="dropdown-header text-xs text-muted text-uppercase">Seleccionar Empresa</h6></li>
+                                <li>
+                                    <form asp-controller="Empresa" asp-action="VerTodasLasEmpresas" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                                        <button type="submit" class="dropdown-item fw-semibold text-dark">
+                                            <i class="fas fa-globe me-2 text-muted"></i> Todas las empresas
+                                        </button>
+                                    </form>
+                                </li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <form asp-controller="Empresa" asp-action="CambiarEmpresaActiva" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="empresaId" value="d7b0a6c5-e8c8-4b7e-a390-176813056c15" />
+                                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-snowflake me-2 text-info"></i> Aire y Clima
+                                        </button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form asp-controller="Empresa" asp-action="CambiarEmpresaActiva" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="empresaId" value="3a7f3e5b-4d3b-407e-8003-094b20c006ee" />
+                                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-cloud-sun me-2 text-warning"></i> Air and Weather
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                    </div>
+                </header>
+
+                <main role="main" class="app-content position-relative">
+                    @RenderBody()
+                </main>
+
+                <footer class="app-footer">
+                    <i class="fas fa-temperature-low me-1"></i> &copy; 2026 @empresaActivaNombre
+                </footer>
+
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="container-fluid px-4 py-3 bg-white" style="min-height: 100vh;">
+            <main role="main">
+                @RenderBody()
+            </main>
+        </div>
     }
 
-    @* Contenido principal *@
-    <div class="container-fluid px-4 py-3">
-        <main role="main">
-            @RenderBody()
-        </main>
-    </div>
-
-    @* Footer *@
-    <footer class="footer-hvac mt-auto">
-        <div class="container-fluid px-4 text-center">
-            <i class="fas fa-temperature-low me-2"></i> 
-            &copy; 2026 @empresaActivaNombre - Sistema de Cotizaciones
-        </div>
-    </footer>
-
-    @* Copos de nieve *@
     <div class="snowflake-container" id="snowflakes"></div>
 
-    @* Scripts *@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    
-    @* SignalR *@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
-    
-    @* Notificaciones *@
-    <script src="~/js/notificaciones.js" asp-append-version="true"></script>
-    
-    @* ========== PANEL DE NOTIFICACIONES INTEGRADO ========== *@
-    <script>
-        (function() {
-            var intentos = 0;
-            var maxIntentos = 50;
-            
-            function configurarPanelNotificaciones() {
-                if (typeof connection !== 'undefined' && connection.state === 'Connected') {
-                    document.getElementById('liNotificaciones').style.display = 'block';
-                    
-                    connection.on("RecibirNotificacion", function(notificacion) {
-                        agregarNotificacionAlPanel(notificacion);
-                    });
-                    
-                    console.log('✅ Panel de notificaciones configurado');
-                } else if (intentos < maxIntentos) {
-                    intentos++;
-                    setTimeout(configurarPanelNotificaciones, 200);
-                } else {
-                    document.getElementById('liNotificaciones').style.display = 'block';
-                    console.warn('⚠️ SignalR no disponible - panel sin conexión en tiempo real');
-                }
-            }
-
-            function agregarNotificacionAlPanel(notificacion) {
-                var badge = document.getElementById('badgeNotificaciones');
-                var count = parseInt(badge.textContent) || 0;
-                count++;
-                badge.textContent = count;
-                badge.style.display = 'inline-block';
-
-                var colores = {
-                    success: '#28a745',
-                    warning: '#ffc107',
-                    danger: '#dc3545',
-                    info: '#17a2b8'
-                };
-                var color = colores[notificacion.tipo] || colores.info;
-                var icono = notificacion.tipo === 'success' ? 'fa-check-circle' :
-                            notificacion.tipo === 'warning' ? 'fa-exclamation-triangle' :
-                            notificacion.tipo === 'danger' ? 'fa-times-circle' : 'fa-info-circle';
-                
-                var ahora = new Date();
-                var hora = ahora.getHours().toString().padStart(2, '0') + ':' + 
-                           ahora.getMinutes().toString().padStart(2, '0');
-                
-                var lista = document.getElementById('listaNotificaciones');
-                
-                var vacio = lista.querySelector('.text-muted.text-center');
-                if (vacio) {
-                    lista.innerHTML = '';
-                }
-                
-                var item = document.createElement('li');
-                item.style.animation = 'slideIn 0.3s ease';
-                item.innerHTML = `
-                    <a href="/Cotizacion/Indice" class="dropdown-item border-bottom py-3" 
-                       style="border-left: 4px solid ${color}; cursor: pointer;">
-                        <div class="d-flex align-items-start">
-                            <i class="fas ${icono} me-2 mt-1" style="color: ${color};"></i>
-                            <div class="flex-grow-1">
-                                <strong style="font-size: 0.85rem;">${notificacion.titulo}</strong>
-                                <p class="mb-1 small text-muted">${notificacion.mensaje}</p>
-                                <small class="text-muted">
-                                    <i class="far fa-clock me-1"></i>${hora}
-                                </small>
-                            </div>
-                        </div>
-                    </a>`;
-                
-                lista.insertBefore(item, lista.firstChild);
-                
-                var items = lista.querySelectorAll('li');
-                if (items.length > 10) {
-                    lista.removeChild(items[items.length - 1]);
-                }
-
-                if (window.navigator && window.navigator.vibrate) {
-                    window.navigator.vibrate(200);
-                }
-            }
-
-            document.addEventListener('DOMContentLoaded', function() {
-                setTimeout(configurarPanelNotificaciones, 500);
-                
-                document.addEventListener('click', function(e) {
-                    if (e.target.closest('#btnLimpiarNotificaciones')) {
-                        var badge = document.getElementById('badgeNotificaciones');
-                        badge.textContent = '0';
-                        badge.style.display = 'none';
-                        
-                        var lista = document.getElementById('listaNotificaciones');
-                        lista.innerHTML = `
-                            <li>
-                                <span class="dropdown-item text-muted text-center py-4">
-                                    <i class="fas fa-inbox fa-3x mb-2" style="opacity: 0.2;"></i><br>
-                                    <small>No hay notificaciones nuevas</small>
-                                </span>
-                            </li>`;
-                    }
-                });
-            });
-        })();
-    </script>
-    
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 
-    @* Copos de nieve animados *@
+    <script>
+        var connection = new signalR.HubConnectionBuilder()
+            .withUrl("/notificacionHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("RecibirNotificacion", function(notificacion) {
+            mostrarToast(notificacion);
+            cargarNotificaciones();
+        });
+
+        connection.start()
+            .then(function() { cargarNotificaciones(); })
+            .catch(function(err) { console.error('SignalR error:', err); });
+
+        function cargarNotificaciones() {
+            fetch('/Notificacion/MisNotificaciones')
+                .then(r => r.json())
+                .then(data => renderizarPanel(data))
+                .catch(e => console.error('Error al cargar notificaciones:', e));
+        }
+
+        function renderizarPanel(notificaciones) {
+            var badge = document.getElementById('badgeNotificaciones');
+            var lista = document.getElementById('listaNotificaciones');
+            var divNotificaciones = document.getElementById('divNotificaciones');
+
+            if(divNotificaciones) divNotificaciones.style.display = 'block';
+            
+            if(badge) {
+                badge.style.display = notificaciones.length > 0 ? 'inline-block' : 'none';
+            }
+
+            if (!notificaciones.length) {
+                lista.innerHTML = '<li><span class="dropdown-item text-muted text-center py-4"><small>No hay notificaciones nuevas</small></span></li>';
+                return;
+            }
+
+            var colores = { success: '#28a745', warning: '#ffc107', danger: '#dc3545', info: '#17a2b8' };
+            var iconos = { success: 'fa-check-circle', warning: 'fa-exclamation-triangle', danger: 'fa-times-circle', info: 'fa-info-circle' };
+
+            lista.innerHTML = notificaciones.map(n => `
+                <li>
+                    <a href="${n.url || '/Cotizacion/Indice'}" class="dropdown-item py-2"
+                       style="border-left: 3px solid ${colores[n.tipo] || colores.info}; cursor: pointer;"
+                       onclick="marcarLeida('${n.id}')">
+                        <div class="d-flex align-items-start">
+                            <i class="fas ${iconos[n.tipo] || iconos.info} me-2 mt-1" style="color: ${colores[n.tipo] || colores.info};"></i>
+                            <div class="flex-grow-1">
+                                <strong style="font-size: 0.8rem; color: #333;">${n.titulo}</strong>
+                                <p class="mb-0 text-muted" style="font-size: 0.75rem; line-height:1.2;">${n.mensaje}</p>
+                                <small class="text-muted" style="font-size: 0.65rem;">${n.fecha}</small>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+            `).join('');
+        }
+
+        function marcarLeida(id) {
+            fetch('/Notificacion/MarcarLeida?id=' + id, { method: 'POST' })
+                .then(() => cargarNotificaciones());
+        }
+
+        function marcarTodasLeidas() {
+            fetch('/Notificacion/MarcarTodasLeidas', { method: 'POST' })
+                .then(() => cargarNotificaciones());
+        }
+
+        function mostrarToast(notificacion) {
+            var colores = { success: '#28a745', warning: '#ffc107', danger: '#dc3545', info: '#17a2b8' };
+            var toast = document.createElement('div');
+            toast.className = 'toast-notificacion';
+            toast.style.borderLeftColor = colores[notificacion.tipo] || colores.info;
+            toast.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:start;">
+                    <div>
+                        <strong style="color: #1a1a1a; font-size: 0.9rem;">${notificacion.titulo}</strong>
+                        <p style="margin:4px 0 0 0; color: #555; font-size: 0.85rem;">${notificacion.mensaje}</p>
+                        <small style="color:#999; font-size: 0.75rem;">${notificacion.fecha}</small>
+                    </div>
+                    <button onclick="this.closest('.toast-notificacion').remove()" style="background:none; border:none; font-size:18px; cursor:pointer; color:#999;">×</button>
+                </div>`;
+            document.body.appendChild(toast);
+            setTimeout(function() { if (toast.parentElement) toast.remove(); }, 5000);
+        }
+    </script>
+
     <script>
         const emojis = ['❄', '❅', '❆', '✦', '✧'];
         const container = document.getElementById('snowflakes');
