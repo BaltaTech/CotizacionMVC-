@@ -1,5 +1,6 @@
 ﻿using CotizacionMVC.Data.Repositorios.Interfaces;
 using CotizacionMVC.Models.Entidades;
+using CotizacionMVC.Servicios.Aplicacion.Dtos.Cotizacion;
 using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Data.Repositorios.Implementaciones
@@ -10,9 +11,12 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
         {
         }
 
+        // ==================== QUERIES DE SOLO LECTURA ====================
+
         public async Task<Cotizacion?> ObtenerCompletaPorIdAsync(Guid id)
         {
             return await _context.Cotizaciones
+                .AsNoTracking()
                 .Include(c => c.Cliente)
                 .Include(c => c.Empresa)
                 .Include(c => c.Vendedor)
@@ -20,47 +24,68 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
                     .ThenInclude(i => i.Equipo)
                 .Include(c => c.ItemsInstalacion)
                     .ThenInclude(i => i.Instalacion)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(c => c.Id == id);
         }
 
-        public async Task<IEnumerable<Cotizacion>> ObtenerTodasConRelacionesAsync()
+        public async Task<IEnumerable<CotizacionResumenDto>> ObtenerTodasConRelacionesAsync()
         {
             return await _context.Cotizaciones
-                .Include(c => c.Cliente)
-                .Include(c => c.Empresa)
-                .Include(c => c.Vendedor)
+                .AsNoTracking()
                 .OrderByDescending(c => c.FechaCreacion)
+                .Select(c => new CotizacionResumenDto
+                {
+                    Id = c.Id,
+                    NumeroCotizacion = c.NumeroCotizacion,
+                    ClienteNombre = c.Cliente.Nombre,
+                    EmpresaNombre = c.Empresa.NombreComercial,
+                    FechaCreacion = c.FechaCreacion,
+                    Total = c.Total.Monto,
+                    Moneda = c.Empresa.MonedaBase,
+                    Estado = c.Estado
+                })
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Cotizacion>> ObtenerPorVendedorAsync(Guid vendedorId)
+        public async Task<IEnumerable<CotizacionResumenDto>> ObtenerPorVendedorAsync(Guid vendedorId)
         {
             return await _context.Cotizaciones
-                .Include(c => c.Cliente)
-                .Include(c => c.Empresa)
-                .Include(c => c.Vendedor)
+                .AsNoTracking()
                 .Where(c => c.VendedorId == vendedorId)
                 .OrderByDescending(c => c.FechaCreacion)
+                .Select(c => new CotizacionResumenDto
+                {
+                    Id = c.Id,
+                    NumeroCotizacion = c.NumeroCotizacion,
+                    ClienteNombre = c.Cliente.Nombre,
+                    EmpresaNombre = c.Empresa.NombreComercial,
+                    FechaCreacion = c.FechaCreacion,
+                    Total = c.Total.Monto,
+                    Moneda = c.Empresa.MonedaBase,
+                    Estado = c.Estado
+                })
                 .ToListAsync();
         }
 
         public async Task<string> GenerarSiguienteNumeroAsync()
         {
-            string prefijo = "COT";
-            var ultimaCotizacion = await _context.Cotizaciones
+            var ultimoNumero = await _context.Cotizaciones
+                .AsNoTracking()
                 .OrderByDescending(c => c.NumeroCotizacion)
+                .Select(c => c.NumeroCotizacion)
                 .FirstOrDefaultAsync();
 
-            int numero = 1;
-            if (ultimaCotizacion != null)
-            {
-                var partes = ultimaCotizacion.NumeroCotizacion.Split('-');
-                if (partes.Length == 2 && int.TryParse(partes[1], out int ultimoNumero))
-                    numero = ultimoNumero + 1;
-            }
+            if (string.IsNullOrEmpty(ultimoNumero))
+                return "COT-0001";
 
-            return $"{prefijo}-{numero:D4}";
+            var partes = ultimoNumero.Split('-');
+            if (partes.Length == 2 && int.TryParse(partes[1], out int numero))
+                return $"COT-{numero + 1:D4}";
+
+            return "COT-0001";
         }
+
+        // ==================== QUERIES DE ESCRITURA (SIN AsNoTracking) ====================
 
         public async Task<Cotizacion?> ObtenerConItemsAsync(Guid id)
         {

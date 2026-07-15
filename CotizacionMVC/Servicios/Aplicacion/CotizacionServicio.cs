@@ -40,31 +40,20 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
         public async Task<IReadOnlyList<CotizacionResumenDto>> ObtenerIndiceAsync(Guid? vendedorId, Guid? empresaId, bool esAdmin)
         {
-            IEnumerable<Cotizacion> cotizaciones;
+            IEnumerable<CotizacionResumenDto> cotizaciones;
 
             if (esAdmin)
                 cotizaciones = await _cotizacionRepo.ObtenerTodasConRelacionesAsync();
             else if (vendedorId.HasValue)
                 cotizaciones = await _cotizacionRepo.ObtenerPorVendedorAsync(vendedorId.Value);
             else
-                cotizaciones = new List<Cotizacion>();
+                cotizaciones = new List<CotizacionResumenDto>();
 
             if (empresaId.HasValue)
                 cotizaciones = cotizaciones.Where(c => c.EmpresaId == empresaId.Value);
 
             return cotizaciones
                 .OrderByDescending(c => c.FechaCreacion)
-                .Select(c => new CotizacionResumenDto
-                {
-                    Id = c.Id,
-                    NumeroCotizacion = c.NumeroCotizacion,
-                    ClienteNombre = c.Cliente.Nombre,
-                    EmpresaNombre = c.Empresa.NombreComercial,
-                    FechaCreacion = c.FechaCreacion,
-                    Total = c.Total.Monto,
-                    Moneda = c.Empresa.MonedaBase,
-                    Estado = c.Estado
-                })
                 .ToList();
         }
 
