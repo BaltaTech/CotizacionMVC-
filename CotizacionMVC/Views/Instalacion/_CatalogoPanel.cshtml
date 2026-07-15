@@ -1,0 +1,33 @@
+﻿@using CotizacionMVC.ViewModels.Instalacion
+@model InstalacionCatalogoViewModel
+
+<div class="instalacion-panel">
+    @foreach (var categoria in Model.Categorias)
+    {
+        <div class="mb-3">
+            <small class="text-muted fw-bold text-uppercase d-block mb-2">@categoria.Categoria</small>
+            @foreach (var item in categoria.Items)
+            {
+                <div class="d-flex justify-content-between align-items-center border-bottom py-2 px-1">
+                    <div class="small">
+                        <strong>@item.Concepto</strong>
+                        @if (!string.IsNullOrWhiteSpace(item.Descripcion))
+                        {
+                            <br /><small class="text-muted">@item.Descripcion</small>
+                        }
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success">$@item.CostoUnitario.ToString("N2")</span>
+                        <button class="btn btn-sm btn-outline-danger agregar-instalacion-catalogo"
+                                data-id="@item.Id"
+                                data-concepto="@item.Concepto"
+                                data-descripcion="@item.Descripcion"
+                                data-costo="@item.CostoUnitario">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

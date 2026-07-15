@@ -1,0 +1,131 @@
+﻿@using CotizacionMVC.ViewModels.Instalacion
+@model InstalacionCatalogoViewModel
+@{
+    ViewData["Title"] = "Catálogo de Instalaciones";
+}
+
+<div class="catalogo-instalaciones">
+    <div class="ci-topbar">
+        <h1>Catálogo de Instalaciones</h1>
+        <p>Servicios y mano de obra disponibles</p>
+    </div>
+
+    <div class="ci-grid">
+        @foreach (var categoria in Model.Categorias)
+        {
+            <div class="ci-card">
+                <div class="ci-card-header">
+                    <span>@categoria.Categoria</span>
+                    <span class="ci-badge">@categoria.Items.Count</span>
+                </div>
+                <div class="ci-card-body">
+                    @foreach (var item in categoria.Items)
+                    {
+                        <div class="ci-item">
+                            <div>
+                                <strong>@item.Concepto</strong>
+                                @if (!string.IsNullOrWhiteSpace(item.Descripcion))
+                                {
+                                    <small>@item.Descripcion</small>
+                                }
+                            </div>
+                            <span class="ci-price">$@item.CostoUnitario.ToString("N2")</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .catalogo-instalaciones {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 1.5rem 1rem;
+    }
+
+    .ci-topbar {
+        margin-bottom: 1.5rem;
+    }
+
+        .ci-topbar h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin: 0;
+        }
+
+        .ci-topbar p {
+            color: #6c757d;
+            font-size: 0.85rem;
+            margin: 0.25rem 0 0 0;
+        }
+
+    .ci-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+
+    .ci-card {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .ci-card-header {
+        background: #C8102E;
+        color: #fff;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .ci-badge {
+        background: rgba(255,255,255,0.2);
+        padding: 0.15rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+    }
+
+    .ci-card-body {
+        padding: 0.5rem 1rem;
+    }
+
+    .ci-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid #f8f9fa;
+    }
+
+        .ci-item:last-child {
+            border-bottom: none;
+        }
+
+        .ci-item strong {
+            font-size: 0.85rem;
+            color: #1a1a1a;
+            display: block;
+        }
+
+        .ci-item small {
+            font-size: 0.75rem;
+            color: #6c757d;
+            display: block;
+            margin-top: 2px;
+        }
+
+    .ci-price {
+        font-weight: 600;
+        color: #C8102E;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+</style>

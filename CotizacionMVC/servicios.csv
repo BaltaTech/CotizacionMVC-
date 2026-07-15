@@ -1,0 +1,34 @@
+Categoria,Concepto,Descripcion,CostoUnitario
+MiniSplit,Instalación Mecánica,"Tubería cobre, aislamiento, drenaje (4m)",3350
+MiniSplit,Instalación Eléctrica,"Cableado, protecciones (4m)",3350
+MiniSplit,Casa a 110V con Clavija,Protección y conexión,1080
+MiniSplit,220V Sin centro de carga,Instalación eléctrica 220V,2268
+MiniSplit,Mantenimiento,Servicio básico,1080
+MiniSplit,Diagnóstico,Revisión y evaluación,1080
+MiniSplit,"Base Metálica, Piso y Mensula",Soporte estructural,1080
+MiniSplit,Bomba Condensado Mini 110V,Bomba de Condensado Mini,3672
+MiniSplit,Bomba Condensado Mini 220V,Bomba de Condensado Mini,3348
+MiniSplit,Mantenimiento Portail,Servicio especializado,1400
+MiniSplit,Exceden Tubería,Metro adicional tubería,490
+MiniSplit,Bomba Condensado USAPUMP,Bomba de condensado universal,185
+MiniSplit,Extractor SOLER PALAU CFP300,Ventilación 300 CFM 127V,32
+MiniSplit,Extractor SOLER PALAU TD-350/125,Ventilador tubular 127V,42
+PisoTecho,Instalación Mecánica,"Tubería cobre, aislamiento (4m)",5724
+PisoTecho,Instalación Eléctrica,Cableado y protecciones (4m),3348
+PisoTecho,Mantenimiento,Servicio completo,1620
+PisoTecho,Diagnóstico,Revisión técnica,1620
+PisoTecho,"Base Metálica, Piso y Mensula",Soporte estructural,1620
+PisoTecho,Bomba Condensado,Bomba de elevación,4320
+Otros,Pastilla,Interruptor termomagnético,650
+Otros,Centro de Carga,Panel eléctrico,1026
+Otros,Desmontaje,Retiro de equipo existente,1620
+Otros,Pleno Fan and Coil,Caja de distribución,4320
+Otros,Registro Tablaroca 10x10,Registro de acceso,650
+Otros,Paso de Losa,Perforación losa concreta,650
+Otros,Recarga de gas R22,Carga de refrigerante,3564
+Otros,Recarga de gas R410,Carga de refrigerante,2484
+Otros,Mant. con Sanitizante MiniSplit,Limpieza profunda,1900
+Otros,Mant. con Sanitizante U-MATCH,Limpieza profunda,2160
+Otros,Lavado y Vacío de Sistema,Limpieza de líneas,2380
+Otros,Reparación de Fuga,Detección y reparación,2380
+Otros,Instalación Mecánica TVR,Por tonelada de refrigeración,1900
