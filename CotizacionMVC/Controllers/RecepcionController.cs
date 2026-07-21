@@ -1,73 +1,86 @@
 ﻿using CotizacionMVC.Models.Entidades;
-
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using CotizacionMVC.ViewModels.Recepcion;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+
 namespace CotizacionMVC.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Administrador,Recepcion,Vendedor")]
     public class RecepcionController : Controller
     {
         private readonly IRecepcionServicio _recepcionServicio;
         private readonly UserManager<Usuario> _userManager;
+        private readonly IAutorizacionServicio _autorizacionServicio;
 
         public RecepcionController(
             IRecepcionServicio recepcionServicio,
-            UserManager<Usuario> userManager)
+            UserManager<Usuario> userManager,
+            IAutorizacionServicio autorizacionServicio)
         {
             _recepcionServicio = recepcionServicio;
             _userManager = userManager;
+            _autorizacionServicio = autorizacionServicio;
         }
 
-        // GET: Recepcion/Registrar
         [HttpGet]
+        [Authorize(Roles = "Administrador,Recepcion,Vendedor")]
         public async Task<IActionResult> Registrar()
         {
+            var usuarioActual = await _userManager.GetUserAsync(User);
+            var esRecepcion = usuarioActual != null &&
+                (await _autorizacionServicio.EsRecepcionAsync(usuarioActual.Id) ||
+                 await _autorizacionServicio.EsAdminAsync(usuarioActual.Id));
+
             ViewBag.Empresas = await _recepcionServicio.ObtenerEmpresasAsync();
             ViewBag.Vendedores = await _recepcionServicio.ObtenerVendedoresActivosAsync();
-            ViewBag.EsRecepcion = User.IsInRole("Recepcion") || User.IsInRole("Administrador");
+            ViewBag.EsRecepcion = esRecepcion;
             return View(new RegistrarClienteViewModel());
         }
 
-        // POST: Recepcion/Registrar
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador,Recepcion,Vendedor")]
         public async Task<IActionResult> Registrar(RegistrarClienteViewModel modelo)
         {
+            var usuarioActual = await _userManager.GetUserAsync(User);
+
             if (!ModelState.IsValid)
             {
+                var esRecepcion = usuarioActual != null &&
+                    (await _autorizacionServicio.EsRecepcionAsync(usuarioActual.Id) ||
+                     await _autorizacionServicio.EsAdminAsync(usuarioActual.Id));
+
                 ViewBag.Empresas = await _recepcionServicio.ObtenerEmpresasAsync();
                 ViewBag.Vendedores = await _recepcionServicio.ObtenerVendedoresActivosAsync();
-                ViewBag.EsRecepcion = User.IsInRole("Recepcion") || User.IsInRole("Administrador");
+                ViewBag.EsRecepcion = esRecepcion;
                 return View(modelo);
             }
 
-            var usuarioActual = await _userManager.GetUserAsync(User);
-            var esRecepcion = User.IsInRole("Recepcion") || User.IsInRole("Administrador");
-
             var resultado = await _recepcionServicio.RegistrarClienteAsync(
-                modelo, usuarioActual!.Id, esRecepcion);
+                modelo, usuarioActual!.Id);
 
             if (!resultado.Exitoso)
             {
+                var esRecepcion = await _autorizacionServicio.EsRecepcionAsync(usuarioActual.Id) ||
+                                  await _autorizacionServicio.EsAdminAsync(usuarioActual.Id);
+
                 ModelState.AddModelError("", resultado.MensajeError!);
                 ViewBag.Empresas = await _recepcionServicio.ObtenerEmpresasAsync();
                 ViewBag.Vendedores = await _recepcionServicio.ObtenerVendedoresActivosAsync();
-                ViewBag.EsRecepcion = User.IsInRole("Recepcion") || User.IsInRole("Administrador");
+                ViewBag.EsRecepcion = esRecepcion;
                 return View(modelo);
             }
 
             TempData["MensajeExito"] = $"Cliente {resultado.Cliente!.Nombre} registrado exitosamente. Folio: {resultado.Cliente.Folio}";
 
-            if (User.IsInRole("Vendedor"))
+            if (await _autorizacionServicio.EsVendedorAsync(usuarioActual.Id))
                 return RedirectToAction("Indice", "Cotizacion");
 
             return RedirectToAction(nameof(Registrar));
         }
 
-        // GET: Recepcion/BuscarCliente
         [HttpGet]
         public async Task<IActionResult> BuscarCliente(string telefono)
         {
@@ -81,23 +94,28 @@ namespace CotizacionMVC.Controllers
             }));
         }
 
-        // GET: Recepcion/Indice
         [HttpGet]
         public async Task<IActionResult> Indice()
         {
-            var clientes = await _recepcionServicio.ObtenerDashboardAsync();
+            var usuarioActual = await _userManager.GetUserAsync(User);
+            if (usuarioActual == null)
+                return RedirectToAction("Login", "Autenticacion");
+
+            var clientes = await _recepcionServicio.ObtenerDashboardAsync(usuarioActual.Id);
             return View(clientes);
         }
 
-        // GET: Recepcion/UltimosRegistros
         [HttpGet]
         public async Task<IActionResult> UltimosRegistros()
         {
-            var ultimos = await _recepcionServicio.ObtenerUltimosRegistrosAsync();
+            var usuarioActual = await _userManager.GetUserAsync(User);
+            if (usuarioActual == null)
+                return Json(new List<object>());
+
+            var ultimos = await _recepcionServicio.ObtenerUltimosRegistrosAsync(usuarioActual.Id);
             return Json(ultimos);
         }
 
-        // GET: Recepcion/VerDetalles
         [HttpGet]
         public async Task<IActionResult> VerDetalles(Guid id)
         {
@@ -140,7 +158,6 @@ namespace CotizacionMVC.Controllers
             return Content(detalleHtml, "text/html");
         }
 
-        // GET: Recepcion/ObtenerVendedores
         [HttpGet]
         public async Task<IActionResult> ObtenerVendedores()
         {
@@ -148,7 +165,6 @@ namespace CotizacionMVC.Controllers
             return Json(vendedores);
         }
 
-        // POST: Recepcion/AsignarVendedor
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AsignarVendedor(Guid clienteId, Guid vendedorId)
@@ -161,7 +177,6 @@ namespace CotizacionMVC.Controllers
             return Json(new { success = false, message = resultado.MensajeError });
         }
 
-        // POST: Recepcion/MarcarNoCotizable
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarcarNoCotizable(Guid clienteId, string motivo, string? comentario)
@@ -172,6 +187,27 @@ namespace CotizacionMVC.Controllers
                 return Json(new { success = true, message = "Cliente marcado como no cotizable" });
 
             return Json(new { success = false, message = resultado.MensajeError });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ObtenerContadoresEstado()
+        {
+            var usuarioActual = await _userManager.GetUserAsync(User);
+            if (usuarioActual == null)
+                return Json(new { total = 0, sinAsignar = 0, pendientesCotizar = 0, cotizados = 0, noCotizables = 0 });
+
+            var clientes = await _recepcionServicio.ObtenerDashboardAsync(usuarioActual.Id);
+
+            var contadores = new
+            {
+                total = clientes.Count,
+                sinAsignar = clientes.Count(c => c.Estado == "SinAsignar"),
+                pendientesCotizar = clientes.Count(c => c.Estado == "Asignado" || c.Estado == "Contactado"),
+                cotizados = clientes.Count(c => c.Estado == "Cotizado"),
+                noCotizables = clientes.Count(c => c.Estado == "NoCotizable")
+            };
+
+            return Json(contadores);
         }
     }
 }

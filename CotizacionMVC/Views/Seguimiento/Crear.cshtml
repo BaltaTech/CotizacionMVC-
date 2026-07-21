@@ -1,8 +1,7 @@
-﻿@using CotizacionMVC.Models.Enums
-@using CotizacionMVC.ViewModels.Seguimientos
+﻿@using CotizacionMVC.ViewModels.Seguimientos
 @model CrearSeguimientoViewModel
 @{
-    ViewData["Title"] = "Registrar Seguimiento";
+    ViewData["Title"] = Model.EsSeguimientoGeneral ? "Nuevo Seguimiento" : $"Seguimiento de {Model.TipoSeguimiento}";
 }
 
 <div class="container-fluid">
@@ -11,23 +10,31 @@
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
-                        <i class="bi bi-journal-plus"></i> Registrar Seguimiento
+                        <i class="bi bi-journal-plus"></i> @ViewData["Title"]
                     </h5>
                 </div>
                 <div class="card-body">
+                    @* Mostrar referencia si existe *@
+                    @if (!string.IsNullOrWhiteSpace(Model.Referencia))
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-tag"></i> @Model.Referencia
+                        </div>
+                    }
+
+                    @* Advertencia si es seguimiento general *@
+                    @if (Model.EsSeguimientoGeneral)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="bi bi-info-circle"></i>
+                            Estás registrando un seguimiento general. Puedes asociarlo a un lead o cotización después.
+                        </div>
+                    }
+
                     <form asp-action="Crear" method="post">
                         @Html.AntiForgeryToken()
                         <input type="hidden" asp-for="LeadId" />
                         <input type="hidden" asp-for="CotizacionId" />
-
-                        @if (Model.LeadId.HasValue)
-                        {
-                            <div class="alert alert-info"><i class="bi bi-person-plus"></i> Seguimiento de Lead</div>
-                        }
-                        @if (Model.CotizacionId.HasValue)
-                        {
-                            <div class="alert alert-info"><i class="bi bi-file-text"></i> Seguimiento de Cotización</div>
-                        }
 
                         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
@@ -40,17 +47,33 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label asp-for="MedioContacto" class="form-label">Medio de Contacto</label>
-                                <select asp-for="MedioContacto" class="form-select"
-                                        asp-items="Html.GetEnumSelectList<MedioContacto>()"></select>
-                                <span asp-validation-for="MedioContacto" class="text-danger small"></span>
+                                <label asp-for="MedioContactoId" class="form-label">Medio de Contacto</label>
+                                <select asp-for="MedioContactoId" class="form-select">
+                                    <option value="">-- Seleccione --</option>
+                                    <option value="0">Teléfono</option>
+                                    <option value="1">WhatsApp</option>
+                                    <option value="2">Correo Electrónico</option>
+                                    <option value="3">Visita Comercial</option>
+                                    <option value="4">Visita Técnica</option>
+                                    <option value="5">Otro</option>
+                                </select>
+                                <span asp-validation-for="MedioContactoId" class="text-danger small"></span>
                             </div>
 
                             <div class="col-12">
-                                <label asp-for="Resultado" class="form-label">Resultado</label>
-                                <select asp-for="Resultado" class="form-select"
-                                        asp-items="Html.GetEnumSelectList<ResultadoSeguimiento>()"></select>
-                                <span asp-validation-for="Resultado" class="text-danger small"></span>
+                                <label asp-for="ResultadoId" class="form-label">Resultado</label>
+                                <select asp-for="ResultadoId" class="form-select">
+                                    <option value="">-- Seleccione --</option>
+                                    <option value="0">Sin Respuesta</option>
+                                    <option value="1">Interesado</option>
+                                    <option value="2">No Interesado</option>
+                                    <option value="3">Cotización Enviada</option>
+                                    <option value="4">Anticipo Recibido</option>
+                                    <option value="5">Cerrada</option>
+                                    <option value="6">Perdida</option>
+                                    <option value="7">Seguimiento Programado</option>
+                                </select>
+                                <span asp-validation-for="ResultadoId" class="text-danger small"></span>
                             </div>
 
                             <div class="col-12">
@@ -89,7 +112,6 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        // Forzar fecha local en el input
         document.addEventListener('DOMContentLoaded', function() {
             var input = document.getElementById('FechaContacto');
             if (input && !input.value) {

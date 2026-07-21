@@ -27,7 +27,6 @@ namespace CotizacionMVC.Models.Valor
             string codigoPostal,
             string? numeroInterior = null)
         {
-            // Solo el CÓDIGO POSTAL es obligatorio
             if (string.IsNullOrWhiteSpace(codigoPostal))
                 throw new ArgumentException("El código postal es obligatorio", nameof(codigoPostal));
 
@@ -52,7 +51,6 @@ namespace CotizacionMVC.Models.Valor
         {
             var partes = new List<string>();
 
-            // Calle y número
             if (!string.IsNullOrWhiteSpace(Calle))
             {
                 var calleNumero = Calle;
@@ -110,10 +108,6 @@ namespace CotizacionMVC.Models.Valor
                    !string.IsNullOrWhiteSpace(Ciudad) &&
                    !string.IsNullOrWhiteSpace(CodigoPostal);
         }
-
-        /// <summary>
-        /// Indica si la dirección tiene solo datos básicos (registro telefónico)
-        /// </summary>
         public bool EsParcial()
         {
             return !string.IsNullOrWhiteSpace(CodigoPostal) && !EsCompleta();

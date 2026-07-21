@@ -29,8 +29,6 @@ namespace CotizacionMVC.Controllers
             return Guid.Parse(userIdClaim);
         }
 
-        // ========== CREAR LEAD DE PROSPECCIÓN ==========
-
         [HttpGet]
         public IActionResult CrearLead()
         {
@@ -90,22 +88,35 @@ namespace CotizacionMVC.Controllers
             return RedirectToAction("Indice", "Cotizacion");
         }
 
-        // ========== REGISTRAR SEGUIMIENTO ==========
 
         [HttpGet]
-        public IActionResult Crear(Guid? leadId, Guid? cotizacionId)
+        public async Task<IActionResult> Crear(Guid? leadId, Guid? cotizacionId)
         {
-            if (!leadId.HasValue && !cotizacionId.HasValue)
+             if (!leadId.HasValue && !cotizacionId.HasValue)
                 return RedirectToAction("Indice", "Cotizacion");
+
+            var vendedorId = GetVendedorId();
 
             var modelo = new CrearSeguimientoViewModel
             {
                 LeadId = leadId,
                 CotizacionId = cotizacionId,
                 FechaContacto = DateTime.Now,
-                MedioContacto = MedioContacto.Telefono,
-                Resultado = ResultadoSeguimiento.SinRespuesta
+                MedioContactoId = 0,
+                ResultadoId = 0,
+                Referencia = null,
+                TipoSeguimiento = null
             };
+
+            if (leadId.HasValue)
+            {
+                modelo.TipoSeguimiento = "Lead";
+            }
+
+            if (cotizacionId.HasValue)
+            {
+                modelo.TipoSeguimiento = "Cotización";
+            }
 
             return View(modelo);
         }
@@ -125,8 +136,8 @@ namespace CotizacionMVC.Controllers
                     CotizacionId = modelo.CotizacionId,
                     VendedorId = GetVendedorId(),
                     FechaContacto = DateTime.SpecifyKind(modelo.FechaContacto, DateTimeKind.Utc),
-                    MedioContacto = (int)modelo.MedioContacto,
-                    Resultado = (int)modelo.Resultado,
+                    MedioContacto = modelo.MedioContactoId, 
+                    Resultado = modelo.ResultadoId,  
                     Notas = modelo.Notas,
                     ProximoContacto = modelo.ProximoContacto.HasValue
                         ? DateTime.SpecifyKind(modelo.ProximoContacto.Value, DateTimeKind.Utc)
@@ -157,8 +168,6 @@ namespace CotizacionMVC.Controllers
             }
         }
 
-        // ========== HISTORIAL POR LEAD ==========
-
         [HttpGet]
         public async Task<IActionResult> PorLead(Guid leadId)
         {
@@ -166,16 +175,12 @@ namespace CotizacionMVC.Controllers
             return PartialView("_HistorialSeguimientos", seguimientos);
         }
 
-        // ========== HISTORIAL POR COTIZACION ==========
-
         [HttpGet]
         public async Task<IActionResult> PorCotizacion(Guid cotizacionId)
         {
             var seguimientos = await _seguimientoServicio.ObtenerPorCotizacionAsync(cotizacionId);
             return PartialView("_HistorialSeguimientos", seguimientos);
         }
-
-        // ========== DASHBOARD DEL VENDEDOR ==========
 
         [HttpGet]
         public IActionResult Dashboard()
@@ -189,8 +194,6 @@ namespace CotizacionMVC.Controllers
             var dashboard = await _seguimientoServicio.ObtenerDashboardAsync(GetVendedorId());
             return Json(dashboard);
         }
-
-        // ========== API: MARCAR RECORDATORIO ENVIADO ==========
 
         [HttpPost]
         public async Task<IActionResult> MarcarRecordatorio(Guid seguimientoId)

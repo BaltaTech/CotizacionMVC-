@@ -47,11 +47,7 @@ namespace CotizacionMVC.Models.Entidades
         public bool PuedeVerCotizacion(Cotizacion cotizacion)
         {
             if (cotizacion == null) return false;
-            // El nombre del rol se manejará como string; podemos convertir el enum si es necesario,
-            // pero es más sencillo consultar los roles de Identity directamente en el controlador.
-            // Podemos mantener este método usando el Rol "Administrador" como string.
-            // Más tarde lo adaptaremos.
-           
+             
             return cotizacion.VendedorId == Id; 
         }
 
@@ -64,8 +60,6 @@ namespace CotizacionMVC.Models.Entidades
         {
             if (!_empresasAcceso.Any(e => e.Id == empresa.Id))
                 _empresasAcceso.Add(empresa);
-        }
-
-       
+        }       
     }
 }

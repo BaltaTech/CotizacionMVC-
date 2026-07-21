@@ -112,8 +112,6 @@
         {
             return $"{Moneda} {Monto:N2}";
         }
-
-        // Operadores sobrecargados para facilitar el uso
         public static bool operator ==(Dinero? izquierdo, Dinero? derecho)
         {
             if (ReferenceEquals(izquierdo, derecho))

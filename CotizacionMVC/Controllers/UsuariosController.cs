@@ -20,8 +20,7 @@ namespace CotizacionMVC.Controllers
             _roleManager = roleManager;
         }
 
-        // GET: Usuarios
-        public async Task<IActionResult> Indice()
+         public async Task<IActionResult> Indice()
         {
             var usuarios = await _userManager.Users
                 .OrderBy(u => u.NombreCompleto)
@@ -47,8 +46,7 @@ namespace CotizacionMVC.Controllers
             return View(usuariosConRoles);
         }
 
-        // GET: Usuarios/Crear
-        public async Task<IActionResult> Crear()
+         public async Task<IActionResult> Crear()
         {
             ViewBag.Roles = await _roleManager.Roles
                 .Select(r => r.Name)
@@ -56,7 +54,6 @@ namespace CotizacionMVC.Controllers
             return View();
         }
 
-        // POST: Usuarios/Crear
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(CrearUsuarioViewModel modelo)
@@ -86,7 +83,6 @@ namespace CotizacionMVC.Controllers
             return View(modelo);
         }
 
-        // POST: Usuarios/CambiarEstado
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CambiarEstado(Guid id)
@@ -104,7 +100,6 @@ namespace CotizacionMVC.Controllers
             return RedirectToAction(nameof(Indice));
         }
 
-        // POST: Usuarios/CambiarPassword
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CambiarPassword(Guid id, string nuevaPassword)
@@ -130,7 +125,6 @@ namespace CotizacionMVC.Controllers
         }
     }
 
-    // ViewModels
     public class UsuarioConRolesViewModel
     {
         public Guid Id { get; set; }

@@ -19,23 +19,26 @@ namespace CotizacionMVC.Servicios.Aplicacion
         private readonly UserManager<Usuario> _userManager;
         private readonly NotificacionServicio _notificacionServicio;
         private readonly ApplicationDbContext _context;
+        private readonly IAutorizacionServicio _autorizacionServicio;
 
         public RecepcionServicio(
             IClienteRepository clienteRepo,
             IEmpresaRepository empresaRepo,
             UserManager<Usuario> userManager,
             NotificacionServicio notificacionServicio,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IAutorizacionServicio autorizacionServicio)
         {
             _clienteRepo = clienteRepo;
             _empresaRepo = empresaRepo;
             _userManager = userManager;
             _notificacionServicio = notificacionServicio;
             _context = context;
+            _autorizacionServicio = autorizacionServicio;
         }
 
         public async Task<ResultadoRegistroCliente> RegistrarClienteAsync(
-      RegistrarClienteViewModel modelo, Guid registradoPorId, bool esRecepcion)
+            RegistrarClienteViewModel modelo, Guid registradoPorId)
         {
             if (string.IsNullOrWhiteSpace(modelo.Nombre))
                 return ResultadoRegistroCliente.Error("El nombre es obligatorio");
@@ -50,6 +53,9 @@ namespace CotizacionMVC.Servicios.Aplicacion
             var empresa = await _empresaRepo.GetByIdAsync(modelo.EmpresaId);
             if (empresa == null)
                 return ResultadoRegistroCliente.Error("Empresa no encontrada");
+
+            var esRecepcion = await _autorizacionServicio.EsRecepcionAsync(registradoPorId)
+                              || await _autorizacionServicio.EsAdminAsync(registradoPorId);
 
             Cliente cliente;
             if (clienteExistente != null)
@@ -135,34 +141,34 @@ namespace CotizacionMVC.Servicios.Aplicacion
         public async Task<ResultadoRegistroCliente> AsignarVendedorAsync(Guid clienteId, Guid vendedorId)
         {
             var cliente = await _clienteRepo.GetByIdAsync(clienteId);
-            if (cliente == null) return ResultadoRegistroCliente.Error("Cliente no encontrado");
-            if (cliente.Estado != EstadoCliente.SinAsignar)
+            if (cliente == null)
+                return ResultadoRegistroCliente.Error("Cliente no encontrado");
+
+            if (cliente.Estado != EstadoCliente.SinAsignar && cliente.VendedorAsignadoId.HasValue)
                 return ResultadoRegistroCliente.Error("El cliente ya tiene vendedor asignado");
+
+            var vendedor = await _userManager.FindByIdAsync(vendedorId.ToString());
+            if (vendedor == null)
+                return ResultadoRegistroCliente.Error("Vendedor no encontrado");
 
             cliente.AsignarVendedor(vendedorId);
             _clienteRepo.Update(cliente);
 
-            var lead = await _context.Leads
+            var leadsSinAsignar = await _context.Leads
                 .Where(l => l.ClienteId == clienteId && l.VendedorAsignadoId == null)
-                .OrderByDescending(l => l.FechaCreacion)
-                .FirstOrDefaultAsync();
+                .ToListAsync();
 
-            if (lead != null)
+            foreach (var lead in leadsSinAsignar)
             {
-                var vendedor = await _userManager.FindByIdAsync(vendedorId.ToString());
-                if (vendedor != null)
-                {
-                    lead.AsignarVendedor(vendedor);
-                    _context.Leads.Update(lead);
-                    await _context.SaveChangesAsync();
-                }
+                lead.AsignarVendedor(vendedor);
             }
+
+            await _context.SaveChangesAsync();
 
             await _notificacionServicio.EnviarNotificacionAsync(
                 vendedorId.ToString(), "Cliente Asignado",
                 $"Se te ha asignado el cliente: {cliente.Nombre}", "success");
 
-            await _clienteRepo.SaveChangesAsync();
             return ResultadoRegistroCliente.Exito(cliente);
         }
 
@@ -180,37 +186,103 @@ namespace CotizacionMVC.Servicios.Aplicacion
             return ResultadoRegistroCliente.Exito(cliente);
         }
 
-        public async Task<IReadOnlyList<ClienteDashboardDto>> ObtenerDashboardAsync()
+        public async Task<IReadOnlyList<ClienteDashboardDto>> ObtenerDashboardAsync(Guid usuarioId)
         {
-            var clientes = await _clienteRepo.GetAllAsync();
-            var leads = await _context.Leads.ToListAsync();
+            var queryClientes = _context.Clientes.AsQueryable();
 
-            return clientes.OrderByDescending(c => c.FechaRegistro)
-                .Select(c => new ClienteDashboardDto
+            // Solo filtrar clientes
+            queryClientes = await _autorizacionServicio.FiltrarClientesAsync(usuarioId, queryClientes);
+
+            var clientes = await queryClientes
+                .OrderByDescending(c => c.FechaRegistro)
+                .ToListAsync();
+
+            // Obtener TODOS los leads de estos clientes en UNA sola consulta
+            var clienteIds = clientes.Select(c => c.Id).ToList();
+            var todosLosLeads = await _context.Leads
+                .Where(l => l.ClienteId != null && clienteIds.Contains(l.ClienteId.Value))
+                .OrderByDescending(l => l.FechaCreacion)
+                .ToListAsync();
+
+            return clientes.Select(c =>
+            {
+                // Buscar el lead más reciente para este cliente
+                var ultimoLead = todosLosLeads
+                    .Where(l => l.ClienteId == c.Id)
+                    .OrderByDescending(l => l.FechaCreacion)
+                    .FirstOrDefault();
+
+                // DETERMINAR EL ESTADO CORRECTO
+                string estado;
+
+                if (c.Estado == EstadoCliente.Cotizado || c.Estado == EstadoCliente.NoCotizable || c.Estado == EstadoCliente.Cerrado)
+                {
+                    estado = c.Estado.ToString();
+                }
+                else if (ultimoLead != null)
+                {
+                    estado = ultimoLead.Estado.ToString();
+                }
+                else
+                {
+                    estado = c.Estado.ToString();
+                }
+
+                return new ClienteDashboardDto
                 {
                     Id = c.Id,
                     Folio = c.Folio,
                     Nombre = c.Nombre,
                     Telefono = c.Contacto.Telefono,
                     Origen = c.Origen.ToString(),
-                    Estado = leads.Where(l => l.ClienteId == c.Id)
-                        .OrderByDescending(l => l.FechaCreacion)
-                        .Select(l => l.Estado.ToString()).FirstOrDefault() ?? "SinAsignar",
+                    Estado = estado,
                     FechaRegistro = c.FechaRegistro,
                     Observaciones = c.Observaciones,
-                    VendedorAsignadoId = leads.Where(l => l.ClienteId == c.Id)
-                        .OrderByDescending(l => l.FechaCreacion)
-                        .Select(l => l.VendedorAsignadoId).FirstOrDefault()
-                }).ToList();
+                    VendedorAsignadoId = c.VendedorAsignadoId ?? ultimoLead?.VendedorAsignadoId
+                };
+            }).ToList();
         }
 
-        public async Task<List<UltimoRegistroDto>> ObtenerUltimosRegistrosAsync()
+        public async Task<List<UltimoRegistroDto>> ObtenerUltimosRegistrosAsync(Guid usuarioId)
         {
-            var clientes = await _clienteRepo.GetAllAsync();
-            var leads = await _context.Leads.ToListAsync();
+            var queryClientes = _context.Clientes.AsQueryable();
 
-            return clientes.OrderByDescending(c => c.FechaRegistro).Take(10)
-                .Select(c => new UltimoRegistroDto
+            // Solo filtrar clientes
+            queryClientes = await _autorizacionServicio.FiltrarClientesAsync(usuarioId, queryClientes);
+
+            var clientes = await queryClientes
+                .OrderByDescending(c => c.FechaRegistro)
+                .Take(10)
+                .ToListAsync();
+
+            // Obtener leads de estos clientes
+            var clienteIds = clientes.Select(c => c.Id).ToList();
+            var todosLosLeads = await _context.Leads
+                .Where(l => l.ClienteId != null && clienteIds.Contains(l.ClienteId.Value))
+                .OrderByDescending(l => l.FechaCreacion)
+                .ToListAsync();
+
+            return clientes.Select(c =>
+            {
+                var ultimoLead = todosLosLeads
+                    .Where(l => l.ClienteId == c.Id)
+                    .FirstOrDefault();
+
+                string estado;
+                if (c.Estado == EstadoCliente.Cotizado || c.Estado == EstadoCliente.NoCotizable || c.Estado == EstadoCliente.Cerrado)
+                {
+                    estado = c.Estado.ToString();
+                }
+                else if (ultimoLead != null)
+                {
+                    estado = ultimoLead.Estado.ToString();
+                }
+                else
+                {
+                    estado = c.Estado.ToString();
+                }
+
+                return new UltimoRegistroDto
                 {
                     Id = c.Id,
                     Folio = c.Folio,
@@ -218,15 +290,14 @@ namespace CotizacionMVC.Servicios.Aplicacion
                     Telefono = c.Contacto.Telefono,
                     Origen = c.Origen.ToString(),
                     Fecha = c.FechaRegistro,
-                    Estado = leads.Where(l => l.ClienteId == c.Id)
-                        .OrderByDescending(l => l.FechaCreacion)
-                        .Select(l => l.Estado.ToString()).FirstOrDefault() ?? "SinAsignar",
-                    VendedorAsignadoId = leads.Where(l => l.ClienteId == c.Id)
-                        .OrderByDescending(l => l.FechaCreacion)
-                        .Select(l => l.VendedorAsignadoId).FirstOrDefault(),
+                    Estado = estado,
+                    VendedorAsignadoId = c.VendedorAsignadoId ?? ultimoLead?.VendedorAsignadoId,
                     Observaciones = c.Observaciones
-                }).ToList();
+                };
+            }).ToList();
         }
+
+        // ⚠️ ELIMINÉ EL SEGUNDO MÉTODO DUPLICADO QUE USABA c.Leads
 
         public async Task<ClienteDetalleRecepcionDto?> ObtenerDetalleClienteAsync(Guid id)
         {

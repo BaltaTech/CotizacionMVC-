@@ -23,6 +23,5 @@ namespace CotizacionMVC.Servicios.Aplicacion.Dtos.Cliente
         public EstadoCliente EstadoCliente { get; set; }
         public DateTime FechaCreacion { get; set; }
         public List<CotizacionResumenDto> Cotizaciones { get; set; } = new();
-
     }
 }

@@ -1,245 +1,287 @@
 ﻿@* Views/Seguimiento/Dashboard.cshtml *@
 @{
-    ViewData["Title"] = "Panel de Ventas";
+    ViewData["Title"] = "Panel de Seguimiento";
     var vendedorId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 
-<div class="sales-dashboard">
-    <div class="sd-topbar">
+<div class="dashboard-container">
+    @* ========== CABECERA ========== *@
+    <div class="dash-header">
         <div>
-            <h1>Panel de Ventas</h1>
-            <span id="fechaActual"></span>
+            <h1><i class="fas fa-chart-line"></i> Panel de Seguimiento</h1>
+            <span id="fechaActual" class="text-muted"></span>
         </div>
-        <a asp-controller="Seguimiento" asp-action="CrearLead" class="sd-btn sd-btn-outline">+ Nuevo Lead</a>
-    </div>
-
-    <div class="sd-grid">
-        <div class="sd-card sd-card-red">
-            <p class="sd-card-label">Sin contactar</p>
-            <h3 class="sd-card-value" id="vSinContactar">--</h3>
-            <i class="fas fa-user-clock sd-card-icon"></i>
-        </div>
-        <div class="sd-card sd-card-orange">
-            <p class="sd-card-label">Frías +15 días</p>
-            <h3 class="sd-card-value" id="vFrias">--</h3>
-            <i class="fas fa-snowflake sd-card-icon"></i>
-        </div>
-        <div class="sd-card sd-card-blue">
-            <p class="sd-card-label">Pendientes hoy</p>
-            <h3 class="sd-card-value" id="vPendientes">--</h3>
-            <i class="fas fa-calendar-check sd-card-icon"></i>
-        </div>
-        <div class="sd-card sd-card-green">
-            <p class="sd-card-label">Realizados hoy</p>
-            <h3 class="sd-card-value" id="vRealizados">--</h3>
-            <i class="fas fa-check-circle sd-card-icon"></i>
+        <div class="dash-actions">
+            <a asp-action="CrearLead" class="btn btn-sm btn-warning">
+                <i class="fas fa-lightbulb"></i> Nuevo Lead
+            </a>
+            <a asp-action="Indice" asp-controller="Cotizacion" class="btn btn-sm btn-primary">
+                <i class="fas fa-list"></i> Leads y Cotizaciones
+            </a>
         </div>
     </div>
 
-    <div class="sd-row">
-        <div class="sd-card sd-card-white">
-            <p class="sd-card-label">Cotizaciones activas</p>
-            <h3 id="vActivas">--</h3>
+    @* ========== MÉTRICAS ========== *@
+    <div class="metrics-row">
+        <div class="metric-card metric-red">
+            <div class="metric-icon"><i class="fas fa-user-clock"></i></div>
+            <div class="metric-data">
+                <span class="metric-label">Sin Contactar</span>
+                <span class="metric-value" id="vSinContactar">--</span>
+            </div>
         </div>
-        <div class="sd-card sd-card-white">
-            <p class="sd-card-label">Calificados sin cotizar</p>
-            <h3 id="vCalificados">--</h3>
+        <div class="metric-card metric-orange">
+            <div class="metric-icon"><i class="fas fa-calendar-check"></i></div>
+            <div class="metric-data">
+                <span class="metric-label">Pendientes Hoy</span>
+                <span class="metric-value" id="vPendientes">--</span>
+            </div>
         </div>
-        <div class="sd-card sd-card-white sd-card-alert">
-            <p class="sd-card-label">Vencidos</p>
-            <h3 id="vVencidos">--</h3>
+        <div class="metric-card metric-blue">
+            <div class="metric-icon"><i class="fas fa-file-invoice"></i></div>
+            <div class="metric-data">
+                <span class="metric-label">Cotizaciones Activas</span>
+                <span class="metric-value" id="vActivas">--</span>
+            </div>
+        </div>
+        <div class="metric-card metric-green">
+            <div class="metric-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="metric-data">
+                <span class="metric-label">Realizados Hoy</span>
+                <span class="metric-value" id="vRealizados">--</span>
+            </div>
+        </div>
+        <div class="metric-card metric-purple">
+            <div class="metric-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="metric-data">
+                <span class="metric-label">Frías +15 días</span>
+                <span class="metric-value" id="vFrias">--</span>
+            </div>
         </div>
     </div>
 
-    <div class="sd-section" id="sdAgenda" style="display:none;">
-        <h4>Próximos seguimientos para hoy</h4>
-        <div id="sdAgendaContent"></div>
+    @* ========== SEGUIMIENTOS PENDIENTES HOY ========== *@
+    <div class="dash-section">
+        <div class="dash-section-header">
+            <h3><i class="fas fa-tasks"></i> Seguimientos Pendientes Hoy</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="dash-table">
+                <thead>
+                    <tr>
+                        <th>Cliente/Lead</th>
+                        <th>Tipo</th>
+                        <th>Medio</th>
+                        <th>Notas</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaPendientes">
+                    <tr><td colspan="5" class="text-center text-muted py-3">Cargando seguimientos...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* ========== ÚLTIMOS SEGUIMIENTOS ========== *@
+    <div class="dash-section mt-3">
+        <div class="dash-section-header">
+            <h3><i class="fas fa-history"></i> Últimos Seguimientos</h3>
+        </div>
+        <div id="ultimosSeguimientos">
+            <p class="text-muted text-center py-3">Cargando...</p>
+        </div>
     </div>
 </div>
 
 <style>
-    .sales-dashboard {
-        max-width: 900px;
+    .dashboard-container {
+        max-width: 1200px;
         margin: 0 auto;
-        padding: 2rem 1rem;
-    }
-    .sd-topbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        margin-bottom: 2rem;
-        padding-bottom: 1.5rem;
-        border-bottom: 1px solid #e9ecef;
-    }
-    .sd-topbar h1 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #1a1a1a;
-        margin: 0;
-    }
-    .sd-topbar span {
-        font-size: 0.8rem;
-        color: #6c757d;
-    }
-    .sd-btn {
-        padding: 0.5rem 1rem;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        font-weight: 500;
-        text-decoration: none;
-        cursor: pointer;
-        border: none;
-    }
-    .sd-btn-outline {
-        border: 1px solid #C8102E;
-        color: #C8102E;
-        background: #fff;
-    }
-    .sd-btn-outline:hover {
-        background: #C8102E;
-        color: #fff;
+        padding: 1.5rem;
     }
 
-    .sd-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-    .sd-card {
-        border-radius: 8px;
-        padding: 1.25rem;
-        position: relative;
-        overflow: hidden;
-    }
-    .sd-card-label {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin: 0 0 0.5rem 0;
-        opacity: 0.8;
-    }
-    .sd-card-value {
-        font-size: 2rem;
-        font-weight: 700;
-        margin: 0;
-        line-height: 1;
-    }
-    .sd-card-icon {
-        position: absolute;
-        right: 1rem;
-        bottom: -0.5rem;
-        font-size: 3rem;
-        opacity: 0.1;
-    }
-    .sd-card-red {
-        background: #C8102E;
-        color: #fff;
-    }
-    .sd-card-orange {
-        background: #f7931e;
-        color: #fff;
-    }
-    .sd-card-blue {
-        background: #1A73E8;
-        color: #fff;
-    }
-    .sd-card-green {
-        background: #28a745;
-        color: #fff;
-    }
-    .sd-card-white {
-        background: #fff;
-        border: 1px solid #e9ecef;
-    }
-    .sd-card-white .sd-card-value {
-        color: #1a1a1a;
-        font-size: 1.3rem;
-    }
-    .sd-card-alert .sd-card-value {
-        color: #C8102E;
-    }
-
-    .sd-row {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .sd-section {
-        background: #fff;
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
-        padding: 1.25rem;
-    }
-    .sd-section h4 {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #1a1a1a;
-        margin: 0 0 1rem 0;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid #e9ecef;
-    }
-    .sd-agenda-item {
+    .dash-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.6rem 0;
-        border-bottom: 1px solid #f8f9fa;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f0f0f0;
     }
-    .sd-agenda-item:last-child { border-bottom: none; }
-    .sd-agenda-item strong { font-size: 0.85rem; }
-    .sd-agenda-badge {
-        background: #C8102E;
-        color: #fff;
-        padding: 0.15rem 0.5rem;
+    .dash-header h1 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin: 0;
+    }
+    .dash-header span {
+        font-size: 0.8rem;
+    }
+    .dash-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .metrics-row {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .metric-card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        transition: transform 0.2s;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+    }
+    .metric-icon {
+        width: 48px;
+        height: 48px;
         border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        color: #fff;
+    }
+    .metric-red .metric-icon { background: linear-gradient(135deg, #C8102E, #E63946); }
+    .metric-orange .metric-icon { background: linear-gradient(135deg, #FF6B35, #F7931E); }
+    .metric-blue .metric-icon { background: linear-gradient(135deg, #1A73E8, #4285F4); }
+    .metric-green .metric-icon { background: linear-gradient(135deg, #28a745, #20c997); }
+    .metric-purple .metric-icon { background: linear-gradient(135deg, #6f42c1, #8b5cf6); }
+    
+    .metric-label {
         font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #888;
+        display: block;
+    }
+    .metric-value {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        line-height: 1.2;
+    }
+
+    .dash-section {
+        background: #fff;
+        border-radius: 10px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .dash-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .dash-section-header h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .dash-table {
+        width: 100%;
+        font-size: 0.85rem;
+    }
+    .dash-table th {
+        background: #f8f9fa;
+        padding: 0.7rem;
+        text-align: left;
+        font-weight: 600;
+        color: #555;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .dash-table td {
+        padding: 0.7rem;
+        border-bottom: 1px solid #f5f5f5;
+        vertical-align: middle;
+    }
+    .dash-table tr:hover {
+        background: #fafafa;
+    }
+
+    .badge-estado {
+        padding: 0.25rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+    .badge-pendiente { background: #fff3cd; color: #856404; }
+    .badge-realizado { background: #d4edda; color: #155724; }
+    .badge-urgente { background: #f8d7da; color: #721c24; }
+
+    .btn-accion {
+        padding: 0.25rem 0.6rem;
+        font-size: 0.75rem;
+        border-radius: 4px;
+        text-decoration: none;
+        color: #fff;
+        background: #1A73E8;
+    }
+    .btn-accion:hover {
+        background: #1557b0;
+        color: #fff;
     }
 </style>
 
 @section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script>
-        const vendedorId = '@vendedorId';
         document.getElementById('fechaActual').textContent =
-            new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+            new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-        function cargar() {
+        function cargarDashboard() {
             fetch('/Seguimiento/MiDashboard')
                 .then(r => r.json())
                 .then(d => {
-                    document.getElementById('vSinContactar').textContent = d.leadsSinContactar;
-                    document.getElementById('vFrias').textContent = d.leadsFriosSinActividad;
-                    document.getElementById('vPendientes').textContent = d.seguimientosPendientesHoy;
-                    document.getElementById('vRealizados').textContent = d.seguimientosRealizadosHoy;
-                    document.getElementById('vActivas').textContent = d.cotizacionesActivas;
-                    document.getElementById('vCalificados').textContent = d.leadsCalificadosSinCotizar;
-                    document.getElementById('vVencidos').textContent = d.seguimientosVencidos;
+                    document.getElementById('vSinContactar').textContent = d.leadsSinContactar || 0;
+                    document.getElementById('vPendientes').textContent = d.seguimientosPendientesHoy || 0;
+                    document.getElementById('vActivas').textContent = d.cotizacionesActivas || 0;
+                    document.getElementById('vRealizados').textContent = d.seguimientosRealizadosHoy || 0;
+                    document.getElementById('vFrias').textContent = d.leadsFriosSinActividad || 0;
 
                     if (d.proximosSeguimientos && d.proximosSeguimientos.length) {
-                        document.getElementById('sdAgenda').style.display = 'block';
-                        document.getElementById('sdAgendaContent').innerHTML = d.proximosSeguimientos.map(s =>
-                            `<div class="sd-agenda-item">
-                                <div><strong>${s.leadNombre || s.cotizacionNumero || 'Sin ref'}</strong>
-                                <small class="text-muted d-block">${s.notas || ''}</small></div>
-                                <span class="sd-agenda-badge">${s.medioContacto}</span>
-                            </div>`
-                        ).join('');
+                        var html = '';
+                        d.proximosSeguimientos.forEach(function(s) {
+                            html += `<tr>
+                                <td><strong>${s.leadNombre || s.cotizacionNumero || 'Sin referencia'}</strong></td>
+                                <td>${s.tipo || 'Seguimiento'}</td>
+                                <td><span class="badge-estado badge-pendiente">${s.medioContacto || 'Pendiente'}</span></td>
+                                <td><small>${s.notas || 'Sin notas'}</small></td>
+                                <td>
+                                    <a href="/Seguimiento/Crear?leadId=${s.leadId || ''}&cotizacionId=${s.cotizacionId || ''}" 
+                                       class="btn-accion">
+                                        <i class="fas fa-check"></i> Registrar
+                                    </a>
+                                </td>
+                            </tr>`;
+                        });
+                        document.getElementById('tablaPendientes').innerHTML = html;
+                    } else {
+                        document.getElementById('tablaPendientes').innerHTML =
+                            '<tr><td colspan="5" class="text-center text-muted py-3">¡Sin seguimientos pendientes! 🎉</td></tr>';
                     }
+                })
+                .catch(err => {
+                    console.error('Error al cargar dashboard:', err);
                 });
         }
 
-        function conectarSignalR() {
-            if (typeof connection !== 'undefined' && connection.state === 'Connected') {
-                connection.on("ActualizarDashboard", cargar);
-                connection.invoke("UnirseAGrupo", vendedorId);
-            } else { setTimeout(conectarSignalR, 1000); }
-        }
-
-        setTimeout(conectarSignalR, 1000);
-        cargar();
-        setInterval(cargar, 300000);
+        cargarDashboard();
+        setInterval(cargarDashboard, 60000);
     </script>
 }

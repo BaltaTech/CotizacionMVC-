@@ -1,4 +1,4 @@
-﻿@model CotizacionMVC.Models.Entidades.Cliente
+﻿@model CotizacionMVC.ViewModels.Cliente.ClienteDetalleViewModel
 
 @{
     ViewData["Title"] = "Detalles del Cliente";
@@ -17,6 +17,14 @@
                         <dt class="col-sm-4">Nombre / Razón Social</dt>
                         <dd class="col-sm-8">@Model.Nombre</dd>
 
+                        <dt class="col-sm-4">Estado</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-info">@Model.EstadoCliente</span>
+                        </dd>
+
+                        <dt class="col-sm-4">Fecha Registro</dt>
+                        <dd class="col-sm-8">@Model.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+
                         @if (!string.IsNullOrWhiteSpace(Model.Observaciones))
                         {
                             <dt class="col-sm-4">Observaciones</dt>
@@ -28,87 +36,79 @@
                 <div class="col-md-6">
                     <h4 class="text-primary">Contacto</h4>
                     <dl class="row mt-3">
-                        @if (!string.IsNullOrWhiteSpace(Model.Contacto.NombreContacto))
+                        @if (!string.IsNullOrWhiteSpace(Model.NombreContacto))
                         {
                             <dt class="col-sm-4">Nombre de Contacto</dt>
-                            <dd class="col-sm-8">@Model.Contacto.NombreContacto</dd>
+                            <dd class="col-sm-8">@Model.NombreContacto</dd>
                         }
 
-                        @if (!string.IsNullOrWhiteSpace(Model.Contacto.Telefono))
+                        @if (!string.IsNullOrWhiteSpace(Model.Telefono))
                         {
                             <dt class="col-sm-4">Teléfono</dt>
-                            <dd class="col-sm-8">@Model.Contacto.Telefono</dd>
+                            <dd class="col-sm-8">@Model.Telefono</dd>
                         }
 
-                        @if (!string.IsNullOrWhiteSpace(Model.Contacto.TelefonoMovil))
+                        @if (!string.IsNullOrWhiteSpace(Model.TelefonoMovil))
                         {
                             <dt class="col-sm-4">Teléfono Móvil</dt>
-                            <dd class="col-sm-8">@Model.Contacto.TelefonoMovil</dd>
+                            <dd class="col-sm-8">@Model.TelefonoMovil</dd>
                         }
 
-                        @if (!string.IsNullOrWhiteSpace(Model.Contacto.Correo))
+                        @if (!string.IsNullOrWhiteSpace(Model.Correo))
                         {
                             <dt class="col-sm-4">Correo Electrónico</dt>
                             <dd class="col-sm-8">
-                                <a href="mailto:@Model.Contacto.Correo">@Model.Contacto.Correo</a>
+                                <a href="mailto:@Model.Correo">@Model.Correo</a>
                             </dd>
                         }
                     </dl>
                 </div>
             </div>
 
-            @if (Model.Direccion != null)
+            @if (!string.IsNullOrWhiteSpace(Model.Calle) ||
+                 !string.IsNullOrWhiteSpace(Model.Ciudad) ||
+                 !string.IsNullOrWhiteSpace(Model.CodigoPostal))
             {
                 <hr />
                 <h4 class="text-primary"><i class="fas fa-map-marker-alt"></i> Dirección</h4>
                 <div class="row mt-3">
                     <div class="col-md-12">
-                        <p>@Model.Direccion.DireccionCompleta()</p>
+                        <p>
+                            @{
+                                var direccion = new List<string>();
+                                if (!string.IsNullOrWhiteSpace(Model.Calle))
+                                    direccion.Add(Model.Calle);
+                                if (!string.IsNullOrWhiteSpace(Model.NumeroExterior))
+                                    direccion.Add($"#{Model.NumeroExterior}");
+                                if (!string.IsNullOrWhiteSpace(Model.NumeroInterior))
+                                    direccion.Add($"Int. {Model.NumeroInterior}");
+                                if (!string.IsNullOrWhiteSpace(Model.Colonia))
+                                    direccion.Add(Model.Colonia);
+                                if (!string.IsNullOrWhiteSpace(Model.Ciudad))
+                                    direccion.Add(Model.Ciudad);
+                                if (!string.IsNullOrWhiteSpace(Model.Estado))
+                                    direccion.Add(Model.Estado);
+                                if (!string.IsNullOrWhiteSpace(Model.CodigoPostal))
+                                    direccion.Add($"CP {Model.CodigoPostal}");
+                            }
+                            @string.Join(", ", direccion)
+                        </p>
                     </div>
                 </div>
             }
-
-            <hr />
-            <h4 class="text-primary"><i class="fas fa-file-invoice"></i> Cotizaciones</h4>
-            @if (Model.Cotizaciones.Any())
-            {
-                <div class="table-responsive mt-3">
-                    <table class="table table-sm table-striped">
-                        <thead>
-                            <tr>
-                                <th>N° Cotización</th>
-                                <th>Empresa</th>
-                                <th>Fecha</th>
-                                <th>Total</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var cotizacion in Model.Cotizaciones.OrderByDescending(c => c.FechaCreacion))
-                            {
-                                <tr>
-                                    <td>@cotizacion.NumeroCotizacion</td>
-                                    <td>@cotizacion.Empresa?.NombreComercial</td>
-                                    <td>@cotizacion.FechaCreacion.ToLocalTime().ToString("dd/MM/yyyy")</td>
-                                    <td>@cotizacion.Total.ToString()</td>
-                                    <td>@cotizacion.Estado</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-            else
-            {
-                <p class="text-muted mt-3">Este cliente no tiene cotizaciones aún.</p>
-            }
         </div>
-        <div class="card-footer">
-            <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-warning">
-                <i class="fas fa-edit"></i> Editar
-            </a>
-            <a asp-action="Indice" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Volver al listado
+        <div class="card-footer d-flex justify-content-between">
+            <div>
+                <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Editar
+                </a>
+                <a asp-action="Indice" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver al listado
+                </a>
+            </div>
+             <a asp-controller="Seguimiento" asp-action="CrearLead"
+                   class="btn btn-success">
+                <i class="fas fa-plus"></i> Nuevo Seguimiento
             </a>
         </div>
     </div>

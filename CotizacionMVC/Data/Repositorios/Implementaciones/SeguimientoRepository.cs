@@ -12,7 +12,6 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
         {
             _context = context;
         }
-
         public async Task<Seguimiento?> GetByIdAsync(Guid id)
         {
             return await _context.Seguimientos

@@ -1,20 +1,33 @@
-﻿using CotizacionMVC.Servicios.Aplicacion.Dtos.Empresa;
- using CotizacionMVC.Servicios.Aplicacion.Interfaces;
+﻿using CotizacionMVC.Models.Entidades;
+using CotizacionMVC.Servicios.Aplicacion.Dtos.Empresa;
+using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using CotizacionMVC.ViewModels.Empresa;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CotizacionMVC.Controllers
 {
+     
+    [Authorize]  
     public class EmpresaController : Controller
     {
         private readonly IEmpresaServicio _empresaServicio;
+        private readonly UserManager<Usuario> _userManager;
+        private readonly IAutorizacionServicio _autorizacionServicio;
 
-        public EmpresaController(IEmpresaServicio empresaServicio)
+        public EmpresaController(
+            IEmpresaServicio empresaServicio,
+            UserManager<Usuario> userManager,
+            IAutorizacionServicio autorizacionServicio)
         {
             _empresaServicio = empresaServicio;
+            _userManager = userManager;
+            _autorizacionServicio = autorizacionServicio;
         }
 
-        // GET: Empresa/Indice
+        // SOLO ADMIN puede ver el índice de empresas
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Indice()
         {
             var empresas = await _empresaServicio.ObtenerTodasAsync();
@@ -35,7 +48,8 @@ namespace CotizacionMVC.Controllers
             return View(viewModel);
         }
 
-        // GET: Empresa/Editar/5
+        // SOLO ADMIN puede editar empresas
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Editar(Guid? id)
         {
             if (id == null)
@@ -64,9 +78,10 @@ namespace CotizacionMVC.Controllers
             return View(viewModel);
         }
 
-        // POST: Empresa/Editar/5
+        // SOLO ADMIN puede guardar edición
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Editar(EmpresaFormViewModel formulario)
         {
             if (!ModelState.IsValid)
@@ -104,8 +119,9 @@ namespace CotizacionMVC.Controllers
             }
         }
 
-        // POST: Empresa/CambiarEmpresaActiva/Todas
+        //Admin y Recepción pueden ver todas las empresas
         [HttpPost]
+        [Authorize(Roles = "Administrador,Recepcion")]
         public IActionResult VerTodasLasEmpresas(string? returnUrl = null)
         {
             HttpContext.Session.Remove("EmpresaActivaId");
@@ -119,10 +135,21 @@ namespace CotizacionMVC.Controllers
             return RedirectToLocal(returnUrl);
         }
 
-        // POST: Empresa/CambiarEmpresaActiva
+        // Todos los roles autenticados pueden cambiar de empresa
         [HttpPost]
         public async Task<IActionResult> CambiarEmpresaActiva(Guid empresaId, string? returnUrl = null)
         {
+            var usuarioActual = await _userManager.GetUserAsync(User);
+            if (usuarioActual == null)
+                return RedirectToAction("Login", "Autenticacion");
+
+            var tieneAcceso = await _autorizacionServicio.TieneAccesoAEmpresaAsync(usuarioActual.Id, empresaId);
+            if (!tieneAcceso)
+            {
+                TempData["MensajeError"] = "No tienes acceso a la empresa seleccionada";
+                return RedirectToLocal(returnUrl);
+            }
+
             var empresa = await _empresaServicio.ObtenerPorIdAsync(empresaId);
 
             if (empresa == null)
@@ -144,41 +171,6 @@ namespace CotizacionMVC.Controllers
             TempData["MensajeExito"] = $"Ahora estás trabajando en: {empresa.NombreComercial}";
             return RedirectToLocal(returnUrl);
         }
-
-        public async Task<EmpresaDetalleDto?> ObtenerEmpresaActual()
-        {
-            var empresaIdString = HttpContext.Session.GetString("EmpresaActivaId");
-
-            if (string.IsNullOrEmpty(empresaIdString))
-            {
-                var empresa = await _empresaServicio.ObtenerEmpresaActualAsync();
-
-                if (empresa != null)
-                {
-                    HttpContext.Session.SetString("EmpresaActivaId", empresa.Id.ToString());
-                    HttpContext.Session.SetString("EmpresaActivaNombre", empresa.NombreComercial);
-                    HttpContext.Session.SetString("EmpresaActivaSlug", empresa.Slug);
-                    HttpContext.Session.SetString("EmpresaEsExclusivaTrane", empresa.EsExclusivaTrane.ToString());
-                    HttpContext.Session.SetString("EmpresaColorPrimario", empresa.ColorPrimario ?? "#C8102E");
-                    HttpContext.Session.SetString("EmpresaColorSecundario", empresa.ColorSecundario ?? "#FFFFFF");
-                    return empresa;
-                }
-
-                return null;
-            }
-
-            var empresaId = Guid.Parse(empresaIdString);
-            var empresaActiva = await _empresaServicio.ObtenerPorIdAsync(empresaId);
-
-            if (empresaActiva == null || !empresaActiva.Activa)
-            {
-                HttpContext.Session.Remove("EmpresaActivaId");
-                return await ObtenerEmpresaActual();
-            }
-
-            return empresaActiva;
-        }
-
         private IActionResult RedirectToLocal(string? returnUrl)
         {
             if (Url.IsLocalUrl(returnUrl))

@@ -1,28 +1,51 @@
-﻿using CotizacionMVC.Servicios.Aplicacion.Dtos.Cliente;
+﻿using CotizacionMVC.Models.Entidades;
+using CotizacionMVC.Servicios.Aplicacion.Dtos.Cliente;
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using CotizacionMVC.ViewModels.Cliente;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CotizacionMVC.Controllers
 {
+    [Authorize(Roles = "Administrador,Vendedor")]
     public class ClienteController : Controller
     {
         private readonly IClienteServicio _clienteServicio;
+        private readonly UserManager<Usuario> _userManager;
 
-        public ClienteController(IClienteServicio clienteServicio)
+        public ClienteController(
+            IClienteServicio clienteServicio,
+            UserManager<Usuario> userManager)
         {
             _clienteServicio = clienteServicio;
+            _userManager = userManager;
         }
 
-        // GET: Cliente/Indice
-        public async Task<IActionResult> Indice(string? termino = null)
+        public async Task<IActionResult> Indice(string? termino = null, string? filtro = null)
         {
-            var clientes = await _clienteServicio.ObtenerTodosAsync(termino);
+            var usuarioActual = await _userManager.GetUserAsync(User);
+            if (usuarioActual == null)
+                return RedirectToAction("Login", "Autenticacion");
+
+            var clientes = await _clienteServicio.ObtenerTodosAsync(usuarioActual.Id, termino);
+
+            // Aplicar filtro de pipeline
+            var clientesFiltrados = filtro switch
+            {
+                "senalertas" => clientes.Where(c => c.DiasSinActividad >= 5
+                    && c.Estado != "Cerrado" && c.Estado != "Perdido"),
+                "contactarhoy" => clientes.Where(c => c.TieneSeguimientoHoy),
+                "calientes" => clientes.Where(c => c.EsCaliente),
+                "cotizando" => clientes.Where(c => c.CantidadCotizaciones > 0
+                    && c.Estado != "Cerrado" && c.Estado != "Perdido"),
+                "cerrados" => clientes.Where(c => c.Estado == "Cerrado" || c.Estado == "Perdido"),
+                _ => clientes
+            };
 
             var viewModel = new ClienteIndiceViewModel
             {
-                Clientes = clientes.Select(c => new ClienteResumenViewModel
+                Clientes = clientesFiltrados.Select(c => new ClienteResumenViewModel
                 {
                     Id = c.Id,
                     Nombre = c.Nombre,
@@ -31,16 +54,22 @@ namespace CotizacionMVC.Controllers
                     Estado = c.Estado,
                     Empresa = c.Empresa,
                     FechaRegistro = c.FechaRegistro,
-                    CantidadCotizaciones = c.CantidadCotizaciones
+                    CantidadCotizaciones = c.CantidadCotizaciones,
+                    UltimaFechaSeguimiento = c.UltimaFechaSeguimiento,
+                    ProximaFechaSeguimiento = c.ProximaFechaSeguimiento,
+                    DiasSinActividad = c.DiasSinActividad,
+                    TotalUltimaCotizacion = c.TotalUltimaCotizacion,
+                    Moneda = c.Moneda,
+                    TieneSeguimientoHoy = c.TieneSeguimientoHoy,
+                    EsCaliente = c.EsCaliente
                 }).ToList(),
-                TerminoBusqueda = termino
+                TerminoBusqueda = termino,
+                FiltroActivo = filtro
             };
 
             return View(viewModel);
         }
-
-        // GET: Cliente/Detalles/5
-        public async Task<IActionResult> Detalles(Guid? id)
+         public async Task<IActionResult> Detalles(Guid? id)
         {
             if (id == null)
                 return NotFound("No se proporcionó un identificador de cliente");
@@ -53,14 +82,12 @@ namespace CotizacionMVC.Controllers
             var viewModel = MapearADetalleViewModel(cliente);
             return View(viewModel);
         }
-
-        // GET: Cliente/Crear
+      
         public IActionResult Crear()
         {
-            return View(new ClienteFormViewModel());
+            return RedirectToAction("Registrar", "Recepcion");
         }
 
-        // POST: Cliente/Crear
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(ClienteFormViewModel formulario)
@@ -99,7 +126,6 @@ namespace CotizacionMVC.Controllers
             }
         }
 
-        // GET: Cliente/Editar/5
         public async Task<IActionResult> Editar(Guid? id)
         {
             if (id == null)
@@ -131,7 +157,6 @@ namespace CotizacionMVC.Controllers
             return View(viewModel);
         }
 
-        // POST: Cliente/Editar/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Editar(ClienteFormViewModel formulario)
@@ -175,7 +200,6 @@ namespace CotizacionMVC.Controllers
             }
         }
 
-        // GET: Cliente/Eliminar/5 (Solo administrador)
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Eliminar(Guid? id)
         {
@@ -191,7 +215,6 @@ namespace CotizacionMVC.Controllers
             return View(viewModel);
         }
 
-        // POST: Cliente/Eliminar/5 (Solo administrador)
         [HttpPost, ActionName("Eliminar")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador")]

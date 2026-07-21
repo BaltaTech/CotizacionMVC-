@@ -10,9 +10,6 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
         public CotizacionRepository(ApplicationDbContext context) : base(context)
         {
         }
-
-        // ==================== QUERIES DE SOLO LECTURA ====================
-
         public async Task<Cotizacion?> ObtenerCompletaPorIdAsync(Guid id)
         {
             return await _context.Cotizaciones
@@ -40,9 +37,10 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
                     ClienteNombre = c.Cliente.Nombre,
                     EmpresaNombre = c.Empresa.NombreComercial,
                     FechaCreacion = c.FechaCreacion,
+                    EmpresaId = c.EmpresaId,
                     Total = c.Total.Monto,
                     Moneda = c.Empresa.MonedaBase,
-                    Estado = c.Estado
+                    Estado = c.Estado.ToString()
                 })
                 .ToListAsync();
         }
@@ -60,9 +58,10 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
                     ClienteNombre = c.Cliente.Nombre,
                     EmpresaNombre = c.Empresa.NombreComercial,
                     FechaCreacion = c.FechaCreacion,
+                    EmpresaId = c.EmpresaId,
                     Total = c.Total.Monto,
                     Moneda = c.Empresa.MonedaBase,
-                    Estado = c.Estado
+                    Estado = c.Estado.ToString()
                 })
                 .ToListAsync();
         }
@@ -84,9 +83,6 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
 
             return "COT-0001";
         }
-
-        // ==================== QUERIES DE ESCRITURA (SIN AsNoTracking) ====================
-
         public async Task<Cotizacion?> ObtenerConItemsAsync(Guid id)
         {
             return await _context.Cotizaciones

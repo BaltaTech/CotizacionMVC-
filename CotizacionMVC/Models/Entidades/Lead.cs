@@ -28,8 +28,6 @@ namespace CotizacionMVC.Models.Entidades
         public string? ComentarioNoCotizable { get; private set; }
         public DateTime? FechaContacto { get; private set; }
         public DateTime? FechaCotizacion { get; private set; }
-
-        // ========== NUEVOS CAMPOS SEGUIMIENTOS ==========
         public DateTime? UltimoSeguimiento { get; private set; }
 
         protected Lead()
@@ -90,8 +88,6 @@ namespace CotizacionMVC.Models.Entidades
             ComentarioNoCotizable = null;
         }
 
-        // ========== MÉTODOS EXISTENTES (SIN CAMBIOS) ==========
-
         public void AsignarVendedor(Usuario vendedor)
         {
             if (vendedor == null)
@@ -143,7 +139,6 @@ namespace CotizacionMVC.Models.Entidades
             return "Sin medio de contacto";
         }
 
-        // ========== MÉTODO AJUSTADO ==========
         public bool EsLeadCaliente()
         {
             return Categoria == CategoriaLead.Contactado
@@ -207,8 +202,6 @@ namespace CotizacionMVC.Models.Entidades
             VendedorAsignadoId = nuevoVendedor.Id;
             FechaAsignacion = DateTime.UtcNow;
         }
-
-        // ========== NUEVOS MÉTODOS PARA SEGUIMIENTOS ==========
 
         public void RegistrarActividad(DateTime fecha)
         {

@@ -10,13 +10,29 @@
 <div class="cotizacion-layout">
     @* ===== COLUMNA IZQUIERDA: FORMULARIO ===== *@
     <div class="cotizacion-main">
-        <form id="formCotizacion" method="post" asp-action="Crear">
+        <form id="formCotizacion" method="post" asp-action="Crear" asp-controller="Cotizacion">
             @Html.AntiForgeryToken()
 
             @* CLIENTE *@
             @if (modoLead && lead != null)
             {
-                <input type="hidden" name="clienteId" value="@lead.ClienteId" />
+                @if (lead.ClienteId.HasValue)
+                {
+                    <input type="hidden" name="clienteId" value="@lead.ClienteId.Value" />
+                }
+                else
+                {
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small text-uppercase text-muted">Cliente</label>
+                        <select id="clienteId" name="clienteId" class="form-select" required>
+                            <option value="">Seleccione un cliente...</option>
+                            @foreach (var c in clientes ?? new())
+                            {
+                                <option value="@c.Id">@c.Folio | @c.Nombre | @c.Telefono</option>
+                            }
+                        </select>
+                    </div>
+                }
                 <input type="hidden" name="leadId" value="@lead.Id" />
                 <div class="lead-info">
                     <div class="lead-info-item"><small>Cliente</small><strong>@lead.ClienteNombre</strong></div>
@@ -127,7 +143,9 @@
 
             <div class="form-actions">
                 <a asp-action="Indice" class="btn btn-outline-secondary btn-sm">Cancelar</a>
-                <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-save me-1"></i>Guardar Cotización</button>
+                <button type="submit" id="btnGuardarCotizacion" class="btn btn-danger btn-sm">
+                    <i class="fas fa-save me-1"></i>Guardar Cotización
+                </button>
             </div>
         </form>
     </div>
@@ -418,13 +436,52 @@
             $('#toggleMoneda').on('change',function(){mostrarUSD=$(this).is(':checked');re();ri();});
 
             $('#formCotizacion').submit(function(e){
-                @if(!modoLead){<text>if(!$('#clienteId').val()){alert('Seleccione un cliente');e.preventDefault();return false;}</text>}
-                if(!equiposAgregados.length){alert('Agregue al menos un equipo');e.preventDefault();return false;}
-                $('#equiposJson').val(JSON.stringify(equiposAgregados.map(e=>({equipoId:e.equipoId,cantidad:e.cantidad}))));
-                $('#instalacionesJson').val(JSON.stringify(instalacionesAgregadas.map(i=>({instalacionId:i.instalacionId,concepto:i.concepto,descripcion:i.descripcion,cantidad:i.cantidad,costoUnitario:i.costoUnitario}))));
+                console.log('Iniciando envío de formulario...');
+                
+                @if(!modoLead){
+                    <text>
+                    var clienteId = $('#clienteId').val();
+                    console.log('Cliente ID:', clienteId);
+                    if(!clienteId || clienteId === ''){
+                        alert('Seleccione un cliente');
+                        e.preventDefault();
+                        return false;
+                    }
+                    </text>
+                }
+                
+                console.log('Equipos agregados:', equiposAgregados.length);
+                if(!equiposAgregados.length){
+                    alert('Agregue al menos un equipo');
+                    e.preventDefault();
+                    return false;
+                }
+                
+                var equiposJson = JSON.stringify(equiposAgregados.map(e => ({
+                    equipoId: e.equipoId,
+                    cantidad: e.cantidad
+                })));
+                
+                var instalacionesJson = JSON.stringify(instalacionesAgregadas.map(i => ({
+                    instalacionId: i.instalacionId,
+                    concepto: i.concepto,
+                    descripcion: i.descripcion,
+                    cantidad: i.cantidad,
+                    costoUnitario: i.costoUnitario
+                })));
+                
+                console.log('Equipos JSON:', equiposJson);
+                console.log('Instalaciones JSON:', instalacionesJson);
+                
+                $('#equiposJson').val(equiposJson);
+                $('#instalacionesJson').val(instalacionesJson);
+                
+                console.log('Formulario listo, enviando...');
             });
+            
             $('#areaMetrosCuadrados').on('input',function(){var a=$(this).val();if(a>0)$.get('/Cotizacion/CalcularCargaTermica',{area:a},d=>$('#cargaTermicaInfo').html('<i class="fas fa-thermometer-half"></i> '+d.tr+' TR sugeridos'));}).trigger('input');
         });
+        
         $(document).on('change','.cantidad-equipo',function(){var i=$(this).data('indice'),c=parseInt($(this).val())||1;equiposAgregados[i].cantidad=c;equiposAgregados[i].subtotal=equiposAgregados[i].precioUnitario*c;re();});
         $(document).on('click','.eliminar-equipo',function(){equiposAgregados.splice($(this).data('indice'),1);re();});
         $(document).on('change','.cantidad-instalacion',function(){var i=$(this).data('indice'),c=parseInt($(this).val())||1;instalacionesAgregadas[i].cantidad=c;instalacionesAgregadas[i].subtotal=instalacionesAgregadas[i].costoUnitario*c;ri();});

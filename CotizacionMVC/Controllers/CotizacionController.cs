@@ -11,38 +11,37 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CotizacionMVC.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Administrador,Vendedor")]
     public class CotizacionController : Controller
     {
         private readonly ICotizacionServicio _cotizacionServicio;
         private readonly UserManager<Usuario> _userManager;
         private readonly IEmpresaRepository _empresaRepo;
-
+        private readonly IAutorizacionServicio _autorizacionServicio;
         private readonly IInstalacionServicio _instalacionServicio;
 
         public CotizacionController(
             ICotizacionServicio cotizacionServicio,
             UserManager<Usuario> userManager,
             IEmpresaRepository empresaRepo,
-            IInstalacionServicio instalacionServicio)
+            IInstalacionServicio instalacionServicio,
+            IAutorizacionServicio autorizacionServicio)
         {
             _cotizacionServicio = cotizacionServicio;
             _userManager = userManager;
             _empresaRepo = empresaRepo;
             _instalacionServicio = instalacionServicio;
+            _autorizacionServicio = autorizacionServicio;
         }
-        // GET: Cotizacion/Indice
+
         public async Task<IActionResult> Indice()
         {
             var usuarioActual = await _userManager.GetUserAsync(User);
-            var empresaIdString = HttpContext.Session.GetString("EmpresaActivaId");
-            Guid? empresaId = string.IsNullOrEmpty(empresaIdString) ? null : Guid.Parse(empresaIdString);
-            bool esAdmin = User.IsInRole("Administrador");
+            if (usuarioActual == null)
+                return RedirectToAction("Login", "Autenticacion");
 
-            var cotizaciones = await _cotizacionServicio.ObtenerIndiceAsync(
-                usuarioActual?.Id, empresaId, esAdmin);
-
-            var leads = await _cotizacionServicio.ObtenerLeadsDelVendedorAsync(usuarioActual!.Id);
+            var cotizaciones = await _cotizacionServicio.ObtenerIndiceAsync(usuarioActual.Id);
+            var leads = await _cotizacionServicio.ObtenerLeadsAsync(usuarioActual.Id);
 
             var viewModel = new CotizacionIndiceViewModel
             {
@@ -55,7 +54,7 @@ namespace CotizacionMVC.Controllers
                     FechaCreacion = c.FechaCreacion,
                     Total = c.Total,
                     Moneda = c.Moneda,
-                    Estado = c.Estado
+                    Estado = Enum.Parse<EstadoCotizacion>(c.Estado)
                 }).ToList(),
                 Leads = leads.Select(l => new LeadResumenViewModel
                 {
@@ -69,7 +68,7 @@ namespace CotizacionMVC.Controllers
                     FechaAsignacion = l.FechaAsignacion,
                     FechaCreacion = l.FechaCreacion,
                     NombreContacto = l.NombreContacto,
-                    ClienteTelefono = l.ClienteTelefono,   
+                    ClienteTelefono = l.ClienteTelefono,
                     OrigenLead = l.OrigenLead
                 }).ToList()
             };
@@ -77,7 +76,6 @@ namespace CotizacionMVC.Controllers
             return View(viewModel);
         }
 
-        // GET: Cotizacion/Detalles/5
         public async Task<IActionResult> Detalles(Guid? id)
         {
             if (id == null)
@@ -92,14 +90,14 @@ namespace CotizacionMVC.Controllers
             return View(viewModel);
         }
 
-        // GET: Cotizacion/Crear
         public async Task<IActionResult> Crear(Guid? leadId = null)
         {
             var usuarioActual = await _userManager.GetUserAsync(User);
-            bool esVendedor = User.IsInRole("Vendedor");
+            if (usuarioActual == null)
+                return RedirectToAction("Login", "Autenticacion");
 
             var datos = await _cotizacionServicio.ObtenerDatosParaCrearAsync(
-                usuarioActual!.Id, esVendedor, leadId);
+                usuarioActual.Id, leadId);
 
             var viewModel = new CrearCotizacionViewModel();
 
@@ -119,7 +117,6 @@ namespace CotizacionMVC.Controllers
             ViewBag.Equipos = datos.Equipos;
             ViewBag.Instalaciones = datos.Instalaciones;
 
-            // ========== Catálogo lateral: filtrar por empresa ==========
             Guid? empresaId = null;
 
             if (datos.Lead?.EmpresaId != null)
@@ -128,9 +125,9 @@ namespace CotizacionMVC.Controllers
             }
             else
             {
-                var empresaIdString = HttpContext.Session.GetString("EmpresaActivaId");
-                if (!string.IsNullOrEmpty(empresaIdString))
-                    empresaId = Guid.Parse(empresaIdString);
+                
+                var empresa = await _autorizacionServicio.ObtenerEmpresaActivaAsync(usuarioActual.Id);
+                empresaId = empresa?.Id;
             }
 
             if (empresaId.HasValue)
@@ -156,7 +153,6 @@ namespace CotizacionMVC.Controllers
                     .ToList();
             }
 
-
             ViewBag.MarcaSeleccionada = ViewBag.Marcas.Count == 1 ? ViewBag.Marcas[0] : (TipoMarca?)null;
 
             ViewBag.InstalacionesCatalogo = await _instalacionServicio.ObtenerCatalogoAsync();
@@ -164,7 +160,6 @@ namespace CotizacionMVC.Controllers
             return View(viewModel);
         }
 
-        // POST: Cotizacion/Crear
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(CrearCotizacionViewModel formulario)
@@ -184,14 +179,14 @@ namespace CotizacionMVC.Controllers
             if (formulario.LeadId.HasValue)
             {
                 var datosLead = await _cotizacionServicio.ObtenerDatosParaCrearAsync(
-                    vendedor.Id, User.IsInRole("Vendedor"), formulario.LeadId);
+                    vendedor.Id, formulario.LeadId);
 
                 if (datosLead.Lead?.EmpresaId != null)
                     empresa = await _empresaRepo.GetByIdAsync(datosLead.Lead.EmpresaId.Value);
             }
 
             if (empresa == null)
-                empresa = await ObtenerEmpresaActual();
+                empresa = await _autorizacionServicio.ObtenerEmpresaActivaAsync(vendedor.Id);
 
             if (empresa == null)
             {
@@ -201,7 +196,7 @@ namespace CotizacionMVC.Controllers
 
             var dto = new CrearCotizacionDto
             {
-                ClienteId = formulario.ClienteId,
+                ClienteId = formulario.ClienteId ?? Guid.Empty,
                 EmpresaId = empresa.Id,
                 VendedorId = vendedor.Id,
                 AreaMetrosCuadrados = formulario.AreaMetrosCuadrados,
@@ -222,7 +217,7 @@ namespace CotizacionMVC.Controllers
             TempData["MensajeExito"] = $"Cotización {resultado.Cotizacion!.NumeroCotizacion} creada exitosamente";
             return RedirectToAction(nameof(Detalles), new { id = resultado.Cotizacion.Id });
         }
-        // GET: Cotizacion/DescargarPdf/5
+
         [HttpGet]
         public async Task<IActionResult> DescargarPdf(Guid id)
         {
@@ -239,7 +234,6 @@ namespace CotizacionMVC.Controllers
             }
         }
 
-        // POST: Cotizacion/Editar/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Editar(Guid id, Guid clienteId, decimal areaMetrosCuadrados, string condicionesPago)
@@ -264,7 +258,6 @@ namespace CotizacionMVC.Controllers
             return RedirectToAction(nameof(Detalles), new { id });
         }
 
-        // GET: Cotizacion/Eliminar/5
         public async Task<IActionResult> Eliminar(Guid? id)
         {
             if (id == null)
@@ -279,7 +272,6 @@ namespace CotizacionMVC.Controllers
             return View(viewModel);
         }
 
-        // POST: Cotizacion/Eliminar/5
         [HttpPost, ActionName("Eliminar")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EliminarConfirmado(Guid id)
@@ -296,7 +288,6 @@ namespace CotizacionMVC.Controllers
             return RedirectToAction(nameof(Indice));
         }
 
-        // GET: Cotizacion/CalcularCargaTermica
         [HttpGet]
         public async Task<IActionResult> CalcularCargaTermica(decimal area)
         {
@@ -306,7 +297,6 @@ namespace CotizacionMVC.Controllers
             return Json(new { tr, btu = Math.Round(btu, 0) });
         }
 
-        // POST: Cotizacion/CambiarEstado
         [HttpPost]
         public async Task<IActionResult> CambiarEstado(Guid cotizacionId, int nuevoEstado)
         {
@@ -319,16 +309,6 @@ namespace CotizacionMVC.Controllers
         }
 
         // ==================== MÉTODOS AUXILIARES ====================
-
-        private async Task<Empresa?> ObtenerEmpresaActual()
-        {
-            var empresaIdString = HttpContext.Session.GetString("EmpresaActivaId");
-            if (string.IsNullOrEmpty(empresaIdString))
-                return await _empresaRepo.ObtenerActivaAsync();
-
-            var empresaId = Guid.Parse(empresaIdString);
-            return await _empresaRepo.GetByIdAsync(empresaId);
-        }
 
         private List<ItemCotizacionJson> DeserializarEquipos(string? json)
         {

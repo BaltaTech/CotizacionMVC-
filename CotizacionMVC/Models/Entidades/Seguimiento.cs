@@ -1,47 +1,35 @@
-﻿// Models/Entidades/Seguimiento.cs
-using CotizacionMVC.Models.Enums;
+﻿using CotizacionMVC.Models.Enums;
 
 namespace CotizacionMVC.Models.Entidades
 {
     public class Seguimiento
     {
         public Guid Id { get; private set; }
-
-        // --- Relaciones (ambas opcionales, pero no ambas nulas) ---
         public Guid? LeadId { get; private set; }
         public virtual Lead? Lead { get; private set; }
-
         public Guid? CotizacionId { get; private set; }
         public virtual Cotizacion? Cotizacion { get; private set; }
-
-        // --- Quién ---
         public Guid EmpresaId { get; private set; }
         public virtual Empresa Empresa { get; private set; }
-
         public Guid VendedorId { get; private set; }
         public virtual Usuario Vendedor { get; private set; }
-
-        // --- La interacción ---
+ 
         public DateTime FechaCreacion { get; private set; }
         public DateTime FechaContacto { get; private set; }
         public MedioContacto MedioContacto { get; private set; }
         public ResultadoSeguimiento Resultado { get; private set; }
         public string? Notas { get; private set; }
-
-        // --- Agenda ---
         public DateTime? ProximoContacto { get; private set; }
         public bool RecordatorioEnviado { get; private set; }
 
-        // Constructor protegido para EF Core
-        protected Seguimiento()
+         protected Seguimiento()
         {
             Empresa = null!;
             Vendedor = null!;
             Notas = null;
         }
 
-        // Constructor para seguimiento de LEAD
-        public Seguimiento(
+         public Seguimiento(
             Lead lead,
             Usuario vendedor,
             DateTime fechaContacto,
@@ -110,7 +98,7 @@ namespace CotizacionMVC.Models.Entidades
             RecordatorioEnviado = false;
         }
 
-        // Constructor para seguimiento de LEAD + COTIZACION (lead ya convertido)
+        // Constructor para seguimiento de LEAD + COTIZACION  
         public Seguimiento(
             Lead lead,
             Cotizacion cotizacion,
@@ -148,8 +136,6 @@ namespace CotizacionMVC.Models.Entidades
             ProximoContacto = proximoContacto;
             RecordatorioEnviado = false;
         }
-
-        // --- Métodos de dominio ---
 
         public void MarcarRecordatorioEnviado()
         {
@@ -210,8 +196,7 @@ namespace CotizacionMVC.Models.Entidades
             return CotizacionId.HasValue;
         }
 
-        // --- Validaciones privadas ---
-
+    
         private void ValidarVendedor(Usuario vendedor, Empresa empresa)
         {
             if (vendedor == null)

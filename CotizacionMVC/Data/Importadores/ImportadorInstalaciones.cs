@@ -51,7 +51,7 @@ namespace CotizacionMVC.Data.Importadores
             }
 
             await context.SaveChangesAsync();
-            Console.WriteLine($"✅ Instalaciones: {importados} importadas, {saltados} duplicadas saltadas.");
+            Console.WriteLine($"Instalaciones: {importados} importadas, {saltados} duplicadas saltadas.");
         }
     }
 }

@@ -6,7 +6,5 @@
         public string Concepto { get; set; } = string.Empty;
         public string? Descripcion { get; set; }
         public decimal CostoUnitario { get; set; }
-
-
     }
 }

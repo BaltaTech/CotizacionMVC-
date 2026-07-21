@@ -6,6 +6,5 @@ namespace CotizacionMVC.Data.Repositorios.Interfaces
     {
         Task<Empresa?> ObtenerActivaAsync();
         IQueryable<Empresa> ObtenerQueryable();
-
     }
 }

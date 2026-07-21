@@ -152,7 +152,7 @@
                                         <th>Producto</th>
                                         <th class="text-center">Estado</th>
                                         <th>Fecha</th>
-                                        <th class="text-center" style="width:130px;"></th>
+                                        <th class="text-center" style="width:170px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -182,9 +182,15 @@
                                             </td>
                                             <td><small class="text-muted">@(lead.FechaAsignacion?.ToString("dd MMM") ?? lead.FechaCreacion.ToString("dd MMM"))</small></td>
                                             <td class="text-center">
-                                                <a asp-action="Crear" asp-route-leadId="@lead.Id" class="btn btn-sm btn-outline-danger" title="Cotizar">
-                                                    <i class="fas fa-plus-circle me-1"></i>Cotizar
-                                                </a>
+                                                <div class="d-flex gap-1 justify-content-center">
+                                                    <a asp-action="Crear" asp-route-leadId="@lead.Id" class="btn btn-sm btn-outline-danger" title="Cotizar">
+                                                        <i class="fas fa-plus-circle"></i>
+                                                    </a>
+                                                    @* ✅ NUEVO: Botón Seguimiento *@
+                                                    <a asp-controller="Seguimiento" asp-action="Crear" asp-route-leadId="@lead.Id" class="btn btn-sm btn-outline-success" title="Seguimiento">
+                                                        <i class="fas fa-clipboard-check"></i>
+                                                    </a>
+                                                </div>
                                             </td>
                                         </tr>
                                     }
@@ -215,7 +221,7 @@
                                         <th>Producto</th>
                                         <th class="text-center">Estado</th>
                                         <th>Fecha</th>
-                                        <th class="text-center" style="width:130px;"></th>
+                                        <th class="text-center" style="width:170px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -244,9 +250,15 @@
                                             </td>
                                             <td><small class="text-muted">@lead.FechaCreacion.ToString("dd MMM")</small></td>
                                             <td class="text-center">
-                                                <a asp-action="Crear" asp-route-leadId="@lead.Id" class="btn btn-sm btn-outline-danger" title="Cotizar">
-                                                    <i class="fas fa-plus-circle me-1"></i>Cotizar
-                                                </a>
+                                                <div class="d-flex gap-1 justify-content-center">
+                                                    <a asp-action="Crear" asp-route-leadId="@lead.Id" class="btn btn-sm btn-outline-danger" title="Cotizar">
+                                                        <i class="fas fa-plus-circle"></i>
+                                                    </a>
+                                                    @* ✅ NUEVO: Botón Seguimiento *@
+                                                    <a asp-controller="Seguimiento" asp-action="Crear" asp-route-leadId="@lead.Id" class="btn btn-sm btn-outline-success" title="Seguimiento">
+                                                        <i class="fas fa-clipboard-check"></i>
+                                                    </a>
+                                                </div>
                                             </td>
                                         </tr>
                                     }
@@ -289,7 +301,7 @@
                                 <th>Fecha</th>
                                 <th class="text-end">Total</th>
                                 <th class="text-center">Estado</th>
-                                <th class="text-center" style="width:120px;"></th>
+                                <th class="text-center" style="width:150px;"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -327,6 +339,10 @@
                                             </a>
                                             <a asp-action="DescargarPdf" asp-route-id="@cotizacion.Id" class="btn btn-sm btn-outline-danger" title="PDF">
                                                 <i class="fas fa-file-pdf"></i>
+                                            </a>
+                                            @* ✅ NUEVO: Botón Seguimiento *@
+                                            <a asp-controller="Seguimiento" asp-action="Crear" asp-route-cotizacionId="@cotizacion.Id" class="btn btn-sm btn-outline-success" title="Seguimiento">
+                                                <i class="fas fa-clipboard-check"></i>
                                             </a>
                                         </div>
                                     </td>
@@ -376,7 +392,7 @@
 @section Scripts {
     <script>
         document.getElementById('buscarCotizacion').addEventListener('keyup', function() {
-            var value = this.value.toLowerCase();
+            var value = this.toLowerCase();
             document.querySelectorAll('#tablaCotizaciones tbody tr').forEach(function(row) {
                 row.style.display = row.textContent.toLowerCase().includes(value) ? '' : 'none';
             });

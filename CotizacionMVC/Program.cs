@@ -34,6 +34,7 @@ builder.Services.AddScoped<NotificacionServicio>();
 builder.Services.AddHostedService<RecordatorioBackgroundService>();
 
 // ========== Servicios de aplicación ==========
+builder.Services.AddScoped<IAutorizacionServicio, AutorizacionServicio>();
 builder.Services.AddScoped<IDocumento, PdfCotizacion>();
 builder.Services.AddScoped<IClienteServicio, ClienteServicio>();
 builder.Services.AddScoped<IEmpresaServicio, EmpresaServicio>();

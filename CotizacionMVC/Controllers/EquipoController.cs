@@ -2,10 +2,12 @@
 using CotizacionMVC.Servicios.Aplicacion.Dtos.Equipo;
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using CotizacionMVC.ViewModels.Equipo;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CotizacionMVC.Controllers
 {
+    [Authorize]
     public class EquipoController : Controller
     {
         private readonly IEquipoServicio _equipoServicio;
@@ -14,8 +16,6 @@ namespace CotizacionMVC.Controllers
         {
             _equipoServicio = equipoServicio;
         }
-
-        // ========== CATÁLOGO PARA VENDEDORES ==========
 
         [HttpGet]
         public async Task<IActionResult> Catalogo(TipoMarca? marca = null)
@@ -68,8 +68,8 @@ namespace CotizacionMVC.Controllers
             return Json(resultado);
         }
 
-        // ========== CRUD ADMIN ==========
 
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Indice()
         {
             var equipos = await _equipoServicio.ObtenerTodosAsync();
@@ -89,6 +89,7 @@ namespace CotizacionMVC.Controllers
             return View(viewModel);
         }
 
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Detalles(Guid? id)
         {
             if (id == null) return NotFound();
@@ -110,6 +111,7 @@ namespace CotizacionMVC.Controllers
             });
         }
 
+        [Authorize(Roles = "Administrador")]
         public IActionResult Crear()
         {
             ViewBag.Marcas = ObtenerListaMarcas();
@@ -118,6 +120,7 @@ namespace CotizacionMVC.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Crear(EquipoFormViewModel formulario)
         {
             if (!ModelState.IsValid)
@@ -150,6 +153,7 @@ namespace CotizacionMVC.Controllers
             }
         }
 
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Editar(Guid? id)
         {
             if (id == null) return NotFound();
@@ -172,6 +176,7 @@ namespace CotizacionMVC.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Editar(EquipoFormViewModel formulario)
         {
             if (!ModelState.IsValid) { ViewBag.Marcas = ObtenerListaMarcas(); return View(formulario); }
@@ -193,6 +198,7 @@ namespace CotizacionMVC.Controllers
             }
         }
 
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Eliminar(Guid? id)
         {
             if (id == null) return NotFound();
@@ -216,6 +222,7 @@ namespace CotizacionMVC.Controllers
 
         [HttpPost, ActionName("Eliminar")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> EliminarConfirmado(Guid id)
         {
             try

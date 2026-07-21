@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CotizacionMVC.Controllers
 {
     [AllowAnonymous]
-    public class AutenticacionController : Controller
+    public class AutenticacionController : Controller 
     {
         private readonly UserManager<Usuario> _userManager;
         private readonly SignInManager<Usuario> _signInManager;

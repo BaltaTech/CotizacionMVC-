@@ -4,100 +4,130 @@
 
 <div class="home-container">
     
-    @* ========== HERO ========== *@
+    @* ========== HERO CON ANIMACIONES ========== *@
     <div class="hero-section">
-        <div class="hero-icon">
-            <i class="fas fa-wind"></i>
+        <div class="hero-ambient">
+            <div class="particle particle-1"></div>
+            <div class="particle particle-2"></div>
+            <div class="particle particle-3"></div>
+            <div class="particle particle-4"></div>
+            <div class="particle particle-5"></div>
         </div>
-        <h1 class="hero-title">HVAC Pro</h1>
-        <p class="hero-subtitle">Sistema de Cotizaciones</p>
-        <p class="hero-description">Administra tus oportunidades, clientes y cotizaciones desde un solo lugar.</p>
+        <div class="hero-icon pulse-icon">
+            <i class="fas fa-snowflake"></i>
+        </div>
+        <h1 class="hero-title glow-text">Aire y Clima Especializado</h1>
+        <p class="hero-subtitle">Soluciones Integrales en Climatización</p>
+        <p class="hero-description">Sistema profesional de cotizaciones y gestión comercial para el sector HVAC.</p>
+        <div class="hero-badge">
+            <span class="badge-item"><i class="fas fa-check-circle"></i> Distribuidor Autorizado</span>
+            <span class="badge-item"><i class="fas fa-certificate"></i> 16+ Años de Experiencia</span>
+            <span class="badge-item"><i class="fas fa-trophy"></i> 150+ Profesionales</span>
+        </div>
     </div>
 
-    @* ========== NAVIGATION CARDS ========== *@
+    @* ========== NAVIGATION CARDS========== *@
     <div class="nav-grid">
         
-        <a asp-controller="Cotizacion" asp-action="Indice" class="nav-card">
-            <div class="nav-card-icon" style="background:#fff3e0;color:#e65100;">
+        <a asp-controller="Cotizacion" asp-action="Indice" class="nav-card card-opportunities">
+            <div class="nav-card-icon">
                 <i class="fas fa-lightbulb"></i>
             </div>
             <div class="nav-card-content">
                 <h3 class="nav-card-title">Oportunidades</h3>
                 <p class="nav-card-description">Leads y pipeline de ventas</p>
             </div>
-            <i class="fas fa-arrow-right nav-card-arrow"></i>
+            <div class="nav-card-arrow-wrapper">
+                <i class="fas fa-arrow-right nav-card-arrow"></i>
+            </div>
+            <div class="card-glow"></div>
         </a>
 
-        <a asp-controller="Cotizacion" asp-action="Crear" class="nav-card">
-            <div class="nav-card-icon" style="background:#fce4e4;color:#c62828;">
+        <a asp-controller="Cotizacion" asp-action="Crear" class="nav-card card-create">
+            <div class="nav-card-icon">
                 <i class="fas fa-plus-circle"></i>
             </div>
             <div class="nav-card-content">
                 <h3 class="nav-card-title">Nueva Cotización</h3>
                 <p class="nav-card-description">Crear cotización desde cero</p>
             </div>
-            <i class="fas fa-arrow-right nav-card-arrow"></i>
+            <div class="nav-card-arrow-wrapper">
+                <i class="fas fa-arrow-right nav-card-arrow"></i>
+            </div>
+            <div class="card-glow"></div>
         </a>
 
-        <a asp-controller="Cliente" asp-action="Indice" class="nav-card">
-            <div class="nav-card-icon" style="background:#e3f2fd;color:#1565c0;">
-                <i class="fas fa-address-book"></i>
+        <a asp-controller="Cliente" asp-action="Indice" class="nav-card card-clients">
+            <div class="nav-card-icon">
+                <i class="fas fa-users"></i>
             </div>
             <div class="nav-card-content">
                 <h3 class="nav-card-title">Clientes</h3>
                 <p class="nav-card-description">Administrar base de clientes</p>
             </div>
-            <i class="fas fa-arrow-right nav-card-arrow"></i>
+            <div class="nav-card-arrow-wrapper">
+                <i class="fas fa-arrow-right nav-card-arrow"></i>
+            </div>
+            <div class="card-glow"></div>
         </a>
 
-        <a asp-controller="Equipo" asp-action="Catalogo" class="nav-card">
-            <div class="nav-card-icon" style="background:#e8f5e9;color:#2e7d32;">
+        <a asp-controller="Equipo" asp-action="Catalogo" class="nav-card card-equipment">
+            <div class="nav-card-icon">
                 <i class="fas fa-microchip"></i>
             </div>
             <div class="nav-card-content">
                 <h3 class="nav-card-title">Catálogo HVAC</h3>
                 <p class="nav-card-description">Equipos y materiales</p>
             </div>
-            <i class="fas fa-arrow-right nav-card-arrow"></i>
+            <div class="nav-card-arrow-wrapper">
+                <i class="fas fa-arrow-right nav-card-arrow"></i>
+            </div>
+            <div class="card-glow"></div>
         </a>
 
-        <a asp-controller="Instalacion" asp-action="Catalogo" class="nav-card">
-            <div class="nav-card-icon" style="background:#f3e5f5;color:#7b1fa2;">
+        <a asp-controller="Instalacion" asp-action="Catalogo" class="nav-card card-installation">
+            <div class="nav-card-icon">
                 <i class="fas fa-tools"></i>
             </div>
             <div class="nav-card-content">
                 <h3 class="nav-card-title">Instalaciones</h3>
                 <p class="nav-card-description">Servicios y mano de obra</p>
             </div>
-            <i class="fas fa-arrow-right nav-card-arrow"></i>
+            <div class="nav-card-arrow-wrapper">
+                <i class="fas fa-arrow-right nav-card-arrow"></i>
+            </div>
+            <div class="card-glow"></div>
         </a>
 
-        <a asp-controller="Seguimiento" asp-action="Dashboard" class="nav-card">
-            <div class="nav-card-icon" style="background:#e0f7fa;color:#00838f;">
+        <a asp-controller="Seguimiento" asp-action="Dashboard" class="nav-card card-tracking">
+            <div class="nav-card-icon">
                 <i class="fas fa-chart-line"></i>
             </div>
             <div class="nav-card-content">
                 <h3 class="nav-card-title">Seguimientos</h3>
                 <p class="nav-card-description">Historial de actividades</p>
             </div>
-            <i class="fas fa-arrow-right nav-card-arrow"></i>
+            <div class="nav-card-arrow-wrapper">
+                <i class="fas fa-arrow-right nav-card-arrow"></i>
+            </div>
+            <div class="card-glow"></div>
         </a>
     </div>
 
-    @* ========== QUICK STATS (opcional, si quieres datos reales después) ========== *@
+    @* ========== STATS CON ANIMACIÓN ========== *@
     <div class="stats-row">
         <div class="stat-item">
-            <span class="stat-value">—</span>
+            <span class="stat-value" data-count="0">0</span>
             <span class="stat-label">Cotizaciones activas</span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
-            <span class="stat-value">—</span>
+            <span class="stat-value" data-count="0">0</span>
             <span class="stat-label">Clientes registrados</span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
-            <span class="stat-value">—</span>
+            <span class="stat-value" data-count="0">0</span>
             <span class="stat-label">Leads pendientes</span>
         </div>
     </div>
@@ -107,89 +137,291 @@
     <style>
         /* ===== CONTAINER ===== */
         .home-container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 2rem 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ===== AMBIENT PARTICLES ===== */
+        .hero-ambient {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(200, 16, 46, 0.04);
+            animation: float-particle linear infinite;
+        }
+
+        .particle-1 { width: 80px; height: 80px; top: 10%; left: 5%; animation-duration: 25s; }
+        .particle-2 { width: 120px; height: 120px; top: 60%; right: 3%; animation-duration: 30s; animation-delay: 3s; }
+        .particle-3 { width: 60px; height: 60px; bottom: 20%; left: 15%; animation-duration: 20s; animation-delay: 5s; }
+        .particle-4 { width: 100px; height: 100px; top: 30%; right: 10%; animation-duration: 28s; animation-delay: 2s; }
+        .particle-5 { width: 40px; height: 40px; bottom: 40%; left: 30%; animation-duration: 22s; animation-delay: 7s; }
+
+        @@keyframes float-particle {
+            0% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+            25% { transform: translate(30px, -40px) scale(1.1); opacity: 0.6; }
+            50% { transform: translate(-20px, -80px) scale(0.9); opacity: 0.4; }
+            75% { transform: translate(40px, -30px) scale(1.05); opacity: 0.7; }
+            100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
         }
 
         /* ===== HERO ===== */
         .hero-section {
             text-align: center;
-            margin-bottom: 2.5rem;
+            margin-bottom: 3rem;
+            position: relative;
+            z-index: 1;
+            padding: 3rem 2rem;
+            background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(248, 248, 248, 0.9));
+            border-radius: 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.06);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #C8102E, #E63946, #C8102E);
+            background-size: 200% 100%;
+            animation: gradient-shift 3s ease infinite;
+        }
+
+        @@keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         .hero-icon {
-            width: 72px;
-            height: 72px;
-            border-radius: 18px;
-            background: #fce4e4;
-            color: #c62828;
+            width: 80px;
+            height: 80px;
+            border-radius: 24px;
+            background: linear-gradient(145deg, #C8102E, #8B1A2B);
+            color: white;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
-            margin-bottom: 1.25rem;
+            font-size: 2.4rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 12px 40px rgba(200, 16, 46, 0.25);
+            position: relative;
+        }
+
+        .pulse-icon {
+            animation: pulse-icon 3s ease-in-out infinite;
+        }
+
+        @@keyframes pulse-icon {
+            0% { box-shadow: 0 12px 40px rgba(200, 16, 46, 0.25); }
+            50% { box-shadow: 0 12px 60px rgba(200, 16, 46, 0.4), 0 0 80px rgba(200, 16, 46, 0.1); }
+            100% { box-shadow: 0 12px 40px rgba(200, 16, 46, 0.25); }
         }
 
         .hero-title {
-            font-size: 1.75rem;
-            font-weight: 700;
+            font-size: 2.2rem;
+            font-weight: 800;
             color: #1a1a1a;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        .glow-text {
+            background: linear-gradient(135deg, #1a1a1a, #333);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .hero-subtitle {
-            font-size: 1rem;
-            color: #c62828;
-            font-weight: 500;
+            font-size: 1.1rem;
+            color: #C8102E;
+            font-weight: 600;
             margin-bottom: 0.75rem;
+            letter-spacing: 0.5px;
         }
 
         .hero-description {
-            font-size: 0.9rem;
-            color: #888;
-            max-width: 400px;
-            margin: 0 auto;
-            line-height: 1.5;
+            font-size: 0.95rem;
+            color: #666;
+            max-width: 460px;
+            margin: 0 auto 1.5rem;
+            line-height: 1.6;
+        }
+
+        .hero-badge {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .badge-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.78rem;
+            color: #555;
+            background: #f5f5f5;
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .badge-item:hover {
+            background: #C8102E;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .badge-item i {
+            color: #C8102E;
+        }
+
+        .badge-item:hover i {
+            color: white;
         }
 
         /* ===== NAVIGATION GRID ===== */
         .nav-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-            margin-bottom: 2rem;
+            gap: 1.25rem;
+            margin-bottom: 2.5rem;
+            position: relative;
+            z-index: 1;
         }
 
         .nav-card {
             display: flex;
             align-items: center;
             gap: 1rem;
-            padding: 1.25rem;
+            padding: 1.25rem 1.5rem;
             background: white;
-            border: 1px solid #eee;
-            border-radius: 12px;
+            border: 1px solid #f0f0f0;
+            border-radius: 16px;
             text-decoration: none;
-            transition: all 0.2s ease;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             position: relative;
             overflow: hidden;
+            cursor: pointer;
         }
 
-            .nav-card:hover {
-                border-color: #e0e0e0;
-                box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-                transform: translateY(-2px);
-            }
+        .nav-card .card-glow {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(200,16,46,0.03) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.6s ease;
+            pointer-events: none;
+        }
+
+        .nav-card:hover .card-glow {
+            opacity: 1;
+        }
+
+        .nav-card:hover {
+            border-color: #C8102E;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+            transform: translateY(-4px);
+        }
+
+        .nav-card:active {
+            transform: scale(0.97);
+        }
 
         .nav-card-icon {
             width: 48px;
             height: 48px;
-            border-radius: 12px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.2rem;
             flex-shrink: 0;
+            transition: all 0.4s ease;
+        }
+
+        .card-opportunities .nav-card-icon {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        .card-opportunities:hover .nav-card-icon {
+            background: #e65100;
+            color: white;
+            transform: rotate(-5deg) scale(1.05);
+        }
+
+        .card-create .nav-card-icon {
+            background: #fce4e4;
+            color: #c62828;
+        }
+        .card-create:hover .nav-card-icon {
+            background: #c62828;
+            color: white;
+            transform: rotate(-5deg) scale(1.05);
+        }
+
+        .card-clients .nav-card-icon {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        .card-clients:hover .nav-card-icon {
+            background: #1565c0;
+            color: white;
+            transform: rotate(-5deg) scale(1.05);
+        }
+
+        .card-equipment .nav-card-icon {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .card-equipment:hover .nav-card-icon {
+            background: #2e7d32;
+            color: white;
+            transform: rotate(-5deg) scale(1.05);
+        }
+
+        .card-installation .nav-card-icon {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        .card-installation:hover .nav-card-icon {
+            background: #7b1fa2;
+            color: white;
+            transform: rotate(-5deg) scale(1.05);
+        }
+
+        .card-tracking .nav-card-icon {
+            background: #e0f7fa;
+            color: #00838f;
+        }
+        .card-tracking:hover .nav-card-icon {
+            background: #00838f;
+            color: white;
+            transform: rotate(-5deg) scale(1.05);
         }
 
         .nav-card-content {
@@ -199,13 +431,18 @@
 
         .nav-card-title {
             font-size: 0.95rem;
-            font-weight: 600;
-            color: #222;
-            margin-bottom: 0.2rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 0.1rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-card:hover .nav-card-title {
+            color: #C8102E;
         }
 
         .nav-card-description {
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: #999;
             margin: 0;
             white-space: nowrap;
@@ -213,16 +450,31 @@
             text-overflow: ellipsis;
         }
 
-        .nav-card-arrow {
-            color: #ddd;
-            font-size: 0.8rem;
-            transition: all 0.2s ease;
+        .nav-card-arrow-wrapper {
             flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s ease;
+        }
+
+        .nav-card:hover .nav-card-arrow-wrapper {
+            background: #C8102E;
+            transform: translateX(4px);
+        }
+
+        .nav-card-arrow {
+            color: #ccc;
+            font-size: 0.75rem;
+            transition: all 0.4s ease;
         }
 
         .nav-card:hover .nav-card-arrow {
-            color: #c62828;
-            transform: translateX(2px);
+            color: white;
         }
 
         /* ===== STATS ROW ===== */
@@ -232,52 +484,213 @@
             justify-content: center;
             gap: 0;
             background: white;
-            border: 1px solid #eee;
-            border-radius: 12px;
-            padding: 1.25rem 1.5rem;
+            border: 1px solid #f0f0f0;
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s ease;
+        }
+
+        .stats-row:hover {
+            border-color: #C8102E;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.05);
         }
 
         .stat-item {
             text-align: center;
             flex: 1;
+            padding: 0.5rem 0;
         }
 
         .stat-value {
             display: block;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #333;
+            font-size: 2rem;
+            font-weight: 800;
+            color: #1a1a1a;
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover .stat-value {
+            color: #C8102E;
+            transform: scale(1.02);
         }
 
         .stat-label {
             display: block;
             font-size: 0.78rem;
             color: #999;
+            font-weight: 500;
             margin-top: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .stat-divider {
             width: 1px;
-            height: 40px;
+            height: 50px;
             background: #eee;
             flex-shrink: 0;
         }
 
+        /* ===== ANIMATION DELAYS ===== */
+        .nav-card:nth-child(1) { animation-delay: 0.05s; }
+        .nav-card:nth-child(2) { animation-delay: 0.10s; }
+        .nav-card:nth-child(3) { animation-delay: 0.15s; }
+        .nav-card:nth-child(4) { animation-delay: 0.20s; }
+        .nav-card:nth-child(5) { animation-delay: 0.25s; }
+        .nav-card:nth-child(6) { animation-delay: 0.30s; }
+
         /* ===== RESPONSIVE ===== */
         @@media (max-width: 768px) {
             .nav-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+
+            .hero-section {
+                padding: 2rem 1.5rem;
+                border-radius: 24px;
+            }
+
+            .hero-title {
+                font-size: 1.6rem;
+            }
+
+            .hero-badge {
+                gap: 0.75rem;
+            }
+
+            .badge-item {
+                font-size: 0.7rem;
+                padding: 0.3rem 0.8rem;
             }
 
             .stats-row {
                 flex-direction: column;
-                gap: 1rem;
+                gap: 0.75rem;
+                padding: 1.25rem;
             }
 
             .stat-divider {
                 width: 60px;
                 height: 1px;
             }
+
+            .stat-value {
+                font-size: 1.6rem;
+            }
+        }
+
+        @@media (max-width: 500px) {
+            .nav-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.8rem;
+            }
+
+            .hero-title {
+                font-size: 1.3rem;
+            }
+
+            .nav-card {
+                padding: 1rem;
+            }
+
+            .nav-card-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+        }
+
+        /* ===== SCROLL ANIMATION ===== */
+        .nav-card {
+            opacity: 0;
+            animation: fade-up 0.6s ease forwards;
+        }
+
+        @@keyframes fade-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stats-row {
+            opacity: 0;
+            animation: fade-up 0.6s ease 0.4s forwards;
+        }
+
+        .hero-section {
+            opacity: 0;
+            animation: fade-up 0.6s ease 0.1s forwards;
         }
     </style>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ===== CONTADOR ANIMADO =====
+            const counters = document.querySelectorAll('.stat-value');
+            
+            const animateCounter = (counter) => {
+                const target = parseInt(counter.getAttribute('data-count') || '0');
+                let current = 0;
+                const increment = Math.ceil(target / 60);
+                const duration = 1500;
+                const stepTime = Math.floor(duration / 60);
+                
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(timer);
+                    }
+                    counter.textContent = current.toLocaleString();
+                }, stepTime);
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const counter = entry.target;
+                        const target = parseInt(counter.getAttribute('data-count') || '0');
+                        if (target > 0) {
+                            animateCounter(counter);
+                        }
+                        observer.unobserve(counter);
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            counters.forEach(counter => observer.observe(counter));
+
+            // ===== EFECTO DE PARTÍCULAS DINÁMICAS =====
+            const particles = document.querySelectorAll('.particle');
+            particles.forEach((particle, index) => {
+                const randomX = Math.random() * 100;
+                const randomY = Math.random() * 100;
+                const randomSize = 30 + Math.random() * 90;
+                const randomDuration = 20 + Math.random() * 15;
+                const randomDelay = Math.random() * 10;
+                
+                particle.style.left = randomX + '%';
+                particle.style.top = randomY + '%';
+                particle.style.width = randomSize + 'px';
+                particle.style.height = randomSize + 'px';
+                particle.style.animationDuration = randomDuration + 's';
+                particle.style.animationDelay = randomDelay + 's';
+            });
+        });
+    </script>
 }

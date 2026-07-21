@@ -17,6 +17,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
         private readonly IEmpresaRepository _empresaRepo;
         private readonly IDocumento _documentoService;
         private readonly ApplicationDbContext _context;
+        private readonly IAutorizacionServicio _autorizacionServicio;
 
         public CotizacionServicio(
             ICotizacionRepository cotizacionRepo,
@@ -25,7 +26,8 @@ namespace CotizacionMVC.Servicios.Aplicacion
             IInstalacionRepository instalacionRepo,
             IEmpresaRepository empresaRepo,
             IDocumento documentoService,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IAutorizacionServicio autorizacionServicio)
         {
             _cotizacionRepo = cotizacionRepo;
             _clienteRepo = clienteRepo;
@@ -34,27 +36,38 @@ namespace CotizacionMVC.Servicios.Aplicacion
             _empresaRepo = empresaRepo;
             _documentoService = documentoService;
             _context = context;
+            _autorizacionServicio = autorizacionServicio;
         }
 
         // ==================== QUERIES ====================
 
-        public async Task<IReadOnlyList<CotizacionResumenDto>> ObtenerIndiceAsync(Guid? vendedorId, Guid? empresaId, bool esAdmin)
+        public async Task<IReadOnlyList<CotizacionResumenDto>> ObtenerIndiceAsync(Guid usuarioId)
         {
-            IEnumerable<CotizacionResumenDto> cotizaciones;
+            var query = _context.Cotizaciones
+                .Include(c => c.Cliente)
+                .Include(c => c.Empresa)
+                .Include(c => c.Vendedor)
+                .AsQueryable();
 
-            if (esAdmin)
-                cotizaciones = await _cotizacionRepo.ObtenerTodasConRelacionesAsync();
-            else if (vendedorId.HasValue)
-                cotizaciones = await _cotizacionRepo.ObtenerPorVendedorAsync(vendedorId.Value);
-            else
-                cotizaciones = new List<CotizacionResumenDto>();
+            // El servicio de autorización aplica los filtros según el rol
+            query = await _autorizacionServicio.FiltrarCotizacionesAsync(usuarioId, query);
 
-            if (empresaId.HasValue)
-                cotizaciones = cotizaciones.Where(c => c.EmpresaId == empresaId.Value);
-
-            return cotizaciones
+            return await query
                 .OrderByDescending(c => c.FechaCreacion)
-                .ToList();
+                .Select(c => new CotizacionResumenDto
+                {
+                    Id = c.Id,
+                    NumeroCotizacion = c.NumeroCotizacion,
+                    ClienteNombre = c.Cliente.Nombre,
+                    EmpresaNombre = c.Empresa.NombreComercial,
+                    EmpresaId = c.EmpresaId,
+                    VendedorNombre = c.Vendedor.NombreCompleto,
+                    FechaCreacion = c.FechaCreacion,
+                    Total = c.Total.Monto,
+                    Moneda = c.Empresa.MonedaBase,
+                    Estado = c.Estado.ToString()
+                })
+                .ToListAsync();
         }
 
         public async Task<CotizacionDetalleDto?> ObtenerDetalleAsync(Guid id)
@@ -67,12 +80,17 @@ namespace CotizacionMVC.Servicios.Aplicacion
             return MapearADetalleDto(cotizacion);
         }
 
-        public async Task<IReadOnlyList<LeadResumenDto>> ObtenerLeadsDelVendedorAsync(Guid vendedorId)
+        public async Task<IReadOnlyList<LeadResumenDto>> ObtenerLeadsAsync(Guid usuarioId)
         {
-            return await _context.Leads
+            var query = _context.Leads
                 .Include(l => l.Cliente)
                 .Include(l => l.Empresa)
-                .Where(l => l.VendedorAsignadoId == vendedorId)
+                .AsQueryable();
+
+            // El servicio de autorización aplica los filtros según el rol
+            query = await _autorizacionServicio.FiltrarLeadsAsync(usuarioId, query);
+
+            return await query
                 .OrderByDescending(l => l.FechaAsignacion)
                 .Select(l => new LeadResumenDto
                 {
@@ -95,9 +113,10 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 .ToListAsync();
         }
 
-        public async Task<DatosCrearCotizacionDto> ObtenerDatosParaCrearAsync(Guid usuarioId, bool esVendedor, Guid? leadId)
+        public async Task<DatosCrearCotizacionDto> ObtenerDatosParaCrearAsync(Guid usuarioId, Guid? leadId)
         {
             var datos = new DatosCrearCotizacionDto();
+            var esVendedor = await _autorizacionServicio.EsVendedorAsync(usuarioId);
 
             // Lead específico
             if (leadId.HasValue)
@@ -195,6 +214,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
         }
 
         // ==================== COMANDOS ====================
+
         public async Task<ResultadoCotizacionDto> CrearAsync(CrearCotizacionDto dto)
         {
             if (dto.ClienteId == Guid.Empty)
@@ -244,8 +264,8 @@ namespace CotizacionMVC.Servicios.Aplicacion
             try
             {
                 cotizacion = new Cotizacion(numeroCotizacion, cliente, empresa, vendedor,
-     dto.AreaMetrosCuadrados, dto.CondicionesPago,
-     dto.TipoCambio, dto.RecargoCiudadPorcentaje);
+                    dto.AreaMetrosCuadrados, dto.CondicionesPago,
+                    dto.TipoCambio, dto.RecargoCiudadPorcentaje);
             }
             catch (ArgumentException ex)
             {

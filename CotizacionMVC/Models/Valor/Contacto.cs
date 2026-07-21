@@ -8,8 +8,6 @@ namespace CotizacionMVC.Models.Valor
         public string? TelefonoMovil { get; private set; }
         public string? Correo { get; private set; }
         public string? NombreContacto { get; private set; }
-
-        // Constructor para EF Core (necesita un constructor sin parámetros)
         private Contacto() { }
 
         public Contacto(string? telefono, string? telefonoMovil, string? correo, string? nombreContacto)
@@ -55,7 +53,6 @@ namespace CotizacionMVC.Models.Valor
             return NombreContacto ?? Correo ?? Telefono ?? TelefonoMovil ?? "Sin contacto";
         }
 
-        // Método para saber si el contacto tiene al menos un medio
         public bool TieneMedioDeContacto()
         {
             return !string.IsNullOrWhiteSpace(Telefono) ||
@@ -63,7 +60,6 @@ namespace CotizacionMVC.Models.Valor
                    !string.IsNullOrWhiteSpace(Correo);
         }
 
-        // Método para obtener el medio principal de contacto
         public string ObtenerMedioPrincipal()
         {
             if (!string.IsNullOrWhiteSpace(Telefono))

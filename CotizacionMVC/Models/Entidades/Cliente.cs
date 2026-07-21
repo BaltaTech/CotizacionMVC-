@@ -9,11 +9,10 @@ namespace CotizacionMVC.Models.Entidades
         public Guid Id { get; private set; }
         public string Nombre { get; private set; }
         public Contacto Contacto { get; private set; }
-        public Direccion? Direccion { get; private set; }  
+        public Direccion? Direccion { get; private set; }
         public DateTime FechaRegistro { get; private set; }
         public string? Observaciones { get; private set; }
         public IReadOnlyCollection<Cotizacion> Cotizaciones => _cotizaciones.AsReadOnly();
-        // Agregar usando: using CotizacionMVC.Models.Enums;
         public OrigenCliente Origen { get; private set; }
         public Guid? VendedorAsignadoId { get; private set; }
         public Guid RegistradoPorId { get; private set; }
@@ -23,8 +22,6 @@ namespace CotizacionMVC.Models.Entidades
         public string? ComentarioNoCotizable { get; private set; }
         public EstadoCliente Estado { get; private set; }
         public string Folio { get; private set; }
-
-
 
         // Constructor protegido para EF Core
         protected Cliente()
@@ -66,7 +63,6 @@ namespace CotizacionMVC.Models.Entidades
             if (!string.IsNullOrWhiteSpace(observaciones))
                 Observaciones = observaciones.Trim();
         }
-        // Método para verificar si el cliente tiene dirección registrada
         public bool TieneDireccion()
         {
             return Direccion != null &&
@@ -127,8 +123,7 @@ namespace CotizacionMVC.Models.Entidades
             Origen = origen;
             RegistradoPorId = registradoPorId;
 
-            // Si ya tiene vendedor, mantener el estado Asignado
-            // Si no tiene vendedor, dejarlo como SinAsignar
+         
             if (VendedorAsignadoId.HasValue)
                 Estado = EstadoCliente.Asignado;
             else
@@ -146,6 +141,6 @@ namespace CotizacionMVC.Models.Entidades
                 throw new ArgumentException("El folio es obligatorio");
 
             Folio = folio;
-        }
+        }        
     }
 }

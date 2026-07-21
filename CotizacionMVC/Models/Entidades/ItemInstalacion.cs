@@ -54,8 +54,7 @@ namespace CotizacionMVC.Models.Entidades
             Cantidad = cantidad;
             CostoUnitario = new Dinero(costoUnitario, "MXN"); 
 
-            // Convertir a la moneda de la cotización si es necesario
-            var costoEnMonedaCotizacion = cotizacion.Empresa.MonedaBase == "MXN"
+             var costoEnMonedaCotizacion = cotizacion.Empresa.MonedaBase == "MXN"
                 ? CostoUnitario
                 : CostoUnitario.ConvertirA(cotizacion.Empresa.MonedaBase, cotizacion.ObtenerTipoCambioActual());
 

@@ -1,5 +1,6 @@
 ﻿using CotizacionMVC.Data.Repositorios.Interfaces;
 using CotizacionMVC.Models.Entidades;
+using CotizacionMVC.Models.Enums;
 using CotizacionMVC.Models.Valor;
 using CotizacionMVC.Servicios.Aplicacion.Dtos.Cliente;
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
@@ -10,15 +11,26 @@ namespace CotizacionMVC.Servicios.Aplicacion
     public class ClienteServicio : IClienteServicio
     {
         private readonly IClienteRepository _clienteRepository;
+        private readonly IAutorizacionServicio _autorizacionServicio;
 
-        public ClienteServicio(IClienteRepository clienteRepository)
+        public ClienteServicio(
+            IClienteRepository clienteRepository,
+            IAutorizacionServicio autorizacionServicio)
         {
             _clienteRepository = clienteRepository;
+            _autorizacionServicio = autorizacionServicio;
         }
 
-        public async Task<IReadOnlyList<ClienteResumenDto>> ObtenerTodosAsync(string? termino = null)
+        public async Task<IReadOnlyList<ClienteResumenDto>> ObtenerTodosAsync(Guid usuarioId, string? termino = null)
         {
             var query = _clienteRepository.ObtenerQueryable();
+
+            // Aplicar filtro por empresa y rol (ANTES de los Include)
+            query = await _autorizacionServicio.FiltrarClientesAsync(usuarioId, query);
+
+            // Ahora los Include sobre el IQueryable ya filtrado
+            query = query.Include(c => c.Cotizaciones)
+                         .ThenInclude(co => co.Empresa);
 
             if (!string.IsNullOrWhiteSpace(termino))
             {
@@ -31,6 +43,8 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 );
             }
 
+            var hoy = DateTime.UtcNow.Date;
+
             return await query
                 .OrderBy(c => c.Nombre)
                 .Select(c => new ClienteResumenDto
@@ -39,16 +53,40 @@ namespace CotizacionMVC.Servicios.Aplicacion
                     Nombre = c.Nombre,
                     Telefono = c.Contacto.Telefono,
                     Correo = c.Contacto.Correo,
-                    Estado = c.Estado,
+                    Estado = c.Estado.ToString(),
                     CantidadCotizaciones = c.Cotizaciones.Count,
                     Empresa = c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
                         .Select(co => co.Empresa.NombreComercial)
                         .FirstOrDefault(),
-                    FechaRegistro = c.FechaRegistro
+                    FechaRegistro = c.FechaRegistro,
+                    UltimaFechaSeguimiento = c.Cotizaciones.Any()
+                        ? c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
+                            .Select(co => (DateTime?)co.FechaCreacion)
+                            .FirstOrDefault()
+                        : null,
+                    ProximaFechaSeguimiento = null,
+                    DiasSinActividad = c.Cotizaciones.Any()
+                        ? (hoy - c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
+                            .Select(co => co.FechaCreacion)
+                            .FirstOrDefault()).Days
+                        : (hoy - c.FechaRegistro).Days,
+                    TotalUltimaCotizacion = c.Cotizaciones.Any()
+                        ? c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
+                            .Select(co => co.Total.Monto)
+                            .FirstOrDefault()
+                        : 0,
+                    Moneda = c.Cotizaciones.Any()
+                        ? c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
+                            .Select(co => co.Empresa.MonedaBase)
+                            .FirstOrDefault() ?? "MXN"
+                        : "MXN",
+                    TieneSeguimientoHoy = false,
+                    EsCaliente = c.Cotizaciones.Any(co =>
+                        co.Estado == EstadoCotizacion.InformacionSolicitada ||
+                        co.Estado == EstadoCotizacion.CotizacionEnviada)
                 })
                 .ToListAsync();
         }
-
         public async Task<ClienteDetalleDto?> ObtenerPorIdAsync(Guid id)
         {
             var query = _clienteRepository.ObtenerQueryable()

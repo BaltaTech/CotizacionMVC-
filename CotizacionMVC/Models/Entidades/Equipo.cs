@@ -19,7 +19,6 @@ namespace CotizacionMVC.Models.Entidades
         public string Modo { get; private set; }
         public string? Descripcion { get; private set; }
 
-        // Constructor sin parámetros para EF Core y Model Binding
         public Equipo()
         {
             Modelo = null!;
@@ -60,11 +59,9 @@ namespace CotizacionMVC.Models.Entidades
             if (monedaOriginal != "MXN" && monedaOriginal != "USD")
                 throw new ArgumentException("La moneda debe ser MXN o USD");
 
-            // TRANE y YORK → solo USD
             if ((marca == TipoMarca.Trane || marca == TipoMarca.York) && monedaOriginal != "USD")
                 throw new InvalidOperationException($"Los equipos {marca} solo pueden tener precio en USD");
 
-            // TCL y HISENSE → solo MXN
             if ((marca == TipoMarca.TCL || marca == TipoMarca.Hisense) && monedaOriginal != "MXN")
                 throw new InvalidOperationException($"Los equipos {marca} solo pueden tener precio en MXN");
 

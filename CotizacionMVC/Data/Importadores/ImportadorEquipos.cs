@@ -94,15 +94,15 @@ namespace CotizacionMVC.Data.Importadores
                 catch (Exception ex)
                 {
                     errores++;
-                    Console.WriteLine($"⚠️ Error línea {i + 1}: {modelo} - {ex.Message}");
+                    Console.WriteLine($"Error línea {i + 1}: {modelo} - {ex.Message}");
                 }
             }
 
             await context.SaveChangesAsync();
-            Console.WriteLine($"✅ Importación completada:");
-            Console.WriteLine($"   📦 {importados} equipos importados");
-            Console.WriteLine($"   ⏭️ {saltados} duplicados saltados");
-            Console.WriteLine($"   ❌ {errores} errores");
+            Console.WriteLine($"Importación completada:");
+            Console.WriteLine($"{importados} equipos importados");
+            Console.WriteLine($"{saltados} duplicados saltados");
+            Console.WriteLine($"{errores} errores");
         }
 
         private static string[] ParsearCsv(string linea)

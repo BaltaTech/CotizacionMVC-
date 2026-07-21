@@ -30,8 +30,6 @@ namespace CotizacionMVC.Models.Entidades
         public Guid? LeadId { get; private set; }
         public virtual Lead? Lead { get; private set; }
         public string? RutaPdf { get; private set; }
-
-        // ========== NUEVOS CAMPOS ==========
         public decimal TipoCambio { get; private set; }
         public decimal RecargoCiudadPorcentaje { get; private set; }
         public Dinero RecargoCiudad { get; private set; }
@@ -161,7 +159,6 @@ namespace CotizacionMVC.Models.Entidades
         {
             var subtotalEquipos = _itemsEquipos.Sum(i => i.Subtotal.Monto);
 
-            // Recargo de ciudad
             var recargo = ReglasNegocio.CalcularRecargoCiudad(subtotalEquipos, RecargoCiudadPorcentaje);
             RecargoCiudad = new Dinero(recargo, Empresa.MonedaBase);
 
