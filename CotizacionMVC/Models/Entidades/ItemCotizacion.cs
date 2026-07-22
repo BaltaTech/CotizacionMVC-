@@ -13,16 +13,21 @@ namespace CotizacionMVC.Models.Entidades
         public int Cantidad { get; private set; }
         public Dinero PrecioUnitario { get; private set; }
         public Dinero Subtotal { get; private set; }
-        public decimal UtilidadEmpresaPorcentaje { get; private set; }
-        public decimal UtilidadVendedorPorcentaje { get; private set; }
+        public Dinero PrecioUnitarioUSD { get; private set; }
+        public Dinero SubtotalUSD { get; private set; }
+        public decimal FactorPrecio { get; private set; }
+        public decimal FactorUtilidad { get; private set; }
         public string? DescripcionPersonalizada { get; private set; }
 
+        // Constructor protegido para EF Core
         protected ItemCotizacion()
         {
             Cotizacion = null!;
             Equipo = null!;
             PrecioUnitario = null!;
             Subtotal = null!;
+            PrecioUnitarioUSD = null!;
+            SubtotalUSD = null!;
             DescripcionPersonalizada = null;
         }
 
@@ -30,8 +35,8 @@ namespace CotizacionMVC.Models.Entidades
             Cotizacion cotizacion,
             Equipo equipo,
             int cantidad,
-            decimal utilidadEmpresaPorcentaje,
-            decimal utilidadVendedorPorcentaje,
+            decimal factorPrecio,
+            decimal factorUtilidad,
             string? descripcionPersonalizada = null)
         {
             if (cotizacion == null)
@@ -43,11 +48,11 @@ namespace CotizacionMVC.Models.Entidades
             if (cantidad <= 0)
                 throw new ArgumentException("La cantidad debe ser mayor a cero");
 
-            if (utilidadEmpresaPorcentaje < 0)
-                throw new ArgumentException("La utilidad de la empresa no puede ser negativa");
+            if (factorPrecio <= 0)
+                throw new ArgumentException("El factor de precio debe ser mayor a cero");
 
-            if (utilidadVendedorPorcentaje < 0)
-                throw new ArgumentException("La utilidad del vendedor no puede ser negativa");
+            if (factorUtilidad <= 0)
+                throw new ArgumentException("El factor de utilidad debe ser mayor a cero");
 
             Id = Guid.NewGuid();
             Cotizacion = cotizacion;
@@ -55,12 +60,11 @@ namespace CotizacionMVC.Models.Entidades
             Equipo = equipo;
             EquipoId = equipo.Id;
             Cantidad = cantidad;
-            UtilidadEmpresaPorcentaje = utilidadEmpresaPorcentaje;
-            UtilidadVendedorPorcentaje = utilidadVendedorPorcentaje;
+            FactorPrecio = factorPrecio;
+            FactorUtilidad = factorUtilidad;
             DescripcionPersonalizada = descripcionPersonalizada?.Trim();
 
             CalcularPrecio();
-            Subtotal = PrecioUnitario.Multiplicar(Cantidad);
         }
 
         public void ActualizarCantidad(int nuevaCantidad)
@@ -68,7 +72,7 @@ namespace CotizacionMVC.Models.Entidades
             if (nuevaCantidad <= 0)
                 throw new ArgumentException("La cantidad debe ser mayor a cero");
             Cantidad = nuevaCantidad;
-            Subtotal = PrecioUnitario.Multiplicar(Cantidad);
+            ActualizarSubtotales();
         }
 
         public void ActualizarDescripcion(string? descripcion)
@@ -80,7 +84,6 @@ namespace CotizacionMVC.Models.Entidades
         public void RecalcularPrecio()
         {
             CalcularPrecio();
-            Subtotal = PrecioUnitario.Multiplicar(Cantidad);
         }
 
         public string ObtenerDescripcionMostrable()
@@ -92,16 +95,30 @@ namespace CotizacionMVC.Models.Entidades
 
         private void CalcularPrecio()
         {
-            var precioUnitarioMxn = ReglasNegocio.CalcularPrecioUnitarioMxn(
-                Equipo.Marca.ToString(),
+            // Obtener la calculadora según la marca del equipo
+            var calculadora = ReglasNegocio.ObtenerCalculadora(
+                Equipo.Marca.ToString()
+            );
+
+            // Calcular precios usando la estrategia adecuada
+            var (precioUSD, precioMXN) = calculadora.Calcular(
                 Equipo.PrecioBase,
                 Equipo.MonedaOriginal,
                 Cotizacion.ObtenerTipoCambioActual(),
-                UtilidadEmpresaPorcentaje,
-                UtilidadVendedorPorcentaje
+                FactorPrecio,
+                FactorUtilidad
             );
 
-            PrecioUnitario = new Dinero(precioUnitarioMxn, Cotizacion.Empresa.MonedaBase);
+            PrecioUnitarioUSD = new Dinero(precioUSD, "USD");
+            PrecioUnitario = new Dinero(precioMXN, Cotizacion.Empresa.MonedaBase);
+
+            ActualizarSubtotales();
+        }
+
+        private void ActualizarSubtotales()
+        {
+            SubtotalUSD = PrecioUnitarioUSD.Multiplicar(Cantidad);
+            Subtotal = PrecioUnitario.Multiplicar(Cantidad);
         }
     }
 }

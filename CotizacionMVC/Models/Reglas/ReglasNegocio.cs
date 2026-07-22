@@ -33,63 +33,17 @@
             };
         }
 
-        // ========== CÁLCULO DE PRECIO POR MARCA ==========
-        public static decimal CalcularPrecioUnitarioMxn(
-            string marca,
-            decimal precioCatalogo,
-            string monedaOriginal,
-            decimal tipoCambio,
-            decimal factorA,    
-            decimal factorB)    
-        {
-            decimal precioMxn;
 
-            switch (marca.ToUpper())
+        public static ICalculadoraPrecio ObtenerCalculadora(string marca)
+        {
+            return marca?.ToUpper() switch
             {
-                case "TRANE":
-                    // Precio USD × tipoCambio × (1 + factorA/100) × (1 + factorB/100)
-                    var precioUsd = precioCatalogo * (1 + factorA / 100) * (1 + factorB / 100);
-                    precioMxn = precioUsd * tipoCambio;
-                    break;
-
-                case "YORK":
-                    // Precio USD × tipoCambio × (1 + factorA/100)
-                    var precioYorkUsd = precioCatalogo * (1 + factorA / 100);
-                    precioMxn = precioYorkUsd * tipoCambio;
-                    break;
-
-                default:
-                    // TCL, HISENSE, etc. Precio MXN × (1 + factorA/100)
-                    precioMxn = precioCatalogo * (1 + factorA / 100);
-                    break;
-            }
-
-            return Math.Round(precioMxn, 2);
+                "TRANE" => new CalculadoraPrecioTrane(),
+                "HISENSE" => new CalculadoraPrecioHisense(),
+                "TCL" => new CalculadoraPrecioTCL(),
+                _ => new CalculadoraPrecioEstandar()
+            };
         }
 
-       
-        public static decimal ConvertirMxnAUsd(decimal montoMxn, decimal tipoCambio)
-        {
-            return tipoCambio > 0 ? Math.Round(montoMxn / tipoCambio, 2) : 0;
-        }
-
-       
-        public static decimal ConvertirUsdAMxn(decimal montoUsd, decimal tipoCambio)
-        {
-            return Math.Round(montoUsd * tipoCambio, 2);
-        }
-        public static decimal CalcularRecargoCiudad(decimal subtotalEquipos, decimal porcentajeCiudad)
-        {
-            return Math.Round(subtotalEquipos * porcentajeCiudad / 100, 2);
-        }
-
-        public static decimal CalcularIva(decimal subtotal)
-        {
-            return Math.Round(subtotal * IVA_PORCENTAJE, 2);
-        }
-        public static decimal CalcularTotal(decimal subtotal)
-        {
-            return Math.Round(subtotal + CalcularIva(subtotal), 2);
-        }
     }
 }

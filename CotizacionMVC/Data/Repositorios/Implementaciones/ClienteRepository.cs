@@ -46,5 +46,32 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
         {
             return _context.Clientes.AsQueryable();
         }
+
+        public async Task<Dictionary<Guid, (DateTime? ProximoContacto, bool EsHoy)>> ObtenerInfoSeguimientosAsync(List<Guid> clienteIds)
+        {
+            if (!clienteIds.Any())
+                return new Dictionary<Guid, (DateTime?, bool)>();
+
+            var hoy = DateTime.UtcNow.Date;
+
+            var seguimientos = await _context.Seguimientos
+                .Include(s => s.Lead)
+                .Include(s => s.Cotizacion)
+                .Where(s => s.ProximoContacto.HasValue)
+                .Where(s => (s.Lead != null && s.Lead.ClienteId != null && clienteIds.Contains(s.Lead.ClienteId.Value)) ||
+                            (s.Cotizacion != null && clienteIds.Contains(s.Cotizacion.ClienteId)))
+                .ToListAsync();
+
+            return seguimientos
+                .Where(s => (s.Lead?.ClienteId ?? s.Cotizacion?.ClienteId) != null)
+                .GroupBy(s => (s.Lead?.ClienteId ?? s.Cotizacion?.ClienteId)!.Value)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (
+                        ProximoContacto: (DateTime?)g.Max(s => s.ProximoContacto),
+                        EsHoy: g.Any(s => s.ProximoContacto.HasValue && s.ProximoContacto.Value.Date == hoy)
+                    )
+                );
+        }
     }
 }

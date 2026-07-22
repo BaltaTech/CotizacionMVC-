@@ -24,13 +24,8 @@ namespace CotizacionMVC.Servicios.Aplicacion
         public async Task<IReadOnlyList<ClienteResumenDto>> ObtenerTodosAsync(Guid usuarioId, string? termino = null)
         {
             var query = _clienteRepository.ObtenerQueryable();
-
-            // Aplicar filtro por empresa y rol (ANTES de los Include)
             query = await _autorizacionServicio.FiltrarClientesAsync(usuarioId, query);
-
-            // Ahora los Include sobre el IQueryable ya filtrado
-            query = query.Include(c => c.Cotizaciones)
-                         .ThenInclude(co => co.Empresa);
+            query = query.Include(c => c.Cotizaciones).ThenInclude(co => co.Empresa);
 
             if (!string.IsNullOrWhiteSpace(termino))
             {
@@ -45,48 +40,66 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
             var hoy = DateTime.UtcNow.Date;
 
-            return await query
+            var clientes = await query
                 .OrderBy(c => c.Nombre)
-                .Select(c => new ClienteResumenDto
+                .Select(c => new
                 {
-                    Id = c.Id,
-                    Nombre = c.Nombre,
+                    c.Id,
+                    c.Nombre,
                     Telefono = c.Contacto.Telefono,
                     Correo = c.Contacto.Correo,
                     Estado = c.Estado.ToString(),
                     CantidadCotizaciones = c.Cotizaciones.Count,
                     Empresa = c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
-                        .Select(co => co.Empresa.NombreComercial)
-                        .FirstOrDefault(),
-                    FechaRegistro = c.FechaRegistro,
-                    UltimaFechaSeguimiento = c.Cotizaciones.Any()
+                        .Select(co => co.Empresa.NombreComercial).FirstOrDefault(),
+                    c.FechaRegistro,
+                    UltimaFechaCotizacion = c.Cotizaciones.Any()
                         ? c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
-                            .Select(co => (DateTime?)co.FechaCreacion)
-                            .FirstOrDefault()
+                            .Select(co => (DateTime?)co.FechaCreacion).FirstOrDefault()
                         : null,
-                    ProximaFechaSeguimiento = null,
-                    DiasSinActividad = c.Cotizaciones.Any()
-                        ? (hoy - c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
-                            .Select(co => co.FechaCreacion)
-                            .FirstOrDefault()).Days
-                        : (hoy - c.FechaRegistro).Days,
                     TotalUltimaCotizacion = c.Cotizaciones.Any()
                         ? c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
-                            .Select(co => co.Total.Monto)
-                            .FirstOrDefault()
+                            .Select(co => co.Total.Monto).FirstOrDefault()
                         : 0,
                     Moneda = c.Cotizaciones.Any()
                         ? c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
-                            .Select(co => co.Empresa.MonedaBase)
-                            .FirstOrDefault() ?? "MXN"
+                            .Select(co => co.Empresa.MonedaBase).FirstOrDefault() ?? "MXN"
                         : "MXN",
-                    TieneSeguimientoHoy = false,
                     EsCaliente = c.Cotizaciones.Any(co =>
                         co.Estado == EstadoCotizacion.InformacionSolicitada ||
                         co.Estado == EstadoCotizacion.CotizacionEnviada)
                 })
                 .ToListAsync();
+
+            var clienteIds = clientes.Select(c => c.Id).ToList();
+            var infoSeguimientos = await _clienteRepository.ObtenerInfoSeguimientosAsync(clienteIds);
+
+            return clientes.Select(c =>
+            {
+                infoSeguimientos.TryGetValue(c.Id, out var info);
+                return new ClienteResumenDto
+                {
+                    Id = c.Id,
+                    Nombre = c.Nombre,
+                    Telefono = c.Telefono,
+                    Correo = c.Correo,
+                    Estado = c.Estado,
+                    CantidadCotizaciones = c.CantidadCotizaciones,
+                    Empresa = c.Empresa,
+                    FechaRegistro = c.FechaRegistro,
+                    UltimaFechaSeguimiento = c.UltimaFechaCotizacion,
+                    ProximaFechaSeguimiento = info.ProximoContacto,
+                    DiasSinActividad = c.UltimaFechaCotizacion.HasValue
+                        ? (hoy - c.UltimaFechaCotizacion.Value).Days
+                        : (hoy - c.FechaRegistro).Days,
+                    TotalUltimaCotizacion = c.TotalUltimaCotizacion,
+                    Moneda = c.Moneda,
+                    TieneSeguimientoHoy = info.EsHoy,
+                    EsCaliente = c.EsCaliente
+                };
+            }).ToList();
         }
+
         public async Task<ClienteDetalleDto?> ObtenerPorIdAsync(Guid id)
         {
             var query = _clienteRepository.ObtenerQueryable()

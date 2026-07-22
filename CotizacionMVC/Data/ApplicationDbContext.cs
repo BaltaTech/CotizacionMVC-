@@ -318,11 +318,11 @@ namespace CotizacionMVC.Data
                 entidad.Property(i => i.DescripcionPersonalizada)
                     .HasMaxLength(500);
 
-                entidad.Property(i => i.UtilidadEmpresaPorcentaje)
-                    .HasPrecision(18, 2);
+                entidad.Property(i => i.FactorPrecio)
+                    .HasPrecision(18, 4);
 
-                entidad.Property(i => i.UtilidadVendedorPorcentaje)
-                    .HasPrecision(18, 2);
+                entidad.Property(i => i.FactorUtilidad)
+                    .HasPrecision(18, 4);
 
                 entidad.HasOne(i => i.Cotizacion)
                     .WithMany(c => c.ItemsEquipos)
@@ -336,24 +336,29 @@ namespace CotizacionMVC.Data
 
                 entidad.OwnsOne(i => i.PrecioUnitario, dinero =>
                 {
-                    dinero.Property(d => d.Monto)
-                        .HasPrecision(18, 2);
-
-                    dinero.Property(d => d.Moneda)
-                        .HasMaxLength(3);
+                    dinero.Property(d => d.Monto).HasPrecision(18, 2);
+                    dinero.Property(d => d.Moneda).HasMaxLength(3);
                 });
 
                 entidad.OwnsOne(i => i.Subtotal, dinero =>
                 {
-                    dinero.Property(d => d.Monto)
-                        .HasPrecision(18, 2);
+                    dinero.Property(d => d.Monto).HasPrecision(18, 2);
+                    dinero.Property(d => d.Moneda).HasMaxLength(3);
+                });
 
-                    dinero.Property(d => d.Moneda)
-                        .HasMaxLength(3);
+                entidad.OwnsOne(i => i.PrecioUnitarioUSD, dinero =>
+                {
+                    dinero.Property(d => d.Monto).HasPrecision(18, 2);
+                    dinero.Property(d => d.Moneda).HasMaxLength(3);
+                });
+
+                entidad.OwnsOne(i => i.SubtotalUSD, dinero =>
+                {
+                    dinero.Property(d => d.Monto).HasPrecision(18, 2);
+                    dinero.Property(d => d.Moneda).HasMaxLength(3);
                 });
             });
         }
-
         private void ConfigurarInstalacion(ModelBuilder constructorModelos)
         {
             constructorModelos.Entity<Instalacion>(entidad =>

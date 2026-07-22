@@ -121,7 +121,7 @@ namespace CotizacionMVC.Controllers
 
         //Admin y Recepción pueden ver todas las empresas
         [HttpPost]
-        [Authorize(Roles = "Administrador,Recepcion")]
+        [Authorize(Roles = "Administrador,Recepcion,Vendedor")]
         public IActionResult VerTodasLasEmpresas(string? returnUrl = null)
         {
             HttpContext.Session.Remove("EmpresaActivaId");
@@ -170,6 +170,19 @@ namespace CotizacionMVC.Controllers
 
             TempData["MensajeExito"] = $"Ahora estás trabajando en: {empresa.NombreComercial}";
             return RedirectToLocal(returnUrl);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult LimpiarEmpresaActiva(string returnUrl)
+        {
+            HttpContext.Session.Remove("EmpresaActivaId");
+            HttpContext.Session.Remove("EmpresaActivaNombre");
+
+            if (!string.IsNullOrEmpty(returnUrl))
+                return Redirect(returnUrl);
+
+            return RedirectToAction("Index", "Home");
         }
         private IActionResult RedirectToLocal(string? returnUrl)
         {

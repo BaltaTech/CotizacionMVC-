@@ -545,13 +545,13 @@
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><h6 class="dropdown-header text-xs text-muted text-uppercase">Seleccionar Empresa</h6></li>
                                 <li>
-                                    <form asp-controller="Empresa" asp-action="VerTodasLasEmpresas" method="post">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                                        <button type="submit" class="dropdown-item fw-semibold text-dark">
-                                            <i class="fas fa-globe me-2 text-muted"></i> Todas las empresas
-                                        </button>
-                                    </form>
+                                   <form asp-controller="Empresa" asp-action="LimpiarEmpresaActiva" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+    <button type="submit" class="dropdown-item fw-semibold text-dark">
+        <i class="fas fa-globe me-2 text-muted"></i> Todas las empresas
+    </button>
+</form>
                                 </li>
                                 <li><hr class="dropdown-divider" /></li>
                                 <li>

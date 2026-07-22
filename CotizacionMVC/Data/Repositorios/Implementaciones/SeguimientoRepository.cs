@@ -12,6 +12,7 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
         {
             _context = context;
         }
+
         public async Task<Seguimiento?> GetByIdAsync(Guid id)
         {
             return await _context.Seguimientos
@@ -57,8 +58,7 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
                 .Include(s => s.Cotizacion)
                 .Where(s => s.VendedorId == vendedorId
                     && s.ProximoContacto.HasValue
-                    && s.ProximoContacto.Value.Date == hoy
-                    && !s.RecordatorioEnviado)
+                    && s.ProximoContacto.Value.Date == hoy)
                 .OrderBy(s => s.ProximoContacto)
                 .ToListAsync();
         }
@@ -71,8 +71,7 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
                 .Include(s => s.Cotizacion)
                 .Where(s => s.VendedorId == vendedorId
                     && s.ProximoContacto.HasValue
-                    && s.ProximoContacto.Value.Date < hoy
-                    && !s.RecordatorioEnviado)
+                    && s.ProximoContacto.Value.Date < hoy)
                 .OrderBy(s => s.ProximoContacto)
                 .ToListAsync();
         }

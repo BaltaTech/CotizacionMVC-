@@ -89,23 +89,26 @@ namespace CotizacionMVC.Models.Entidades
             TipoCambio = tipoCambio;
             RecargoCiudadPorcentaje = recargoCiudadPorcentaje;
 
+            // Inicializar Value Objects con moneda de la empresa
             Subtotal = new Dinero(0, empresa.MonedaBase);
             Iva = new Dinero(0, empresa.MonedaBase);
             Total = new Dinero(0, empresa.MonedaBase);
-            RecargoCiudad = new Dinero(0, empresa.MonedaBase);
+            RecargoCiudad = new Dinero(0, "USD");
             RequiereAutorizacion = false;
         }
 
-        public void AgregarEquipo(Equipo equipo, int cantidad, decimal utilidadEmpresa, decimal utilidadVendedor, string? descripcionPersonalizada = null)
+        public void AgregarEquipo(Equipo equipo, int cantidad, decimal factorPrecio, decimal factorUtilidad, string? descripcionPersonalizada = null)
         {
             if (equipo == null) throw new ArgumentNullException(nameof(equipo));
             if (cantidad <= 0) throw new ArgumentException("La cantidad debe ser mayor a cero");
+            if (factorPrecio <= 0) throw new ArgumentException("El factor de precio debe ser mayor a cero");
+            if (factorUtilidad <= 0) throw new ArgumentException("El factor de utilidad debe ser mayor a cero");
             if (Empresa.EsExclusivaTrane && !equipo.EsMarcaTrane())
                 throw new InvalidOperationException($"Esta empresa solo puede cotizar equipos Trane.");
             if (!equipo.Activo)
                 throw new InvalidOperationException($"El equipo {equipo.Modelo} no está activo.");
 
-            var item = new ItemCotizacion(this, equipo, cantidad, utilidadEmpresa, utilidadVendedor, descripcionPersonalizada);
+            var item = new ItemCotizacion(this, equipo, cantidad, factorPrecio, factorUtilidad, descripcionPersonalizada);
             _itemsEquipos.Add(item);
             RecalcularTotales();
         }
@@ -157,20 +160,42 @@ namespace CotizacionMVC.Models.Entidades
 
         private void RecalcularTotales()
         {
-            var subtotalEquipos = _itemsEquipos.Sum(i => i.Subtotal.Monto);
+            // PASO 1: Sumar todos los equipos en USD
+            var subtotalEquiposUSD = _itemsEquipos.Any()
+                ? _itemsEquipos.Select(i => i.SubtotalUSD).Aggregate((a, b) => a.Sumar(b))
+                : new Dinero(0, "USD");
 
-            var recargo = ReglasNegocio.CalcularRecargoCiudad(subtotalEquipos, RecargoCiudadPorcentaje);
-            RecargoCiudad = new Dinero(recargo, Empresa.MonedaBase);
+            // PASO 2: Calcular y aplicar recargo por ciudad en USD
+            var recargoUSD = subtotalEquiposUSD.Multiplicar(RecargoCiudadPorcentaje / 100m);
+            RecargoCiudad = recargoUSD; 
 
-            var subtotalInstalaciones = _itemsInstalacion.Sum(i => i.Subtotal.Monto);
-            var subtotalGeneral = subtotalEquipos + recargo + subtotalInstalaciones;
+            // PASO 3: Total equipos en USD (subtotal + recargo)
+            var totalEquiposUSD = subtotalEquiposUSD.Sumar(recargoUSD);
 
-            Subtotal = new Dinero(subtotalGeneral, Empresa.MonedaBase);
-            Iva = new Dinero(ReglasNegocio.CalcularIva(subtotalGeneral), Empresa.MonedaBase);
-            Total = new Dinero(ReglasNegocio.CalcularTotal(subtotalGeneral), Empresa.MonedaBase);
+            // PASO 4: Convertir total equipos a MXN
+            var totalEquiposMXN = totalEquiposUSD.ConvertirA("MXN", TipoCambio);
 
-            var totalEnMxn = Empresa.MonedaBase == "MXN" ? Total : Total.ConvertirA("MXN", TipoCambio);
-            RequiereAutorizacion = totalEnMxn.Monto > ReglasNegocio.MONTO_AUTORIZACION_DIRECCION_MXN;
+            // PASO 5: Sumar instalaciones (ya están en MXN)
+            var subtotalInstalacionesMXN = _itemsInstalacion.Any()
+                ? _itemsInstalacion.Select(i => i.Subtotal).Aggregate((a, b) => a.Sumar(b))
+                : new Dinero(0, "MXN");
+
+            // PASO 6: Subtotal general en MXN (equipos + instalaciones)
+            var subtotalGeneralMXN = totalEquiposMXN.Sumar(subtotalInstalacionesMXN);
+            Subtotal = subtotalGeneralMXN;
+
+            // PASO 7: Calcular IVA (16%)
+            var ivaMonto = subtotalGeneralMXN.Monto * 0.16m;
+            Iva = new Dinero(ivaMonto, "MXN");
+
+            // PASO 8: Total final (subtotal + IVA)
+            Total = subtotalGeneralMXN.Sumar(Iva);
+
+            // PASO 9: Verificar si requiere autorización
+            var totalParaAutorizacion = Empresa.MonedaBase == "MXN"
+                ? Total.Monto
+                : Total.ConvertirA("MXN", TipoCambio).Monto;
+            RequiereAutorizacion = totalParaAutorizacion > ReglasNegocio.MONTO_AUTORIZACION_DIRECCION_MXN;
         }
 
         public decimal ObtenerTipoCambioActual() => TipoCambio;

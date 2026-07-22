@@ -275,8 +275,16 @@ namespace CotizacionMVC.Servicios.Aplicacion
             foreach (var eq in dto.Equipos)
             {
                 var equipo = await _equipoRepo.GetByIdAsync(eq.EquipoId);
-                cotizacion.AgregarEquipo(equipo!, eq.Cantidad, empresa.UtilidadEmpresaPorcentaje,
-                    empresa.UtilidadVendedorPorcentaje, null);
+
+                var factorPrecio = eq.FactorPrecio > 0
+                    ? eq.FactorPrecio
+                    : empresa.UtilidadEmpresaPorcentaje / 100m;  
+
+                var factorUtilidad = eq.FactorUtilidad > 0
+                    ? eq.FactorUtilidad
+                    : empresa.UtilidadVendedorPorcentaje / 100m; 
+
+                cotizacion.AgregarEquipo(equipo!, eq.Cantidad, factorPrecio, factorUtilidad, null);
             }
 
             foreach (var inst in dto.Instalaciones)

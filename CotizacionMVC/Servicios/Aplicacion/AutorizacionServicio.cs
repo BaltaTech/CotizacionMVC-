@@ -3,6 +3,7 @@ using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+
 namespace CotizacionMVC.Servicios.Aplicacion
 {
     public class AutorizacionServicio : IAutorizacionServicio
@@ -50,8 +51,6 @@ namespace CotizacionMVC.Servicios.Aplicacion
             return roles.ToList();
         }
 
-        // ========== VERIFICACIONES DE ACCESO ==========
-
         public async Task<bool> PuedeAccederASeccionAsync(Guid usuarioId, string seccion)
         {
             var usuario = await _userManager.FindByIdAsync(usuarioId.ToString());
@@ -79,15 +78,12 @@ namespace CotizacionMVC.Servicios.Aplicacion
             var usuario = await _userManager.FindByIdAsync(usuarioId.ToString());
             if (usuario == null) return false;
 
-            // Admin y Recepción tienen acceso a TODAS las empresas
             if (await _userManager.IsInRoleAsync(usuario, "Administrador") ||
                 await _userManager.IsInRoleAsync(usuario, "Recepcion"))
                 return true;
 
-            // Vendedor: verificar si tiene acceso a esta empresa
             if (await _userManager.IsInRoleAsync(usuario, "Vendedor"))
             {
-                // 1. Verificar si está en EmpresasAcceso
                 var usuarioConEmpresas = await _userManager.Users
                     .Include(u => u.EmpresasAcceso)
                     .FirstOrDefaultAsync(u => u.Id == usuarioId);
@@ -96,7 +92,6 @@ namespace CotizacionMVC.Servicios.Aplicacion
                     usuarioConEmpresas.EmpresasAcceso.Any(e => e.Id == empresaId))
                     return true;
 
-                // 2. Verificar si tiene actividad en esta empresa (leads o cotizaciones)
                 var tieneActividad = await _context.Leads
                     .AnyAsync(l => l.VendedorAsignadoId == usuarioId && l.EmpresaId == empresaId)
                     || await _context.Cotizaciones
@@ -118,11 +113,11 @@ namespace CotizacionMVC.Servicios.Aplicacion
                     return empresaId;
             }
 
-            // 2. Si no hay sesión o no tiene acceso, obtener según el rol
+            // 2. Si no hay sesión, obtener según el rol
             var usuario = await _userManager.FindByIdAsync(usuarioId.ToString());
             if (usuario == null) return null;
 
-            // Admin y Recepción: primera empres    a activa
+            // Admin y Recepción: primera empresa activa
             if (await _userManager.IsInRoleAsync(usuario, "Administrador") ||
                 await _userManager.IsInRoleAsync(usuario, "Recepcion"))
             {
@@ -133,33 +128,38 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 return primeraEmpresa?.Id;
             }
 
-            // Vendedor: empresa donde tiene actividad
+            // Vendedor: buscar empresa por actividad
             if (await _userManager.IsInRoleAsync(usuario, "Vendedor"))
             {
-                // Buscar en leads asignados
+                // 1. Leads asignados
                 var lead = await _context.Leads
                     .Where(l => l.VendedorAsignadoId == usuarioId)
                     .OrderByDescending(l => l.FechaAsignacion)
                     .FirstOrDefaultAsync();
-
                 if (lead != null && lead.EmpresaId != Guid.Empty)
                     return lead.EmpresaId;
 
-                // Buscar en cotizaciones
+                // 2. Cotizaciones
                 var cotizacion = await _context.Cotizaciones
                     .Where(c => c.VendedorId == usuarioId)
                     .OrderByDescending(c => c.FechaCreacion)
                     .FirstOrDefaultAsync();
-
                 if (cotizacion != null && cotizacion.EmpresaId != Guid.Empty)
                     return cotizacion.EmpresaId;
 
-                // Buscar en EmpresasAcceso
+                // 3. EmpresasAcceso
                 var usuarioConEmpresas = await _userManager.Users
                     .Include(u => u.EmpresasAcceso)
                     .FirstOrDefaultAsync(u => u.Id == usuarioId);
+                if (usuarioConEmpresas?.EmpresasAcceso?.Any() == true)
+                    return usuarioConEmpresas.EmpresasAcceso.First().Id;
 
-                return usuarioConEmpresas?.EmpresasAcceso.FirstOrDefault()?.Id;
+                // 4. Fallback: primera empresa activa
+                var primeraEmpresa = await _context.Empresas
+                    .Where(e => e.Activa)
+                    .OrderBy(e => e.FechaCreacion)
+                    .FirstOrDefaultAsync();
+                return primeraEmpresa?.Id;
             }
 
             return null;
@@ -169,9 +169,12 @@ namespace CotizacionMVC.Servicios.Aplicacion
         {
             var empresaId = await ObtenerEmpresaActivaIdAsync(usuarioId);
             if (!empresaId.HasValue) return null;
-
             return await _context.Empresas.FindAsync(empresaId.Value);
         }
+
+        // =====================================================
+        // FILTROS - Solo filtran por empresa si hay una activa
+        // =====================================================
 
         public async Task<IQueryable<Cotizacion>> FiltrarCotizacionesAsync(Guid usuarioId, IQueryable<Cotizacion> query)
         {
@@ -181,19 +184,16 @@ namespace CotizacionMVC.Servicios.Aplicacion
             var roles = await _userManager.GetRolesAsync(usuario);
             var empresaId = await ObtenerEmpresaActivaIdAsync(usuarioId);
 
-            // Filtrar por empresa activa
+            // Solo filtrar por empresa si hay una seleccionada
             if (empresaId.HasValue)
                 query = query.Where(c => c.EmpresaId == empresaId.Value);
 
-            // Admin ve todas las cotizaciones de la empresa
             if (roles.Contains("Administrador"))
                 return query;
 
-            // Vendedor ve solo sus cotizaciones
             if (roles.Contains("Vendedor"))
                 return query.Where(c => c.VendedorId == usuarioId);
 
-            // Recepción no ve cotizaciones
             return query.Where(c => false);
         }
 
@@ -205,19 +205,16 @@ namespace CotizacionMVC.Servicios.Aplicacion
             var roles = await _userManager.GetRolesAsync(usuario);
             var empresaId = await ObtenerEmpresaActivaIdAsync(usuarioId);
 
-            // Filtrar por empresa activa
+            // Solo filtrar por empresa si hay una seleccionada
             if (empresaId.HasValue)
                 query = query.Where(l => l.EmpresaId == empresaId.Value);
 
-            // Admin ve todos los leads de la empresa
             if (roles.Contains("Administrador"))
                 return query;
 
-            // Vendedor ve solo sus leads asignados
             if (roles.Contains("Vendedor"))
                 return query.Where(l => l.VendedorAsignadoId == usuarioId);
 
-            // Recepción ve leads sin vendedor asignado
             if (roles.Contains("Recepcion"))
                 return query.Where(l => l.VendedorAsignadoId == null);
 
@@ -232,25 +229,22 @@ namespace CotizacionMVC.Servicios.Aplicacion
             var roles = await _userManager.GetRolesAsync(usuario);
             var empresaId = await ObtenerEmpresaActivaIdAsync(usuarioId);
 
-            // Para filtrar clientes por empresa, pasamos por sus cotizaciones y leads
+            // Solo filtrar por empresa si hay una seleccionada
             if (empresaId.HasValue)
             {
                 query = query.Where(c => c.Cotizaciones.Any(co => co.EmpresaId == empresaId.Value)
                     || _context.Leads.Any(l => l.ClienteId == c.Id && l.EmpresaId == empresaId.Value));
             }
 
-            // Admin ve todos los clientes de la empresa
             if (roles.Contains("Administrador"))
                 return query;
 
-            // Vendedor ve clientes de sus cotizaciones o leads
             if (roles.Contains("Vendedor"))
             {
                 return query.Where(c => c.Cotizaciones.Any(co => co.VendedorId == usuarioId)
                     || _context.Leads.Any(l => l.ClienteId == c.Id && l.VendedorAsignadoId == usuarioId));
             }
 
-            // Recepción ve todos los clientes de la empresa
             if (roles.Contains("Recepcion"))
                 return query;
 
