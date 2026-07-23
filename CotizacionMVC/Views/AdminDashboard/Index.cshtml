@@ -1,0 +1,404 @@
+﻿@using CotizacionMVC.Servicios.Aplicacion.Dtos.AdminDashboard
+@model AdminDashboardDto
+@{
+    ViewData["Title"] = "Dashboard Ejecutivo";
+}
+
+<div class="admin-dashboard">
+    
+    @* ========== HEADER ========== *@
+    <div class="admin-header">
+        <div>
+            <h1 class="admin-title">Dashboard Ejecutivo</h1>
+            <span class="admin-subtitle">@DateTime.Now.ToString("dddd, dd 'de' MMMM 'de' yyyy, HH:mm")</span>
+        </div>
+    </div>
+
+    @* ========== KPIs PRINCIPALES ========== *@
+    <div class="kpi-grid">
+        <div class="kpi-card kpi-red">
+            <div class="kpi-icon"><i class="fas fa-user-plus"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value">@Model.ClientesNuevosHoy</span>
+                <span class="kpi-label">Nuevos Hoy</span>
+            </div>
+            <div class="kpi-footer"><i class="fas fa-info-circle"></i> @Model.ClientesSinAsignar sin asignar</div>
+        </div>
+        <div class="kpi-card kpi-blue">
+            <div class="kpi-icon"><i class="fas fa-file-alt"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value">@Model.CotizacionesActivas</span>
+                <span class="kpi-label">Activas</span>
+            </div>
+            <div class="kpi-footer"><i class="fas fa-paper-plane"></i> @Model.CotizacionesEnviadasHoy enviadas hoy</div>
+        </div>
+        <div class="kpi-card kpi-green">
+            <div class="kpi-icon"><i class="fas fa-dollar-sign"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value">@Model.VentasMes</span>
+                <span class="kpi-label">Vendidas</span>
+            </div>
+            <div class="kpi-footer"><i class="fas fa-chart-pie"></i> @Model.MontoVendidoMes.ToString("C", new System.Globalization.CultureInfo("es-MX"))</div>
+        </div>
+        <div class="kpi-card kpi-purple">
+            <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="kpi-data">
+                <span class="kpi-value">@Model.TasaConversion%</span>
+                <span class="kpi-label">Conversión</span>
+            </div>
+            <div class="kpi-footer"><i class="fas fa-times-circle"></i> @Model.LeadsPerdidosMes perdidos</div>
+        </div>
+    </div>
+
+    @* ========== GRÁFICOS ========== *@
+    <div class="charts-grid">
+        <div class="admin-card chart-card">
+            <div class="card-header-custom">
+                <div class="header-title">
+                    <i class="fas fa-chart-bar"></i> Ventas por Vendedor
+                </div>
+            </div>
+            <div class="card-body-custom">
+                <canvas id="chartVentas" height="300"></canvas>
+            </div>
+        </div>
+        <div class="admin-card chart-card">
+            <div class="card-header-custom">
+                <div class="header-title">
+                    <i class="fas fa-funnel-dollar"></i> Distribución del Pipeline
+                </div>
+            </div>
+            <div class="card-body-custom">
+                <canvas id="chartPipeline" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    @* ========== ALERTAS ========== *@
+    @if (Model.Alertas.Any())
+    {
+        <div class="admin-card alerts-card" style="margin-top: 1.5rem;">
+            <div class="card-header-custom">
+                <div class="header-title">
+                    <i class="fas fa-bell"></i> Alertas Recientes
+                </div>
+            </div>
+            <div class="card-body-custom alerts-body">
+                @foreach (var alerta in Model.Alertas)
+                {
+                    <div class="alert-item">
+                        <div class="alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="alert-text">@alerta</div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="admin-grid" style="margin-top: 1.5rem;">
+        
+        @* ========== VENDEDORES ========== *@
+        <div class="admin-card sellers-card">
+            <div class="card-header-custom">
+                <div class="header-title">
+                    <i class="fas fa-users"></i> Rendimiento por Vendedor
+                </div>
+            </div>
+            <div class="card-body-custom p-0">
+                <div class="table-responsive">
+                    <table class="sellers-table">
+                        <thead>
+                            <tr>
+                                <th>Vendedor</th>
+                                <th class="text-center">Leads</th>
+                                <th class="text-center">Sin Contactar</th>
+                                <th class="text-center">Activas</th>
+                                <th class="text-center">Vendidas</th>
+                                <th class="text-right">Monto</th>
+                                <th class="text-center">% Conv.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var v in Model.Vendedores)
+                            {
+                                <tr>
+                                    <td><div class="seller-name">@v.Nombre</div></td>
+                                    <td class="text-center font-medium">@v.TotalLeads</td>
+                                    <td class="text-center">
+                                        @if (v.SinContactar > 5)
+                                        {
+                                            <span class="badge badge-danger">@v.SinContactar</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-neutral">@v.SinContactar</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">@v.CotizacionesActivas</td>
+                                    <td class="text-center font-medium">@v.VendidasMes</td>
+                                    <td class="text-right font-semibold text-dark">@v.MontoVendidoMes.ToString("C", new System.Globalization.CultureInfo("es-MX"))</td>
+                                    <td class="text-center">
+                                        <span class="conversion-badge @(v.TasaConversion > 30 ? "high" : v.TasaConversion > 10 ? "mid" : "low")">
+                                            @v.TasaConversion%
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @* ========== PIPELINE ========== *@
+        <div class="admin-card pipeline-card">
+            <div class="card-header-custom">
+                <div class="header-title">
+                    <i class="fas fa-list-check"></i> Pipeline Detallado
+                </div>
+            </div>
+            <div class="card-body-custom">
+                @foreach (var etapa in Model.Pipeline)
+                {
+                    var maxCantidad = Model.Pipeline.Any() ? Model.Pipeline.Max(e => e.Cantidad) : 1;
+                    var porcentaje = (int)Math.Round((decimal)etapa.Cantidad / maxCantidad * 100);
+                    <div class="pipeline-item">
+                        <div class="pipeline-info">
+                            <span class="pipeline-stage">@etapa.Etapa</span>
+                            <span class="pipeline-meta">
+                                <strong>@etapa.Cantidad</strong> <span class="text-light-gray">·</span> @etapa.MontoEstimado.ToString("C", new System.Globalization.CultureInfo("es-MX"))
+                            </span>
+                        </div>
+                        <div class="pipeline-bar">
+                            <div class="pipeline-fill" style="width: @porcentaje%;"></div>
+                        </div>
+                    </div>
+                }
+                @if (!Model.Pipeline.Any())
+                {
+                    <div class="empty-state"><i class="fas fa-inbox"></i><p>No hay datos en el pipeline actualmente.</p></div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --bg-color: #f8fafc;
+        --surface: #ffffff;
+        --text-main: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --border-color: #e2e8f0;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+        --radius-lg: 16px;
+        --radius-md: 12px;
+        --radius-sm: 8px;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .admin-dashboard {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 1rem 0.5rem;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .admin-header {
+        margin-bottom: 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+    }
+
+    .admin-title { font-size: 1.75rem; font-weight: 800; color: var(--text-main); margin: 0 0 0.25rem 0; letter-spacing: -0.025em; }
+    .admin-subtitle { font-size: 0.9rem; color: var(--text-secondary); text-transform: capitalize; font-weight: 500; }
+
+    /* KPIs */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2.5rem; }
+    .kpi-card { background: var(--surface); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); transition: var(--transition); display: grid; grid-template-columns: 1fr auto; grid-template-areas: "data icon" "footer footer"; gap: 1rem 0; }
+    .kpi-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+    .kpi-icon { grid-area: icon; width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+    .kpi-data { grid-area: data; display: flex; flex-direction: column-reverse; justify-content: flex-end; }
+    .kpi-label { font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem; }
+    .kpi-value { font-size: 2.25rem; font-weight: 800; color: var(--text-main); line-height: 1; letter-spacing: -0.025em; }
+    .kpi-footer { grid-area: footer; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 0.75rem; display: flex; align-items: center; gap: 0.4rem; font-weight: 500; }
+    .kpi-red .kpi-icon { background: #fef2f2; color: #ef4444; }
+    .kpi-blue .kpi-icon { background: #eff6ff; color: #3b82f6; }
+    .kpi-green .kpi-icon { background: #ecfdf5; color: #10b981; }
+    .kpi-purple .kpi-icon { background: #f5f3ff; color: #8b5cf6; }
+
+    /* Gráficos */
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+
+    /* Cards */
+    .admin-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+    .alerts-card { grid-column: 1 / -1; }
+    .admin-card { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); display: flex; flex-direction: column; }
+    .card-header-custom { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); background: rgba(248, 250, 252, 0.4); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+    .header-title { font-weight: 700; font-size: 1rem; color: var(--text-main); display: flex; align-items: center; gap: 0.6rem; }
+    .header-title i { color: var(--color-primario, #C8102E); background: color-mix(in srgb, var(--color-primario, #C8102E) 15%, transparent); padding: 0.5rem; border-radius: 6px; font-size: 0.9rem; }
+    .card-body-custom { padding: 1.5rem; flex-grow: 1; }
+    .card-body-custom.p-0 { padding: 0; }
+
+    /* Alertas */
+    .alerts-body { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+    .alert-item { background: #fffbeb; border: 1px solid #fde68a; padding: 0.85rem 1rem; border-radius: var(--radius-sm); display: flex; align-items: flex-start; gap: 0.75rem; }
+    .alert-icon { color: #d97706; margin-top: 2px; }
+    .alert-text { font-size: 0.875rem; color: #92400e; font-weight: 500; line-height: 1.4; }
+
+    /* Tabla */
+    .table-responsive { overflow-x: auto; }
+    .sellers-table { width: 100%; border-collapse: collapse; }
+    .sellers-table th { padding: 1rem 1.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); font-weight: 700; }
+    .sellers-table td { padding: 1rem 1.5rem; font-size: 0.9rem; border-bottom: 1px solid var(--border-color); color: var(--text-secondary); }
+    .sellers-table tr:hover td { background: #f8fafc; }
+    .seller-name { font-weight: 600; color: var(--text-main); }
+
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+    .text-dark { color: var(--text-main); }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-light-gray { color: var(--text-muted); margin: 0 0.2rem; }
+
+    .badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; display: inline-block; }
+    .badge-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
+    .badge-neutral { background: #f1f5f9; color: var(--text-secondary); }
+    .conversion-badge { padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-weight: 700; display: inline-block; width: 100%; text-align: center; }
+    .conversion-badge.high { background: #ecfdf5; color: #059669; }
+    .conversion-badge.mid { background: #fffbeb; color: #d97706; }
+    .conversion-badge.low { background: #fef2f2; color: #dc2626; }
+
+    /* Pipeline */
+    .pipeline-item { margin-bottom: 1.25rem; }
+    .pipeline-item:last-child { margin-bottom: 0; }
+    .pipeline-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .pipeline-stage { font-size: 0.9rem; font-weight: 600; color: var(--text-main); }
+    .pipeline-meta { font-size: 0.85rem; color: var(--text-secondary); }
+    .pipeline-bar { height: 8px; background: #f1f5f9; border-radius: 9999px; overflow: hidden; }
+    .pipeline-fill { height: 100%; background: linear-gradient(90deg, var(--color-primario, #C8102E), color-mix(in srgb, var(--color-primario, #C8102E) 60%, #f43f5e)); border-radius: 9999px; transition: width 1s ease; }
+    .empty-state { text-align: center; padding: 2rem 0; color: var(--text-muted); }
+    .empty-state i { font-size: 2rem; margin-bottom: 0.75rem; color: var(--border-color); }
+
+    @@media (max-width: 1024px) {
+        .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        .charts-grid { grid-template-columns: 1fr; }
+        .admin-grid { grid-template-columns: 1fr; }
+    }
+    @@media (max-width: 640px) {
+        .kpi-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gráfico de Barras - Ventas por Vendedor
+            var ctxVentas = document.getElementById('chartVentas').getContext('2d');
+            var vendedores = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model.Vendedores.Select(v => v.Nombre)));
+            var montos = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model.Vendedores.Select(v => v.MontoVendidoMes)));
+
+            new Chart(ctxVentas, {
+                type: 'bar',
+                data: {
+                    labels: vendedores,
+                    datasets: [{
+                        label: 'Monto Vendido (Mes)',
+                        data: montos,
+                        backgroundColor: vendedores.map((_, i) => {
+                            var colors = ['#ef4444', '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#06b6d4'];
+                            return colors[i % colors.length] + 'CC';
+                        }),
+                        borderColor: vendedores.map((_, i) => {
+                            var colors = ['#ef4444', '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#06b6d4'];
+                            return colors[i % colors.length];
+                        }),
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return '$' + ctx.raw.toLocaleString('es-MX');
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString('es-MX');
+                                }
+                            },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de Dona - Pipeline
+            var ctxPipeline = document.getElementById('chartPipeline').getContext('2d');
+            var etapas = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model.Pipeline.Select(p => p.Etapa)));
+            var cantidades = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model.Pipeline.Select(p => p.Cantidad)));
+
+            var donutColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'];
+
+            new Chart(ctxPipeline, {
+                type: 'doughnut',
+                data: {
+                    labels: etapas,
+                    datasets: [{
+                        data: cantidades,
+                        backgroundColor: etapas.map((_, i) => donutColors[i % donutColors.length]),
+                        borderColor: '#ffffff',
+                        borderWidth: 3,
+                        hoverBorderWidth: 4,
+                        hoverBorderColor: '#ffffff',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyleWidth: 10,
+                                font: { size: 12, family: 'system-ui' },
+                                color: '#475569'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    var total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                    var porcentaje = ((ctx.raw / total) * 100).toFixed(1);
+                                    return ctx.label + ': ' + ctx.raw + ' (' + porcentaje + '%)';
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%',
+                }
+            });
+        });
+    </script>
+}

@@ -469,6 +469,10 @@
                         <a class="sb-link" asp-controller="Usuarios" asp-action="Indice">
                             <i class="fas fa-users-cog"></i> Usuarios
                         </a>
+                           <a class="sb-link" asp-controller="AdminDashboard" asp-action="Index">
+        <i class="fas fa-chart-bar"></i> Panel Admin
+    </a>
+                        
                     }
 
                     @if (User.IsInRole("Vendedor"))

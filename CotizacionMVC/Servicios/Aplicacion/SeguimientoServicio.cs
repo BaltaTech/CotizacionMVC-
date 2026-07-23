@@ -38,6 +38,9 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
             var medioContacto = (MedioContacto)dto.MedioContacto;
             var resultado = (ResultadoSeguimiento)dto.Resultado;
+            var etapaNegociacion = dto.EtapaNegociacion.HasValue
+                ? (EtapaNegociacion)dto.EtapaNegociacion.Value
+                : (EtapaNegociacion?)null;
 
             Lead? lead = null;
             Cotizacion? cotizacion = null;
@@ -98,107 +101,104 @@ namespace CotizacionMVC.Servicios.Aplicacion
             }
 
             await _seguimientoRepo.AddAsync(seguimiento);
-            await AplicarTransicionesAsync(lead, cotizacion, resultado);
+            await AplicarTransicionesAsync(lead, cotizacion, resultado, etapaNegociacion);
             await _seguimientoRepo.SaveChangesAsync();
 
-            // Notificar al vendedor si hay próximo contacto agendado
             if (dto.ProximoContacto.HasValue)
             {
                 await _notificacionServicio.EnviarNotificacionAsync(
                     dto.VendedorId.ToString(),
-                    "📅 Recordatorio de Seguimiento",
+                    "Recordatorio de Seguimiento",
                     $"Tienes un seguimiento agendado para el {dto.ProximoContacto.Value:dd/MM/yyyy HH:mm}",
                     "warning");
             }
 
-            // Actualizar dashboard del vendedor en tiempo real
             await _notificacionServicio.EnviarNotificacionAsync(
                 dto.VendedorId.ToString(),
-                "📊 Dashboard Actualizado",
+                "Dashboard Actualizado",
                 "Se ha registrado un nuevo seguimiento",
                 "info");
 
             return MapearADto(seguimiento);
         }
-        private async Task AplicarTransicionesAsync(Lead? lead, Cotizacion? cotizacion, ResultadoSeguimiento resultado)
+
+        private async Task AplicarTransicionesAsync(Lead? lead, Cotizacion? cotizacion,
+            ResultadoSeguimiento resultado, EtapaNegociacion? nuevaEtapa)
         {
-            switch (resultado)
+            if (!nuevaEtapa.HasValue) return;
+
+            if (lead != null)
             {
-                case ResultadoSeguimiento.SinRespuesta:
-                    if (lead != null && lead.Categoria == CategoriaLead.SinContactar)
-                        lead.ActualizarCategoria(CategoriaLead.Frio);
+                lead.ActualizarEtapa(nuevaEtapa.Value);
+                lead.RegistrarActividad(DateTime.UtcNow);
+            }
+
+            if (cotizacion != null)
+                cotizacion.ActualizarEtapa(nuevaEtapa.Value);
+
+            SincronizarEnumsViejos(lead, cotizacion, nuevaEtapa.Value);
+
+            if (nuevaEtapa.Value == EtapaNegociacion.CotizacionEnviada && cotizacion?.Cliente != null)
+                await NotificarRecepcionCotizadoAsync(cotizacion);
+
+            if (nuevaEtapa.Value == EtapaNegociacion.Cerrada)
+                await NotificarVentaCerrada(lead, cotizacion);
+        }
+
+        private void SincronizarEnumsViejos(Lead? lead, Cotizacion? cotizacion, EtapaNegociacion etapa)
+        {
+            switch (etapa)
+            {
+                case EtapaNegociacion.SinContactar:
+                    if (lead != null) lead.ActualizarCategoria(CategoriaLead.SinContactar);
                     break;
 
-                case ResultadoSeguimiento.NoInteresado:
-                    if (lead != null) lead.MarcarComoNoInteresado();
-                    if (cotizacion != null) cotizacion.CambiarEstado(EstadoCotizacion.Perdida);
+                case EtapaNegociacion.ContactoInicial:
+                    if (lead != null) lead.ActualizarCategoria(CategoriaLead.Contactado);
+                    if (lead != null && lead.Estado == EstadoCliente.Asignado) lead.MarcarContactado();
                     break;
 
-                case ResultadoSeguimiento.ReagendarLlamada:
-                    if (lead != null && lead.Categoria == CategoriaLead.Frio)
-                        lead.ActualizarCategoria(CategoriaLead.Contactado);
-                    if (lead != null && lead.Estado == EstadoCliente.Asignado)
-                        lead.MarcarContactado();
-                    break;
-
-                case ResultadoSeguimiento.SolicitoVisitaTecnica:
-                    if (lead != null) lead.ActualizarCategoria(CategoriaLead.Calificado);
-                    if (cotizacion != null) cotizacion.CambiarEstado(EstadoCotizacion.PreguntaInstalacion);
-                    break;
-
-                case ResultadoSeguimiento.VisitaTecnicaRealizada:
-                case ResultadoSeguimiento.DatosRecabados:
-                case ResultadoSeguimiento.CotizacionSolicitada:
+                case EtapaNegociacion.InformacionSolicitada:
                     if (lead != null) lead.ActualizarCategoria(CategoriaLead.Calificado);
                     if (cotizacion != null) cotizacion.CambiarEstado(EstadoCotizacion.InformacionSolicitada);
                     break;
 
-                case ResultadoSeguimiento.CotizacionEnviada:
+                case EtapaNegociacion.CotizacionEnviada:
                     if (lead != null) lead.ActualizarCategoria(CategoriaLead.Cotizando);
-                    if (cotizacion != null)
-                    {
-                        cotizacion.CambiarEstado(EstadoCotizacion.CotizacionEnviada);
-                        if (cotizacion.Cliente != null && cotizacion.Cliente.Estado != EstadoCliente.Cotizado)
-                        {
-                            cotizacion.Cliente.MarcarCotizado();
-                            await NotificarRecepcionCotizadoAsync(cotizacion);
-                        }
-                    }
-                    if (lead != null && lead.Estado != EstadoCliente.Cotizado)
-                        lead.MarcarCotizado();
+                    if (lead != null) lead.MarcarCotizado();
+                    if (cotizacion != null) cotizacion.CambiarEstado(EstadoCotizacion.CotizacionEnviada);
                     break;
 
-                case ResultadoSeguimiento.NegociandoPrecio:
-                case ResultadoSeguimiento.SolicitandoAlternativa:
-                case ResultadoSeguimiento.EvaluandoFinanciamiento:
+                case EtapaNegociacion.PreguntaInstalacion:
+                    if (cotizacion != null) cotizacion.CambiarEstado(EstadoCotizacion.PreguntaInstalacion);
+                    break;
+
+                case EtapaNegociacion.NegociandoPrecio:
                     if (cotizacion != null) cotizacion.CambiarEstado(EstadoCotizacion.NegociandoPrecio);
                     break;
 
-                case ResultadoSeguimiento.FechaTentativaInstalacion:
+                case EtapaNegociacion.FechaTentativa:
                     if (cotizacion != null) cotizacion.CambiarEstado(EstadoCotizacion.FechaTentativa);
                     break;
 
-                case ResultadoSeguimiento.AnticipoSolicitado:
+                case EtapaNegociacion.CotizacionFirmada:
                     if (cotizacion != null) cotizacion.CambiarEstado(EstadoCotizacion.Aceptada);
                     break;
 
-                case ResultadoSeguimiento.AnticipoRecibido:
+                case EtapaNegociacion.AnticipoRecibido:
                     if (cotizacion != null) cotizacion.CambiarEstado(EstadoCotizacion.PagoAnticipo);
                     break;
 
-                case ResultadoSeguimiento.Cerrada:
+                case EtapaNegociacion.Cerrada:
                     if (lead != null) lead.MarcarComoConvertido();
                     if (cotizacion != null) cotizacion.CambiarEstado(EstadoCotizacion.Cerrada);
                     break;
 
-                case ResultadoSeguimiento.Perdida:
+                case EtapaNegociacion.Perdida:
                     if (lead != null) lead.MarcarComoNoInteresado();
                     if (cotizacion != null) cotizacion.CambiarEstado(EstadoCotizacion.Perdida);
                     break;
             }
-
-            if (lead != null)
-                lead.RegistrarActividad(DateTime.UtcNow);
         }
 
         private async Task NotificarRecepcionCotizadoAsync(Cotizacion cotizacion)
@@ -213,6 +213,22 @@ namespace CotizacionMVC.Servicios.Aplicacion
                     r.Id.ToString(),
                     "Cliente Cotizado",
                     $"Cliente {cotizacion.Cliente?.Nombre ?? "N/A"} cotizado. Folio: {cotizacion.NumeroCotizacion}",
+                    "success");
+            }
+        }
+
+        private async Task NotificarVentaCerrada(Lead? lead, Cotizacion? cotizacion)
+        {
+            var nombre = lead?.NombreContacto ?? cotizacion?.Cliente?.Nombre ?? "Cliente";
+            var monto = cotizacion?.Total?.Monto ?? 0;
+
+            var usuarios = await _context.Users.Where(u => u.Activo).ToListAsync();
+            foreach (var u in usuarios)
+            {
+                await _notificacionServicio.EnviarNotificacionAsync(
+                    u.Id.ToString(),
+                    "🎉 Venta Cerrada",
+                    $"Cliente: {nombre} | Monto: ${monto:N2}",
                     "success");
             }
         }
@@ -238,7 +254,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
         public async Task<DashboardVendedorDto> ObtenerDashboardAsync(Guid vendedorId)
         {
             var hoy = DateTime.UtcNow.Date;
-
+            var inicioMes = new DateTime(hoy.Year, hoy.Month, 1, 0, 0, 0, DateTimeKind.Utc);
             var leadsVendedor = await _context.Leads
                 .Where(l => l.VendedorAsignadoId == vendedorId)
                 .ToListAsync();
@@ -253,6 +269,12 @@ namespace CotizacionMVC.Servicios.Aplicacion
             var vencidos = await _seguimientoRepo.GetVencidosAsync(vendedorId);
             var realizadosHoy = await _seguimientoRepo.GetCountByVendedorFechaAsync(vendedorId, hoy);
 
+            var vendidasMes = await _context.Cotizaciones
+                .Where(c => c.VendedorId == vendedorId
+                    && c.Estado == EstadoCotizacion.Cerrada
+                    && c.FechaCreacion >= inicioMes)
+                .ToListAsync();
+
             return new DashboardVendedorDto
             {
                 LeadsSinContactar = leadsVendedor.Count(l => l.Categoria == CategoriaLead.SinContactar),
@@ -263,6 +285,16 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 CotizacionesActivas = cotizacionesActivas,
                 LeadsCalificadosSinCotizar = leadsVendedor.Count(l =>
                     l.Categoria == CategoriaLead.Calificado && l.Estado != EstadoCliente.Cotizado),
+                RecepcionSinContactar = leadsVendedor.Count(l =>
+                    l.OrigenLead == OrigenLead.Recepcion && l.Categoria == CategoriaLead.SinContactar),
+                ProspeccionSinContactar = leadsVendedor.Count(l =>
+                    l.OrigenLead == OrigenLead.Prospeccion && l.Categoria == CategoriaLead.SinContactar),
+                UrgentesSinContactar = leadsVendedor.Count(l =>
+                    l.EtapaNegociacion == EtapaNegociacion.SinContactar && l.OrigenLead == OrigenLead.Recepcion),
+                EnNegociacion = leadsVendedor.Count(l =>
+                    l.EtapaNegociacion >= EtapaNegociacion.NegociandoPrecio && l.EtapaNegociacion < EtapaNegociacion.Cerrada),
+                VendidasMes = vendidasMes.Count,
+                MontoVendidoMes = vendidasMes.Sum(c => c.Total.Monto),
                 ProximosSeguimientos = pendientesHoy.Select(MapearADto).ToList()
             };
         }
@@ -283,6 +315,8 @@ namespace CotizacionMVC.Servicios.Aplicacion
             return new SeguimientoListaDto
             {
                 Id = s.Id,
+                LeadId = s.LeadId,
+                CotizacionId = s.CotizacionId,
                 FechaContacto = s.FechaContacto,
                 MedioContacto = s.MedioContacto.ToString(),
                 Resultado = s.Resultado.ToString(),
@@ -291,12 +325,16 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 VendedorNombre = s.Vendedor?.NombreCompleto ?? "",
                 LeadNombre = s.Lead?.NombreContacto,
                 CotizacionNumero = s.Cotizacion?.NumeroCotizacion,
+                Telefono = s.Lead?.Telefono,
+                CorreoElectronico = s.Lead?.CorreoElectronico,
+                EtapaNegociacion = s.Lead?.EtapaNegociacion?.ToString() ?? s.Cotizacion?.EtapaNegociacion?.ToString(),
+                AlcanceVenta = s.Cotizacion?.AlcanceVenta?.ToString(),
                 EsDeLead = s.EsDeLead(),
                 EsDeCotizacion = s.EsDeCotizacion()
             };
         }
 
-         public async Task<DashboardRecepcionDto> ObtenerDashboardRecepcionAsync()
+        public async Task<DashboardRecepcionDto> ObtenerDashboardRecepcionAsync()
         {
             var hoy = DateTime.UtcNow.Date;
             var hace48h = hoy.AddDays(-2);
@@ -309,7 +347,6 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
             var alertas = new List<AlertaRecepcionDto>();
 
-            // Alertas: asignados > 48h sin contactar
             foreach (var lead in leads.Where(l => l.Estado == EstadoCliente.Asignado && l.FechaAsignacion < hace48h))
             {
                 alertas.Add(new AlertaRecepcionDto
@@ -322,7 +359,6 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 });
             }
 
-            // Alertas: contactados > 7 días sin cotizar
             foreach (var lead in leads.Where(l => l.Estado == EstadoCliente.Contactado && l.FechaContacto < hace7d))
             {
                 alertas.Add(new AlertaRecepcionDto

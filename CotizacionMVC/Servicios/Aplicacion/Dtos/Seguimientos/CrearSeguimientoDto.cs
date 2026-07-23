@@ -10,5 +10,7 @@
         public int Resultado { get; set; }
         public string? Notas { get; set; }
         public DateTime? ProximoContacto { get; set; }
+        public int? EtapaNegociacion { get; set; }
+
     }
 }

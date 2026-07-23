@@ -43,6 +43,8 @@ builder.Services.AddScoped<IEquipoServicio, EquipoServicio>();
 builder.Services.AddScoped<IRecepcionServicio, RecepcionServicio>();
 builder.Services.AddScoped<ISeguimientoServicio, SeguimientoServicio>();
 builder.Services.AddScoped<IInstalacionServicio, InstalacionServicio>();
+builder.Services.AddScoped<IAdminDashboardServicio, AdminDashboardServicio>();
+
 
 // ========== Repositorios ==========
 builder.Services.AddScoped<ICotizacionRepository, CotizacionRepository>();

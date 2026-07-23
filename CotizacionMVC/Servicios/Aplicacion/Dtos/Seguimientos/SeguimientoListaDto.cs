@@ -13,5 +13,11 @@
         public string? CotizacionNumero { get; set; }
         public bool EsDeLead { get; set; }
         public bool EsDeCotizacion { get; set; }
+        public Guid? LeadId { get; set; }
+        public Guid? CotizacionId { get; set; }
+        public string? Telefono { get; set; }
+        public string? CorreoElectronico { get; set; }
+        public string? EtapaNegociacion { get; set; }
+        public string? AlcanceVenta { get; set; }
     }
 }

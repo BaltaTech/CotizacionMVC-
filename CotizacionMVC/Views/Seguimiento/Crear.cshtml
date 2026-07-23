@@ -14,7 +14,46 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    @* Mostrar referencia si existe *@
+                    @if (!Model.EsSeguimientoGeneral)
+                    {
+                        <div class="card bg-light mb-3 border-start border-3 border-primary">
+                            <div class="card-body py-2 px-3">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small class="text-muted">@Model.TipoSeguimiento</small><br>
+                                        <strong>@Model.ClienteNombre</strong>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-muted">Etapa actual</small><br>
+                                        <span class="badge bg-info">@Model.EtapaActual</span>
+                                    </div>
+                                    @if (Model.TipoSeguimiento == "Lead")
+                                    {
+                                        <div class="col-md-6 mt-2">
+                                            <small class="text-muted">Origen</small><br>
+                                            <span>@Model.Origen</span>
+                                        </div>
+                                        <div class="col-md-6 mt-2">
+                                            <small class="text-muted">Contacto</small><br>
+                                            <span>@(Model.ClienteTelefono ?? Model.ClienteCorreo ?? "Sin contacto")</span>
+                                        </div>
+                                    }
+                                    @if (Model.TipoSeguimiento == "Cotización")
+                                    {
+                                        <div class="col-md-6 mt-2">
+                                            <small class="text-muted">Folio</small><br>
+                                            <span class="badge bg-dark">@Model.NumeroCotizacion</span>
+                                        </div>
+                                        <div class="col-md-6 mt-2">
+                                            <small class="text-muted">Monto</small><br>
+                                            <strong>@(Model.MontoCotizacion?.ToString("C") ?? "N/A")</strong>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
                     @if (!string.IsNullOrWhiteSpace(Model.Referencia))
                     {
                         <div class="alert alert-info">
@@ -22,7 +61,6 @@
                         </div>
                     }
 
-                    @* Advertencia si es seguimiento general *@
                     @if (Model.EsSeguimientoGeneral)
                     {
                         <div class="alert alert-warning">
@@ -50,30 +88,50 @@
                                 <label asp-for="MedioContactoId" class="form-label">Medio de Contacto</label>
                                 <select asp-for="MedioContactoId" class="form-select">
                                     <option value="">-- Seleccione --</option>
-                                    <option value="0">Teléfono</option>
-                                    <option value="1">WhatsApp</option>
-                                    <option value="2">Correo Electrónico</option>
-                                    <option value="3">Visita Comercial</option>
-                                    <option value="4">Visita Técnica</option>
-                                    <option value="5">Otro</option>
+                                    <option value="1">📞 Teléfono</option>
+                                    <option value="2">💬 WhatsApp</option>
+                                    <option value="3">✉️ Correo Electrónico</option>
+                                    <option value="4">🏠 Visita</option>
                                 </select>
                                 <span asp-validation-for="MedioContactoId" class="text-danger small"></span>
                             </div>
 
                             <div class="col-12">
-                                <label asp-for="ResultadoId" class="form-label">Resultado</label>
-                                <select asp-for="ResultadoId" class="form-select">
+                                <label asp-for="ResultadoId" class="form-label">¿Qué pasó en la llamada?</label>
+                                <select asp-for="ResultadoId" class="form-select" id="selectResultado">
                                     <option value="">-- Seleccione --</option>
-                                    <option value="0">Sin Respuesta</option>
-                                    <option value="1">Interesado</option>
-                                    <option value="2">No Interesado</option>
-                                    <option value="3">Cotización Enviada</option>
-                                    <option value="4">Anticipo Recibido</option>
-                                    <option value="5">Cerrada</option>
-                                    <option value="6">Perdida</option>
-                                    <option value="7">Seguimiento Programado</option>
+                                    <option value="1">❌ Sin Respuesta</option>
+                                    <option value="2">👎 No Interesado</option>
+                                    <option value="3">🔄 Reagendar Llamada</option>
+                                    <option value="10">📋 Solicito Información / Visita</option>
+                                    <option value="20">📄 Cotización Solicitada / Enviada</option>
+                                    <option value="30">💰 Negociando Precio</option>
+                                    <option value="40">📅 Fecha Tentativa</option>
+                                    <option value="41">📑 Cotización Firmada</option>
+                                    <option value="42">💵 Anticipo Recibido</option>
+                                    <option value="50">🎉 Cerrada</option>
+                                    <option value="0">💔 Perdida</option>
                                 </select>
                                 <span asp-validation-for="ResultadoId" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-12" id="divEtapaNegociacion" style="display:none;">
+                                <label asp-for="EtapaNegociacionId" class="form-label">Etapa de Negociación</label>
+                                <select asp-for="EtapaNegociacionId" class="form-select">
+                                    <option value="">-- Seleccione --</option>
+                                    <option value="5">📞 Contacto Inicial</option>
+                                    <option value="10">📋 Información Solicitada</option>
+                                    <option value="20">📄 Cotización Enviada</option>
+                                    <option value="30">💬 Preguntó por Instalación</option>
+                                    <option value="50">💰 Negociando Precio</option>
+                                    <option value="70">📅 Fecha Tentativa</option>
+                                    <option value="90">📑 Cotización Firmada</option>
+                                    <option value="100">💵 Anticipo Recibido</option>
+                                    <option value="110">🎉 Cerrada</option>
+                                    <option value="-1">💔 Perdida</option>
+                                </select>
+                                <span asp-validation-for="EtapaNegociacionId" class="text-danger small"></span>
+                                <small class="text-muted">¿En qué etapa queda la negociación?</small>
                             </div>
 
                             <div class="col-12">
@@ -120,6 +178,21 @@
                 var local = new Date(now.getTime() - tzOffset * 60000);
                 input.value = local.toISOString().slice(0, 16);
             }
+
+            var selectResultado = document.getElementById('selectResultado');
+            var divEtapa = document.getElementById('divEtapaNegociacion');
+
+            function toggleEtapa() {
+                var valor = selectResultado.value;
+                if (valor === '1' || valor === '2' || valor === '0' || valor === '') {
+                    divEtapa.style.display = 'none';
+                } else {
+                    divEtapa.style.display = 'block';
+                }
+            }
+
+            selectResultado.addEventListener('change', toggleEtapa);
+            toggleEtapa();
         });
     </script>
 }

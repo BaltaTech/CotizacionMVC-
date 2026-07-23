@@ -2,133 +2,588 @@
     ViewData["Title"] = "Panel de Recepción";
 }
 
-<div class="container-fluid">
-    <h4 class="mb-3">
-        <i class="fas fa-headset"></i> Panel de Recepción
-        <small class="text-muted fs-6" id="fechaActual"></small>
-    </h4>
-
-    <div class="row g-3" id="dashboardRecepcionContent">
-        <div class="col-12 text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Cargando...</span>
+<div class="reception-dashboard">
+    
+    @* ========== HEADER + FILTROS ========== *@
+    <div class="reception-header">
+        <div>
+            <h1 class="reception-title">Panel de Recepción</h1>
+            <span class="reception-subtitle" id="fechaActual"></span>
+        </div>
+        <div class="header-actions">
+            <div class="period-selector">
+                <button class="period-btn active" data-periodo="hoy">Hoy</button>
+                <button class="period-btn" data-periodo="semana">Semana</button>
+                <button class="period-btn" data-periodo="mes">Mes</button>
             </div>
-            <p class="mt-2 text-muted">Cargando panel de recepción...</p>
+            <a asp-action="Registrar" class="btn-new-client">
+                <i class="fas fa-plus-circle"></i> Nuevo Cliente
+            </a>
+        </div>
+    </div>
+
+    @* ========== CONTENEDOR DINÁMICO ========== *@
+    <div id="dashboardRecepcionContent">
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Cargando panel de recepción...</p>
         </div>
     </div>
 </div>
 
+<style>
+    .reception-dashboard {
+        max-width: 1440px;
+        margin: 0 auto;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #0f172a;
+    }
+
+    .reception-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .reception-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 0.25rem 0;
+        letter-spacing: -0.025em;
+    }
+
+    .reception-subtitle {
+        font-size: 0.85rem;
+        color: #64748b;
+        text-transform: capitalize;
+    }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    /* Selector de período */
+    .period-selector {
+        display: flex;
+        background: #f1f5f9;
+        border-radius: 10px;
+        padding: 3px;
+    }
+
+    .period-btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .period-btn.active {
+        background: #fff;
+        color: #0f172a;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .period-btn:hover:not(.active) {
+        color: #0f172a;
+    }
+
+    .btn-new-client {
+        background: var(--color-primario, #C8102E);
+        color: #fff;
+        padding: 0.55rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .btn-new-client:hover {
+        filter: brightness(1.1);
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    /* ========== KPIs ========== */
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .kpi-box {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        border: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .kpi-box::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+    }
+
+    .kpi-box.red::before { background: #ef4444; }
+    .kpi-box.amber::before { background: #f59e0b; }
+    .kpi-box.blue::before { background: #3b82f6; }
+    .kpi-box.green::before { background: #10b981; }
+    .kpi-box.purple::before { background: #8b5cf6; }
+    .kpi-box.slate::before { background: #64748b; }
+
+    .kpi-box-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .kpi-box-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+
+    .kpi-box.red .kpi-box-icon { background: #fef2f2; color: #ef4444; }
+    .kpi-box.amber .kpi-box-icon { background: #fffbeb; color: #f59e0b; }
+    .kpi-box.blue .kpi-box-icon { background: #eff6ff; color: #3b82f6; }
+    .kpi-box.green .kpi-box-icon { background: #ecfdf5; color: #10b981; }
+    .kpi-box.purple .kpi-box-icon { background: #f5f3ff; color: #8b5cf6; }
+    .kpi-box.slate .kpi-box-icon { background: #f1f5f9; color: #64748b; }
+
+    .kpi-box-label {
+        font-size: 0.7rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+    }
+
+    .kpi-box-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1;
+        letter-spacing: -0.025em;
+    }
+
+    .kpi-box-sub {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        font-weight: 500;
+    }
+
+    /* ========== GRID PRINCIPAL ========== */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+    }
+
+    /* ========== ACTIVIDAD POR VENDEDOR ========== */
+    .card-reception {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+
+    .card-header-reception {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #e2e8f0;
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-header-reception i {
+        color: var(--color-primario, #C8102E);
+    }
+
+    .card-body-reception {
+        padding: 0;
+    }
+
+    .table-reception {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table-reception th {
+        padding: 0.75rem 1rem;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        font-weight: 700;
+        text-align: left;
+    }
+
+    .table-reception td {
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+    }
+
+    .table-reception tr:hover td {
+        background: #fafbfc;
+    }
+
+    .seller-cell {
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .badge-sm {
+        padding: 0.2rem 0.5rem;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+
+    .badge-red { background: #fef2f2; color: #dc2626; }
+    .badge-green { background: #ecfdf5; color: #059669; }
+    .badge-blue { background: #eff6ff; color: #2563eb; }
+    .badge-slate { background: #f1f5f9; color: #475569; }
+    .badge-amber { background: #fffbeb; color: #d97706; }
+
+    /* ========== TIMELINE ========== */
+    .timeline-reception {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .timeline-item {
+        display: flex;
+        gap: 0.75rem;
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
+        align-items: flex-start;
+    }
+
+    .timeline-item:last-child {
+        border-bottom: none;
+    }
+
+    .timeline-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-top: 6px;
+        flex-shrink: 0;
+    }
+
+    .timeline-dot.red { background: #ef4444; }
+    .timeline-dot.blue { background: #3b82f6; }
+    .timeline-dot.green { background: #10b981; }
+    .timeline-dot.amber { background: #f59e0b; }
+
+    .timeline-content {
+        flex-grow: 1;
+        min-width: 0;
+    }
+
+    .timeline-text {
+        font-size: 0.8rem;
+        color: #334155;
+        font-weight: 500;
+    }
+
+    .timeline-meta {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        margin-top: 2px;
+    }
+
+    .timeline-time {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        white-space: nowrap;
+    }
+
+    /* ========== ALERTAS ========== */
+    .alert-list {
+        display: flex;
+        flex-direction: column;
+        padding: 0.75rem 1.25rem;
+    }
+
+    .alert-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.5rem 0;
+        font-size: 0.8rem;
+        border-bottom: 1px solid #fef3c7;
+        color: #92400e;
+    }
+
+    .alert-row:last-child {
+        border-bottom: none;
+    }
+
+    .alert-row.danger {
+        color: #991b1b;
+    }
+
+    .alert-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #f59e0b;
+        flex-shrink: 0;
+    }
+
+    .alert-row.danger .alert-dot {
+        background: #ef4444;
+    }
+
+    .alert-meta {
+        margin-left: auto;
+        font-size: 0.7rem;
+        opacity: 0.7;
+    }
+
+    .no-alerts {
+        padding: 1.5rem;
+        text-align: center;
+        color: #64748b;
+    }
+
+    /* ========== LOADING ========== */
+    .loading-state {
+        text-align: center;
+        padding: 4rem;
+    }
+
+    .spinner {
+        width: 36px;
+        height: 36px;
+        border: 3px solid #e2e8f0;
+        border-top: 3px solid var(--color-primario, #C8102E);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 1rem;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @@media (max-width: 1200px) {
+        .kpi-row { grid-template-columns: repeat(3, 1fr); }
+        .dashboard-grid { grid-template-columns: 1fr; }
+    }
+
+    @@media (max-width: 768px) {
+        .kpi-row { grid-template-columns: repeat(2, 1fr); }
+        .reception-header { flex-direction: column; }
+    }
+
+    @@media (max-width: 480px) {
+        .kpi-row { grid-template-columns: 1fr; }
+    }
+</style>
+
 @section Scripts {
     <script>
+        let periodoActual = 'hoy';
+
         function cargarDashboardRecepcion() {
-            fetch('/RecepcionDashboard/ObtenerDatos')
+            fetch('/RecepcionDashboard/ObtenerDatos?periodo=' + periodoActual)
                 .then(response => response.json())
-                .then(data => {
-                    renderizarDashboardRecepcion(data);
-                })
-                .catch(error => {
-                    console.error('Error al cargar dashboard:', error);
-                });
+                .then(data => renderizarDashboard(data))
+                .catch(error => console.error('Error al cargar dashboard:', error));
         }
 
-        function renderizarDashboardRecepcion(data) {
+        function renderizarDashboard(data) {
             const html = `
-                <div class="col-md-4 col-lg-2">
-                    <div class="card border-info">
-                        <div class="card-body text-center py-3">
-                            <h3 class="mb-0">${data.nuevosClientesHoy}</h3>
-                            <small class="text-muted">Nuevos hoy</small>
+                <div class="kpi-row">
+                    <div class="kpi-box red">
+                        <div class="kpi-box-header">
+                            <div class="kpi-box-icon"><i class="fas fa-user-plus"></i></div>
+                            <div class="kpi-box-label">Nuevos</div>
                         </div>
+                        <div class="kpi-box-value">${data.nuevosClientesHoy}</div>
+                        <div class="kpi-box-sub">${data.clientesSinAsignar} sin asignar</div>
+                    </div>
+                    <div class="kpi-box amber">
+                        <div class="kpi-box-header">
+                            <div class="kpi-box-icon"><i class="fas fa-user-check"></i></div>
+                            <div class="kpi-box-label">Asignados</div>
+                        </div>
+                        <div class="kpi-box-value">${data.clientesAsignadosSinContactar}</div>
+                        <div class="kpi-box-sub">Pendientes de contacto</div>
+                    </div>
+                    <div class="kpi-box blue">
+                        <div class="kpi-box-header">
+                            <div class="kpi-box-icon"><i class="fas fa-phone"></i></div>
+                            <div class="kpi-box-label">Contactados</div>
+                        </div>
+                        <div class="kpi-box-value">${data.clientesContactados}</div>
+                        <div class="kpi-box-sub">En proceso</div>
+                    </div>
+                    <div class="kpi-box purple">
+                        <div class="kpi-box-header">
+                            <div class="kpi-box-icon"><i class="fas fa-file-invoice"></i></div>
+                            <div class="kpi-box-label">Cotizados</div>
+                        </div>
+                        <div class="kpi-box-value">${data.clientesCotizados}</div>
+                        <div class="kpi-box-sub">${data.cotizadosHoy} hoy</div>
+                    </div>
+                    <div class="kpi-box green">
+                        <div class="kpi-box-header">
+                            <div class="kpi-box-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="kpi-box-label">Cerrados</div>
+                        </div>
+                        <div class="kpi-box-value">${data.clientesCerrados || 0}</div>
+                        <div class="kpi-box-sub">Ventas concretadas</div>
+                    </div>
+                    <div class="kpi-box slate">
+                        <div class="kpi-box-header">
+                            <div class="kpi-box-icon"><i class="fas fa-times-circle"></i></div>
+                            <div class="kpi-box-label">Perdidos</div>
+                        </div>
+                        <div class="kpi-box-value">${data.clientesPerdidos || 0}</div>
+                        <div class="kpi-box-sub">No concretados</div>
                     </div>
                 </div>
-                <div class="col-md-4 col-lg-2">
-                    <div class="card border-danger">
-                        <div class="card-body text-center py-3">
-                            <h3 class="mb-0">${data.clientesSinAsignar}</h3>
-                            <small class="text-muted">Sin asignar</small>
+
+                <div class="dashboard-grid">
+                    <div class="card-reception">
+                        <div class="card-header-reception">
+                            <i class="fas fa-users"></i> Actividad por Vendedor
                         </div>
-                    </div>
-                </div>
-                <div class="col-md-4 col-lg-2">
-                    <div class="card border-warning">
-                        <div class="card-body text-center py-3">
-                            <h3 class="mb-0">${data.clientesAsignadosSinContactar}</h3>
-                            <small class="text-muted">Asignados</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 col-lg-2">
-                    <div class="card border-primary">
-                        <div class="card-body text-center py-3">
-                            <h3 class="mb-0">${data.clientesContactados}</h3>
-                            <small class="text-muted">Contactados</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 col-lg-2">
-                    <div class="card border-success">
-                        <div class="card-body text-center py-3">
-                            <h3 class="mb-0">${data.clientesCotizados}</h3>
-                            <small class="text-muted">Cotizados</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 col-lg-2">
-                    <div class="card border-success">
-                        <div class="card-body text-center py-3">
-                            <h3 class="mb-0">${data.cotizadosHoy}</h3>
-                            <small class="text-muted">Cotizados hoy</small>
-                        </div>
-                    </div>
-                </div>
-                ${data.alertas && data.alertas.length > 0 ? `
-                <div class="col-12">
-                    <div class="card border-danger">
-                        <div class="card-header bg-danger text-white">
-                            <i class="fas fa-exclamation-triangle"></i> Alertas
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-sm mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Tipo</th>
-                                            <th>Cliente</th>
-                                            <th>Folio</th>
-                                            <th>Vendedor</th>
-                                            <th>Alerta</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${data.alertas.map(a => `
+                        <div class="card-body-reception">
+                            <table class="table-reception">
+                                <thead>
+                                    <tr>
+                                        <th>Vendedor</th>
+                                        <th>Nuevos</th>
+                                        <th>Contactó</th>
+                                        <th>Cotizó</th>
+                                        <th>Cerró</th>
+                                        <th>Monto</th>
+                                        <th>Última</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.vendedores && data.vendedores.length > 0 
+                                        ? data.vendedores.map(v => `
                                             <tr>
-                                                <td><span class="badge bg-${a.tipo === 'danger' ? 'danger' : 'warning'}">${a.tipo}</span></td>
-                                                <td>${a.clienteNombre}</td>
-                                                <td>${a.folio}</td>
-                                                <td>${a.vendedorNombre || 'Sin asignar'}</td>
-                                                <td><small>${a.mensaje}</small></td>
+                                                <td class="seller-cell">${v.nombre}</td>
+                                                <td><span class="badge-sm badge-red">${v.nuevos}</span></td>
+                                                <td><span class="badge-sm badge-blue">${v.contactados}</span></td>
+                                                <td><span class="badge-sm badge-amber">${v.cotizados}</span></td>
+                                                <td><span class="badge-sm badge-green">${v.cerrados}</span></td>
+                                                <td>${v.monto ? '$' + v.monto.toLocaleString('es-MX') : '-'}</td>
+                                                <td>${v.ultimaActividad || '-'}</td>
                                             </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
+                                        `).join('')
+                                        : `<tr><td colspan="7" class="text-center" style="padding: 2rem; color: #94a3b8;">Sin actividad de vendedores</td></tr>`
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="card-reception" style="margin-bottom: 1.5rem;">
+                            <div class="card-header-reception">
+                                <i class="fas fa-bell"></i> Alertas
+                            </div>
+                            <div class="alert-list">
+                                ${data.alertas && data.alertas.length > 0 
+                                    ? data.alertas.map(a => `
+                                        <div class="alert-row ${a.tipo === 'danger' ? 'danger' : ''}">
+                                            <div class="alert-dot"></div>
+                                            <span>${a.clienteNombre}</span>
+                                            <span class="alert-meta">${a.mensaje}</span>
+                                        </div>
+                                    `).join('')
+                                    : `<div class="no-alerts"><i class="fas fa-check-circle me-1"></i> Sin alertas</div>`
+                                }
+                            </div>
+                        </div>
+
+                        <div class="card-reception">
+                            <div class="card-header-reception">
+                                <i class="fas fa-clock"></i> Actividad Reciente
+                            </div>
+                            <div class="timeline-reception">
+                                ${data.actividadReciente && data.actividadReciente.length > 0
+                                    ? data.actividadReciente.map(a => `
+                                        <div class="timeline-item">
+                                            <div class="timeline-dot ${a.color || 'blue'}"></div>
+                                            <div class="timeline-content">
+                                                <div class="timeline-text">${a.texto}</div>
+                                                <div class="timeline-meta">${a.vendedor || ''}</div>
+                                            </div>
+                                            <div class="timeline-time">${a.tiempo}</div>
+                                        </div>
+                                    `).join('')
+                                    : `<div class="no-alerts">Sin actividad reciente</div>`
+                                }
                             </div>
                         </div>
                     </div>
                 </div>
-                ` : `
-                <div class="col-12">
-                    <div class="card border-success">
-                        <div class="card-body text-center py-3">
-                            <i class="fas fa-check-circle text-success fa-2x"></i>
-                            <p class="mt-2 mb-0 text-muted">Sin alertas pendientes</p>
-                        </div>
-                    </div>
-                </div>
-                `}
             `;
 
             document.getElementById('dashboardRecepcionContent').innerHTML = html;
         }
+
+        // Selector de período
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                periodoActual = this.dataset.periodo;
+                document.getElementById('dashboardRecepcionContent').innerHTML = `
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Cargando panel de recepción...</p>
+                    </div>
+                `;
+                cargarDashboardRecepcion();
+            });
+        });
 
         document.getElementById('fechaActual').textContent =
             new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });

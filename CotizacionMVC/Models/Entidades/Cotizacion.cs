@@ -33,6 +33,8 @@ namespace CotizacionMVC.Models.Entidades
         public decimal TipoCambio { get; private set; }
         public decimal RecargoCiudadPorcentaje { get; private set; }
         public Dinero RecargoCiudad { get; private set; }
+        public EtapaNegociacion? EtapaNegociacion { get; private set; }
+        public AlcanceVenta? AlcanceVenta { get; private set; }
 
         public IReadOnlyCollection<ItemCotizacion> ItemsEquipos => _itemsEquipos.AsReadOnly();
         public IReadOnlyCollection<ItemInstalacion> ItemsInstalacion => _itemsInstalacion.AsReadOnly();
@@ -49,6 +51,8 @@ namespace CotizacionMVC.Models.Entidades
             Iva = null!;
             Total = null!;
             RecargoCiudad = null!;
+            EtapaNegociacion = null;
+            AlcanceVenta = null;
         }
 
         public Cotizacion(
@@ -176,9 +180,13 @@ namespace CotizacionMVC.Models.Entidades
             var totalEquiposMXN = totalEquiposUSD.ConvertirA("MXN", TipoCambio);
 
             // PASO 5: Sumar instalaciones (ya están en MXN)
-            var subtotalInstalacionesMXN = _itemsInstalacion.Any()
-                ? _itemsInstalacion.Select(i => i.Subtotal).Aggregate((a, b) => a.Sumar(b))
-                : new Dinero(0, "MXN");
+            var subtotalInstalaciones = _itemsInstalacion.Any()
+                 ? _itemsInstalacion.Select(i => i.Subtotal).Aggregate((a, b) => a.Sumar(b))
+                 : new Dinero(0, Empresa.MonedaBase);
+
+            var subtotalInstalacionesMXN = subtotalInstalaciones.Moneda == "MXN"
+                ? subtotalInstalaciones
+                : subtotalInstalaciones.ConvertirA("MXN", TipoCambio);
 
             // PASO 6: Subtotal general en MXN (equipos + instalaciones)
             var subtotalGeneralMXN = totalEquiposMXN.Sumar(subtotalInstalacionesMXN);
@@ -230,6 +238,15 @@ namespace CotizacionMVC.Models.Entidades
             if (lead == null) throw new ArgumentNullException(nameof(lead));
             Lead = lead;
             LeadId = lead.Id;
+        }
+
+        public void ActualizarEtapa(EtapaNegociacion nuevaEtapa)
+        {
+            EtapaNegociacion = nuevaEtapa;
+        }
+        public void ActualizarAlcance(AlcanceVenta alcance)
+        {
+            AlcanceVenta = alcance;
         }
     }
 }

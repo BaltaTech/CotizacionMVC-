@@ -92,10 +92,8 @@ namespace CotizacionMVC.Controllers
         [HttpGet]
         public async Task<IActionResult> Crear(Guid? leadId, Guid? cotizacionId)
         {
-             if (!leadId.HasValue && !cotizacionId.HasValue)
+            if (!leadId.HasValue && !cotizacionId.HasValue)
                 return RedirectToAction("Indice", "Cotizacion");
-
-            var vendedorId = GetVendedorId();
 
             var modelo = new CrearSeguimientoViewModel
             {
@@ -103,19 +101,40 @@ namespace CotizacionMVC.Controllers
                 CotizacionId = cotizacionId,
                 FechaContacto = DateTime.Now,
                 MedioContactoId = 0,
-                ResultadoId = 0,
-                Referencia = null,
-                TipoSeguimiento = null
+                ResultadoId = 0
             };
 
             if (leadId.HasValue)
             {
-                modelo.TipoSeguimiento = "Lead";
+                var lead = await _context.Leads.FirstOrDefaultAsync(l => l.Id == leadId.Value);
+                if (lead != null)
+                {
+                    modelo.TipoSeguimiento = "Lead";
+                    modelo.ClienteNombre = lead.NombreContacto;
+                    modelo.ClienteTelefono = lead.Telefono;
+                    modelo.ClienteCorreo = lead.CorreoElectronico;
+                    modelo.EtapaActual = lead.EtapaNegociacion?.ToString() ?? "Sin etapa";
+                    modelo.Origen = lead.OrigenLead.ToString();
+                    modelo.Referencia = $"Lead: {lead.NombreContacto}";
+                }
             }
 
             if (cotizacionId.HasValue)
             {
-                modelo.TipoSeguimiento = "Cotización";
+                var cotizacion = await _context.Cotizaciones
+                    .Include(c => c.Cliente)
+                    .FirstOrDefaultAsync(c => c.Id == cotizacionId.Value);
+                if (cotizacion != null)
+                {
+                    modelo.TipoSeguimiento = "Cotización";
+                    modelo.ClienteNombre = cotizacion.Cliente?.Nombre;
+                    modelo.ClienteTelefono = cotizacion.Cliente?.Contacto?.Telefono;
+                    modelo.ClienteCorreo = cotizacion.Cliente?.Contacto?.Correo;
+                    modelo.EtapaActual = cotizacion.EtapaNegociacion?.ToString() ?? "Sin etapa";
+                    modelo.NumeroCotizacion = cotizacion.NumeroCotizacion;
+                    modelo.MontoCotizacion = cotizacion.Total?.Monto;
+                    modelo.Referencia = $"Cotización: {cotizacion.NumeroCotizacion}";
+                }
             }
 
             return View(modelo);
@@ -136,8 +155,9 @@ namespace CotizacionMVC.Controllers
                     CotizacionId = modelo.CotizacionId,
                     VendedorId = GetVendedorId(),
                     FechaContacto = DateTime.SpecifyKind(modelo.FechaContacto, DateTimeKind.Utc),
-                    MedioContacto = modelo.MedioContactoId, 
-                    Resultado = modelo.ResultadoId,  
+                    MedioContacto = modelo.MedioContactoId,
+                    Resultado = modelo.ResultadoId,
+                    EtapaNegociacion = modelo.EtapaNegociacionId,
                     Notas = modelo.Notas,
                     ProximoContacto = modelo.ProximoContacto.HasValue
                         ? DateTime.SpecifyKind(modelo.ProximoContacto.Value, DateTimeKind.Utc)
@@ -200,6 +220,13 @@ namespace CotizacionMVC.Controllers
         {
             await _seguimientoServicio.MarcarRecordatorioEnviadoAsync(seguimientoId);
             return Ok();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> PorVendedor(Guid vendedorId)
+        {
+            var seguimientos = await _seguimientoServicio.ObtenerPorVendedorAsync(vendedorId);
+            return PartialView("_HistorialSeguimientos", seguimientos);
         }
     }
 }
