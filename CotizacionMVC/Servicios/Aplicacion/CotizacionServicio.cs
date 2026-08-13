@@ -234,12 +234,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
             if (empresa == null)
                 return ResultadoCotizacionDto.Error("Empresa no encontrada");
 
-            if (!cliente.TieneContacto())
-                return ResultadoCotizacionDto.Error("El cliente no tiene información de contacto.");
-
-            if (!cliente.TieneDireccion())
-                return ResultadoCotizacionDto.Error("El cliente no tiene dirección registrada.");
-
+            
             foreach (var eq in dto.Equipos)
             {
                 var equipo = await _equipoRepo.GetByIdAsync(eq.EquipoId);
@@ -259,7 +254,6 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
             if (vendedor == null)
                 return ResultadoCotizacionDto.Error("Vendedor no encontrado");
-
             Cotizacion cotizacion;
             try
             {
@@ -268,6 +262,10 @@ namespace CotizacionMVC.Servicios.Aplicacion
                     dto.TipoCambio, dto.RecargoCiudadPorcentaje);
             }
             catch (ArgumentException ex)
+            {
+                return ResultadoCotizacionDto.Error(ex.Message);
+            }
+            catch (InvalidOperationException ex) 
             {
                 return ResultadoCotizacionDto.Error(ex.Message);
             }

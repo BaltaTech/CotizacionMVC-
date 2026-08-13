@@ -9,7 +9,6 @@ namespace CotizacionMVC.Models.Entidades
         private readonly List<ItemCotizacion> _itemsEquipos = new();
         private readonly List<ItemInstalacion> _itemsInstalacion = new();
         private readonly List<Seguimiento> _seguimientos = new();
-
         public Guid Id { get; private set; }
         public string NumeroCotizacion { get; private set; }
         public Guid ClienteId { get; private set; }
@@ -35,7 +34,6 @@ namespace CotizacionMVC.Models.Entidades
         public Dinero RecargoCiudad { get; private set; }
         public EtapaNegociacion? EtapaNegociacion { get; private set; }
         public AlcanceVenta? AlcanceVenta { get; private set; }
-
         public IReadOnlyCollection<ItemCotizacion> ItemsEquipos => _itemsEquipos.AsReadOnly();
         public IReadOnlyCollection<ItemInstalacion> ItemsInstalacion => _itemsInstalacion.AsReadOnly();
         public IReadOnlyCollection<Seguimiento> Seguimientos => _seguimientos.AsReadOnly();
@@ -175,7 +173,7 @@ namespace CotizacionMVC.Models.Entidades
                 : new Dinero(0, "USD");
 
             var recargoUSD = subtotalEquiposUSD.Multiplicar(RecargoCiudadPorcentaje / 100m);
-            RecargoCiudad = recargoUSD;
+                 RecargoCiudad = recargoUSD;
 
             var totalEquiposUSD = subtotalEquiposUSD.Sumar(recargoUSD);
             var totalEquiposMXN = totalEquiposUSD.ConvertirA("MXN", TipoCambio);
@@ -192,9 +190,9 @@ namespace CotizacionMVC.Models.Entidades
             Subtotal = subtotalGeneralMXN;
 
             var ivaMonto = subtotalGeneralMXN.Monto * 0.16m;
-            Iva = new Dinero(ivaMonto, "MXN");
-
-            Total = subtotalGeneralMXN.Sumar(Iva);
+                
+                Iva = new Dinero(ivaMonto, "MXN");
+                Total = subtotalGeneralMXN.Sumar(Iva);
 
             var totalParaAutorizacion = Empresa.MonedaBase == "MXN"
                 ? Total.Monto

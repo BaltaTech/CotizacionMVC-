@@ -91,10 +91,6 @@ namespace CotizacionMVC.Models.Entidades
             FechaAsignacion = DateTime.UtcNow;
         }
 
-        public void Contactar()
-        {
-            Estado = EstadoCliente.Contactado;
-        }
 
         public void MarcarCotizado()
         {
@@ -107,12 +103,6 @@ namespace CotizacionMVC.Models.Entidades
             Estado = EstadoCliente.NoCotizable;
             MotivoNoCotizable = motivo;
             ComentarioNoCotizable = comentario?.Trim();
-        }
-
-        public void ReasignarVendedor(Guid nuevoVendedorId)
-        {
-            VendedorAsignadoId = nuevoVendedorId;
-            FechaAsignacion = DateTime.UtcNow;
         }
 
         public void ConfigurarRegistro(OrigenCliente origen, Guid registradoPorId)
@@ -130,10 +120,7 @@ namespace CotizacionMVC.Models.Entidades
                 Estado = EstadoCliente.SinAsignar;
         }
 
-        public void MarcarPendienteAsignar()
-        {
-            Estado = EstadoCliente.SinAsignar;
-        }
+      
 
         public void AsignarFolio(string folio)
         {
