@@ -65,6 +65,7 @@ namespace CotizacionMVC.Models.Entidades
             decimal tipoCambio = 17.43m,
             decimal recargoCiudadPorcentaje = 0)
         {
+
             if (string.IsNullOrWhiteSpace(numeroCotizacion))
                 throw new ArgumentException("El número de cotización es obligatorio");
             if (cliente == null) throw new ArgumentNullException(nameof(cliente));
@@ -76,6 +77,12 @@ namespace CotizacionMVC.Models.Entidades
                 throw new ArgumentException("El tipo de cambio debe ser mayor a cero");
             if (recargoCiudadPorcentaje < 0)
                 throw new ArgumentException("El recargo de ciudad no puede ser negativo");
+
+            if (!cliente.TieneContacto())
+                throw new InvalidOperationException("El cliente debe tener al menos un medio de contacto registrado");
+
+            if (!cliente.TieneDireccion())
+                throw new InvalidOperationException("El cliente debe tener una dirección registrada");
 
             Id = Guid.NewGuid();
             NumeroCotizacion = numeroCotizacion;
@@ -93,7 +100,6 @@ namespace CotizacionMVC.Models.Entidades
             TipoCambio = tipoCambio;
             RecargoCiudadPorcentaje = recargoCiudadPorcentaje;
 
-            // Inicializar Value Objects con moneda de la empresa
             Subtotal = new Dinero(0, empresa.MonedaBase);
             Iva = new Dinero(0, empresa.MonedaBase);
             Total = new Dinero(0, empresa.MonedaBase);
@@ -164,22 +170,16 @@ namespace CotizacionMVC.Models.Entidades
 
         private void RecalcularTotales()
         {
-            // PASO 1: Sumar todos los equipos en USD
             var subtotalEquiposUSD = _itemsEquipos.Any()
                 ? _itemsEquipos.Select(i => i.SubtotalUSD).Aggregate((a, b) => a.Sumar(b))
                 : new Dinero(0, "USD");
 
-            // PASO 2: Calcular y aplicar recargo por ciudad en USD
             var recargoUSD = subtotalEquiposUSD.Multiplicar(RecargoCiudadPorcentaje / 100m);
-            RecargoCiudad = recargoUSD; 
+            RecargoCiudad = recargoUSD;
 
-            // PASO 3: Total equipos en USD (subtotal + recargo)
             var totalEquiposUSD = subtotalEquiposUSD.Sumar(recargoUSD);
-
-            // PASO 4: Convertir total equipos a MXN
             var totalEquiposMXN = totalEquiposUSD.ConvertirA("MXN", TipoCambio);
 
-            // PASO 5: Sumar instalaciones (ya están en MXN)
             var subtotalInstalaciones = _itemsInstalacion.Any()
                  ? _itemsInstalacion.Select(i => i.Subtotal).Aggregate((a, b) => a.Sumar(b))
                  : new Dinero(0, Empresa.MonedaBase);
@@ -188,18 +188,14 @@ namespace CotizacionMVC.Models.Entidades
                 ? subtotalInstalaciones
                 : subtotalInstalaciones.ConvertirA("MXN", TipoCambio);
 
-            // PASO 6: Subtotal general en MXN (equipos + instalaciones)
             var subtotalGeneralMXN = totalEquiposMXN.Sumar(subtotalInstalacionesMXN);
             Subtotal = subtotalGeneralMXN;
 
-            // PASO 7: Calcular IVA (16%)
             var ivaMonto = subtotalGeneralMXN.Monto * 0.16m;
             Iva = new Dinero(ivaMonto, "MXN");
 
-            // PASO 8: Total final (subtotal + IVA)
             Total = subtotalGeneralMXN.Sumar(Iva);
 
-            // PASO 9: Verificar si requiere autorización
             var totalParaAutorizacion = Empresa.MonedaBase == "MXN"
                 ? Total.Monto
                 : Total.ConvertirA("MXN", TipoCambio).Monto;
@@ -244,6 +240,7 @@ namespace CotizacionMVC.Models.Entidades
         {
             EtapaNegociacion = nuevaEtapa;
         }
+
         public void ActualizarAlcance(AlcanceVenta alcance)
         {
             AlcanceVenta = alcance;
