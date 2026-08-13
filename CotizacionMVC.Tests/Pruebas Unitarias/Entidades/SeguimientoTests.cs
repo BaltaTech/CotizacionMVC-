@@ -1,5 +1,4 @@
-﻿// Pruebas Unitarias/Servicios/SeguimientoServicioTests.cs
-using CotizacionMVC.Data;
+﻿using CotizacionMVC.Data;
 using CotizacionMVC.Data.Repositorios.Interfaces;
 using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Models.Enums;
@@ -127,7 +126,7 @@ namespace CotizacionMVC.Tests.Pruebas_Unitarias.Servicios
             _context.Cotizaciones.Add(cotizacion);
             await _context.SaveChangesAsync();
 
-            var servicio = CrearServicio();
+            var servicio = CrearServicio(); 
             var dto = new CrearSeguimientoDto
             {
                 LeadId = lead.Id,

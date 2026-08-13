@@ -143,7 +143,6 @@ namespace CotizacionMVC.Controllers
                             <tr><td class='fw-bold'>Producto:</td><td>{detalle.Producto}</td></tr>
                             <tr><td class='fw-bold'>Vendedor:</td><td>{(detalle.VendedorNombre != null ? $"<i class='fas fa-user-check text-success me-1'></i>{detalle.VendedorNombre}" : "<span class='text-warning'><i class='fas fa-clock me-1'></i>Sin asignar</span>")}</td></tr>
                             <tr><td class='fw-bold'>Fecha Registro:</td><td>{detalle.FechaRegistro:dd/MM/yyyy HH:mm}</td></tr>
-                        </table>
                     </div>
                 </div>
                 <div class='row mt-3'>
@@ -152,6 +151,7 @@ namespace CotizacionMVC.Controllers
                         <div class='p-3 bg-light rounded' style='min-height: 60px;'>
                             {(string.IsNullOrWhiteSpace(detalle.Observaciones) ? "<span class='text-muted'>Sin observaciones</span>" : detalle.Observaciones)}
                         </div>
+                        </table>
                     </div>
                 </div>";
 

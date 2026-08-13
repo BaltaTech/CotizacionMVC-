@@ -315,7 +315,7 @@
             $('#recargoCiudad').on('input',function(){recargoCiudadPct=parseFloat($(this).val())||0;$('#hiddenRecargoCiudad').val(recargoCiudadPct);at();});
             $('#toggleMoneda').on('change',function(){mostrarUSD=$(this).is(':checked');re();ri();});
             $('#formCotizacion').submit(function(e){
-                @if(!modoLead){<text>var clienteId=$('#clienteId').val();if(!clienteId||clienteId===''){alert('Seleccione un cliente');e.preventDefault();return false;}</text>}
+                @if(!modoLead){<text> var clienteId=$('#clienteId').val();if(!clienteId||clienteId===''){alert('Seleccione un cliente');e.preventDefault();return false;}</text>}
                 if(!equiposAgregados.length){alert('Agregue al menos un equipo');e.preventDefault();return false;}
                 var fp=parseFloat($('#factorPrecio').val())||0.31,fu=parseFloat($('#factorUtilidad').val())||1.18;
                 var eqJson=JSON.stringify(equiposAgregados.map(function(e){return{equipoId:e.equipoId,cantidad:e.cantidad,factorPrecio:fp,factorUtilidad:fu,marca:e.marca};}));
