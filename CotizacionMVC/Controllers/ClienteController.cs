@@ -12,35 +12,29 @@ namespace CotizacionMVC.Controllers
     public class ClienteController : Controller
     {
         private readonly IClienteServicio _clienteServicio;
-        private readonly UserManager<Usuario> _userManager;
+        private readonly IUserContextService _userContextService;
 
         public ClienteController(
             IClienteServicio clienteServicio,
-            UserManager<Usuario> userManager)
+            IUserContextService userContextService)
         {
             _clienteServicio = clienteServicio;
-            _userManager = userManager;
+            _userContextService = userContextService;
         }
 
         public async Task<IActionResult> Indice(string? termino = null, string? filtro = null)
         {
-            var usuarioActual = await _userManager.GetUserAsync(User);
-            if (usuarioActual == null)
-                return RedirectToAction("Login", "Autenticacion");
+            var usuarioId = await _userContextService.GetCurrentUserIdAsync();
 
-            var clientes = await _clienteServicio.ObtenerTodosAsync(usuarioActual.Id, termino);
+            var clientes = await _clienteServicio.ObtenerTodosAsync(usuarioId, termino);
 
-            // Aplicar filtro de pipeline
             var clientesFiltrados = filtro switch
             {
-                "senalertas" => clientes.Where(c => c.DiasSinActividad >= 5
-                    && c.Estado != "Cerrado" && c.Estado != "Perdido"),
+                "senalertas" => clientes.Where(c => c.DiasSinActividad >= 5 && c.Estado != "Cerrado" && c.Estado != "Perdido"),
                 "contactarhoy" => clientes.Where(c => c.TieneSeguimientoHoy),
                 "calientes" => clientes.Where(c => c.EsCaliente),
-                "cotizando" => clientes.Where(c => c.CantidadCotizaciones > 0
-                    && c.Estado != "Cerrado" && c.Estado != "Perdido"),
-                "cerrados" => clientes.Where(c => c.Estado == "Cerrado" || c.Estado == "Perdido"),
-                _ => clientes
+                "cotizando" => clientes.Where(c => c.CantidadCotizaciones > 0 && c.Estado != "Cerrado" && c.Estado != "Perdido"),
+                "cerrados" => clientes.Where(c => c.Estado == "Cerrado" || c.Estado == "Perdido"), _ => clientes
             };
 
             var viewModel = new ClienteIndiceViewModel
@@ -69,7 +63,8 @@ namespace CotizacionMVC.Controllers
 
             return View(viewModel);
         }
-         public async Task<IActionResult> Detalles(Guid? id)
+
+        public async Task<IActionResult> Detalles(Guid? id)
         {
             if (id == null)
                 return NotFound("No se proporcionó un identificador de cliente");
@@ -82,7 +77,7 @@ namespace CotizacionMVC.Controllers
             var viewModel = MapearADetalleViewModel(cliente);
             return View(viewModel);
         }
-      
+
         public IActionResult Crear()
         {
             return RedirectToAction("Registrar", "Recepcion");
@@ -238,6 +233,8 @@ namespace CotizacionMVC.Controllers
                 return NotFound(ex.Message);
             }
         }
+
+        // ==================== MÉTODOS PRIVADOS ====================
 
         private ClienteDetalleViewModel MapearADetalleViewModel(ClienteDetalleDto dto)
         {

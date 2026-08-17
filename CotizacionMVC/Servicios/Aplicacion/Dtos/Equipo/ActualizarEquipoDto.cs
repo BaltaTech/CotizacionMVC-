@@ -4,5 +4,7 @@
     {
         public Guid Id { get; set; }
         public decimal PrecioBase { get; set; }
+
+        public string? Descripcion { get; set; }
     }
 }

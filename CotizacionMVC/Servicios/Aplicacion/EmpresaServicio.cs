@@ -2,6 +2,7 @@
 using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Servicios.Aplicacion.Dtos.Empresa;
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Servicios.Aplicacion
@@ -9,10 +10,17 @@ namespace CotizacionMVC.Servicios.Aplicacion
     public class EmpresaServicio : IEmpresaServicio
     {
         private readonly IEmpresaRepository _empresaRepository;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IAutorizacionServicio _autorizacionServicio;
 
-        public EmpresaServicio(IEmpresaRepository empresaRepository)
+        public EmpresaServicio(
+            IEmpresaRepository empresaRepository,
+            IHttpContextAccessor httpContextAccessor,
+            IAutorizacionServicio autorizacionServicio)
         {
             _empresaRepository = empresaRepository;
+            _httpContextAccessor = httpContextAccessor;
+            _autorizacionServicio = autorizacionServicio;
         }
 
         public async Task<IReadOnlyList<EmpresaResumenDto>> ObtenerTodasAsync()
@@ -70,6 +78,31 @@ namespace CotizacionMVC.Servicios.Aplicacion
             return MapearADetalleDto(empresa);
         }
 
+        // ✅ NUEVO: Validar acceso a empresa
+        public async Task<bool> TieneAccesoAEmpresaAsync(Guid usuarioId, Guid empresaId)
+        {
+            return await _autorizacionServicio.TieneAccesoAEmpresaAsync(usuarioId, empresaId);
+        }
+
+        // ✅ NUEVO: Establecer empresa activa en sesión
+        public async Task EstablecerEmpresaActivaAsync(Guid empresaId)
+        {
+            var empresa = await _empresaRepository.GetByIdAsync(empresaId);
+            if (empresa == null)
+                throw new KeyNotFoundException($"No se encontró la empresa con ID {empresaId}");
+
+            var session = _httpContextAccessor.HttpContext?.Session;
+            if (session == null)
+                throw new InvalidOperationException("No se puede acceder a la sesión");
+
+            session.SetString("EmpresaActivaId", empresa.Id.ToString());
+            session.SetString("EmpresaActivaNombre", empresa.NombreComercial);
+            session.SetString("EmpresaActivaSlug", empresa.Slug);
+            session.SetString("EmpresaEsExclusivaTrane", empresa.EsExclusivaTrane.ToString());
+            session.SetString("EmpresaColorPrimario", empresa.ColorPrimario ?? "#C8102E");
+            session.SetString("EmpresaColorSecundario", empresa.ColorSecundario ?? "#FFFFFF");
+        }
+
         private EmpresaDetalleDto MapearADetalleDto(Empresa empresa)
         {
             return new EmpresaDetalleDto
@@ -95,4 +128,4 @@ namespace CotizacionMVC.Servicios.Aplicacion
             };
         }
     }
- }
+}

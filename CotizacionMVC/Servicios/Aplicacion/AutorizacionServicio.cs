@@ -1,4 +1,5 @@
 ﻿using CotizacionMVC.Data;
+using CotizacionMVC.Data.Repositorios.Interfaces;
 using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -10,16 +11,25 @@ namespace CotizacionMVC.Servicios.Aplicacion
     {
         private readonly UserManager<Usuario> _userManager;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly ApplicationDbContext _context;
+        private readonly IEmpresaRepository _empresaRepository;
+        private readonly ILeadRepository _leadRepository;
+        private readonly ICotizacionRepository _cotizacionRepository;
+        private readonly IClienteRepository _clienteRepository;
 
         public AutorizacionServicio(
             UserManager<Usuario> userManager,
             IHttpContextAccessor httpContextAccessor,
-            ApplicationDbContext context)
+            IEmpresaRepository empresaRepository,
+            ILeadRepository leadRepository,
+            ICotizacionRepository cotizacionRepository,
+            IClienteRepository clienteRepository)
         {
             _userManager = userManager;
             _httpContextAccessor = httpContextAccessor;
-            _context = context;
+            _empresaRepository = empresaRepository;
+            _leadRepository = leadRepository;
+            _cotizacionRepository = cotizacionRepository;
+            _clienteRepository = clienteRepository;
         }
 
         public async Task<bool> EsAdminAsync(Guid usuarioId)
@@ -84,17 +94,9 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
             if (await _userManager.IsInRoleAsync(usuario, "Vendedor"))
             {
-                var usuarioConEmpresas = await _userManager.Users
-                    .Include(u => u.EmpresasAcceso)
-                    .FirstOrDefaultAsync(u => u.Id == usuarioId);
-
-                if (usuarioConEmpresas?.EmpresasAcceso != null &&
-                    usuarioConEmpresas.EmpresasAcceso.Any(e => e.Id == empresaId))
-                    return true;
-
-                var tieneActividad = await _context.Leads
+                var tieneActividad = await _leadRepository.ObtenerQueryable()
                     .AnyAsync(l => l.VendedorAsignadoId == usuarioId && l.EmpresaId == empresaId)
-                    || await _context.Cotizaciones
+                    || await _cotizacionRepository.ObtenerQueryable()
                     .AnyAsync(c => c.VendedorId == usuarioId && c.EmpresaId == empresaId);
 
                 return tieneActividad;
@@ -105,7 +107,6 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
         public async Task<Guid?> ObtenerEmpresaActivaIdAsync(Guid usuarioId)
         {
-            // 1. Intentar obtener de la sesión
             var empresaIdString = _httpContextAccessor.HttpContext?.Session.GetString("EmpresaActivaId");
             if (!string.IsNullOrEmpty(empresaIdString) && Guid.TryParse(empresaIdString, out var empresaId))
             {
@@ -113,49 +114,36 @@ namespace CotizacionMVC.Servicios.Aplicacion
                     return empresaId;
             }
 
-            // 2. Si no hay sesión, obtener según el rol
             var usuario = await _userManager.FindByIdAsync(usuarioId.ToString());
             if (usuario == null) return null;
 
-            // Admin y Recepción: primera empresa activa
             if (await _userManager.IsInRoleAsync(usuario, "Administrador") ||
                 await _userManager.IsInRoleAsync(usuario, "Recepcion"))
             {
-                var primeraEmpresa = await _context.Empresas
+                var primeraEmpresa = await _empresaRepository.ObtenerQueryable()
                     .Where(e => e.Activa)
                     .OrderBy(e => e.FechaCreacion)
                     .FirstOrDefaultAsync();
                 return primeraEmpresa?.Id;
             }
 
-            // Vendedor: buscar empresa por actividad
             if (await _userManager.IsInRoleAsync(usuario, "Vendedor"))
             {
-                // 1. Leads asignados
-                var lead = await _context.Leads
+                var lead = await _leadRepository.ObtenerQueryable()
                     .Where(l => l.VendedorAsignadoId == usuarioId)
                     .OrderByDescending(l => l.FechaAsignacion)
                     .FirstOrDefaultAsync();
                 if (lead != null && lead.EmpresaId != Guid.Empty)
                     return lead.EmpresaId;
 
-                // 2. Cotizaciones
-                var cotizacion = await _context.Cotizaciones
+                var cotizacion = await _cotizacionRepository.ObtenerQueryable()
                     .Where(c => c.VendedorId == usuarioId)
                     .OrderByDescending(c => c.FechaCreacion)
                     .FirstOrDefaultAsync();
                 if (cotizacion != null && cotizacion.EmpresaId != Guid.Empty)
                     return cotizacion.EmpresaId;
 
-                // 3. EmpresasAcceso
-                var usuarioConEmpresas = await _userManager.Users
-                    .Include(u => u.EmpresasAcceso)
-                    .FirstOrDefaultAsync(u => u.Id == usuarioId);
-                if (usuarioConEmpresas?.EmpresasAcceso?.Any() == true)
-                    return usuarioConEmpresas.EmpresasAcceso.First().Id;
-
-                // 4. Fallback: primera empresa activa
-                var primeraEmpresa = await _context.Empresas
+                var primeraEmpresa = await _empresaRepository.ObtenerQueryable()
                     .Where(e => e.Activa)
                     .OrderBy(e => e.FechaCreacion)
                     .FirstOrDefaultAsync();
@@ -169,12 +157,8 @@ namespace CotizacionMVC.Servicios.Aplicacion
         {
             var empresaId = await ObtenerEmpresaActivaIdAsync(usuarioId);
             if (!empresaId.HasValue) return null;
-            return await _context.Empresas.FindAsync(empresaId.Value);
+            return await _empresaRepository.GetByIdAsync(empresaId.Value);
         }
-
-        // =====================================================
-        // FILTROS - Solo filtran por empresa si hay una activa
-        // =====================================================
 
         public async Task<IQueryable<Cotizacion>> FiltrarCotizacionesAsync(Guid usuarioId, IQueryable<Cotizacion> query)
         {
@@ -184,7 +168,6 @@ namespace CotizacionMVC.Servicios.Aplicacion
             var roles = await _userManager.GetRolesAsync(usuario);
             var empresaId = await ObtenerEmpresaActivaIdAsync(usuarioId);
 
-            // Solo filtrar por empresa si hay una seleccionada
             if (empresaId.HasValue)
                 query = query.Where(c => c.EmpresaId == empresaId.Value);
 
@@ -205,7 +188,6 @@ namespace CotizacionMVC.Servicios.Aplicacion
             var roles = await _userManager.GetRolesAsync(usuario);
             var empresaId = await ObtenerEmpresaActivaIdAsync(usuarioId);
 
-            // Solo filtrar por empresa si hay una seleccionada
             if (empresaId.HasValue)
                 query = query.Where(l => l.EmpresaId == empresaId.Value);
 
@@ -229,11 +211,10 @@ namespace CotizacionMVC.Servicios.Aplicacion
             var roles = await _userManager.GetRolesAsync(usuario);
             var empresaId = await ObtenerEmpresaActivaIdAsync(usuarioId);
 
-            // Solo filtrar por empresa si hay una seleccionada
             if (empresaId.HasValue)
             {
                 query = query.Where(c => c.Cotizaciones.Any(co => co.EmpresaId == empresaId.Value)
-                    || _context.Leads.Any(l => l.ClienteId == c.Id && l.EmpresaId == empresaId.Value));
+                    || _leadRepository.ObtenerQueryable().Any(l => l.ClienteId == c.Id && l.EmpresaId == empresaId.Value));
             }
 
             if (roles.Contains("Administrador"))
@@ -242,7 +223,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
             if (roles.Contains("Vendedor"))
             {
                 return query.Where(c => c.Cotizaciones.Any(co => co.VendedorId == usuarioId)
-                    || _context.Leads.Any(l => l.ClienteId == c.Id && l.VendedorAsignadoId == usuarioId));
+                    || _leadRepository.ObtenerQueryable().Any(l => l.ClienteId == c.Id && l.VendedorAsignadoId == usuarioId));
             }
 
             if (roles.Contains("Recepcion"))

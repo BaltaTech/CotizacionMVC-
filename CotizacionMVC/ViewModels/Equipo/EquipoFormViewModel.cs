@@ -26,5 +26,7 @@ namespace CotizacionMVC.ViewModels.Equipo
 
         [Required(ErrorMessage = "La moneda es obligatoria")]
         public string MonedaOriginal { get; set; } = string.Empty;
+
+        public string? Descripcion { get; set; }
     }
 }

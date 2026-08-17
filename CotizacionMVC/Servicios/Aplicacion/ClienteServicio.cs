@@ -1,4 +1,6 @@
-﻿using CotizacionMVC.Data.Repositorios.Interfaces;
+﻿using CotizacionMVC.Data;
+using CotizacionMVC.Data.Repositorios.Implementaciones;
+using CotizacionMVC.Data.Repositorios.Interfaces;
 using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Models.Enums;
 using CotizacionMVC.Models.Valor;
@@ -12,13 +14,17 @@ namespace CotizacionMVC.Servicios.Aplicacion
     {
         private readonly IClienteRepository _clienteRepository;
         private readonly IAutorizacionServicio _autorizacionServicio;
+        private readonly ISeguimientoRepository _seguimientoRepository; // 
 
+        
         public ClienteServicio(
             IClienteRepository clienteRepository,
-            IAutorizacionServicio autorizacionServicio)
+            IAutorizacionServicio autorizacionServicio,
+            ISeguimientoRepository seguimientoRepository) 
         {
             _clienteRepository = clienteRepository;
             _autorizacionServicio = autorizacionServicio;
+            _seguimientoRepository = seguimientoRepository; 
         }
 
         public async Task<IReadOnlyList<ClienteResumenDto>> ObtenerTodosAsync(Guid usuarioId, string? termino = null)
@@ -71,8 +77,8 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 })
                 .ToListAsync();
 
-            var clienteIds = clientes.Select(c => c.Id).ToList();
-            var infoSeguimientos = await _clienteRepository.ObtenerInfoSeguimientosAsync(clienteIds);
+                    var clienteIds = clientes.Select(c => c.Id).ToList();                
+                    var infoSeguimientos = await ObtenerInfoSeguimientosAsync(clienteIds);
 
             return clientes.Select(c =>
             {
@@ -156,6 +162,8 @@ namespace CotizacionMVC.Servicios.Aplicacion
             if (!string.IsNullOrWhiteSpace(dto.Observaciones))
                 cliente.AgregarObservaciones(dto.Observaciones);
 
+            cliente.AsignarFolio(Cliente.GenerarFolio());
+
             await _clienteRepository.AddAsync(cliente);
             await _clienteRepository.SaveChangesAsync();
 
@@ -208,6 +216,8 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
             return new EliminarClienteResultado { Exitoso = true };
         }
+
+        // ==================== MÉTODOS PRIVADOS ====================
 
         private void ValidarAlMenosUnMedioDeContacto(string? telefono, string? telefonoMovil, string? correo)
         {
@@ -270,6 +280,29 @@ namespace CotizacionMVC.Servicios.Aplicacion
                     Estado = c.Estado.ToString()
                 }).ToList()
             };
+        }
+
+        private async Task<Dictionary<Guid, (DateTime? ProximoContacto, bool EsHoy)>>
+            ObtenerInfoSeguimientosAsync(List<Guid> clienteIds)
+        {
+            if (!clienteIds.Any())
+                return new Dictionary<Guid, (DateTime?, bool)>();
+
+            var hoy = DateTime.UtcNow.Date;
+
+            var seguimientos = await _seguimientoRepository
+                .ObtenerPorClientesAsync(clienteIds);
+
+            return seguimientos
+                .Where(s => (s.Lead?.ClienteId ?? s.Cotizacion?.ClienteId) != null)
+                .GroupBy(s => (s.Lead?.ClienteId ?? s.Cotizacion?.ClienteId)!.Value)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (
+                        ProximoContacto: (DateTime?)g.Max(s => s.ProximoContacto),
+                        EsHoy: g.Any(s => s.ProximoContacto.HasValue && s.ProximoContacto.Value.Date == hoy)
+                    )
+                );
         }
     }
 }

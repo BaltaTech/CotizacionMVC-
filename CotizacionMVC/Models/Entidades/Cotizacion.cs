@@ -116,6 +116,9 @@ namespace CotizacionMVC.Models.Entidades
             if (!equipo.Activo)
                 throw new InvalidOperationException($"El equipo {equipo.Modelo} no está activo.");
 
+            if (!equipo.TieneCapacidad())
+                throw new InvalidOperationException($"El equipo {equipo.Modelo} no tiene la capacidad definida.");
+
             var item = new ItemCotizacion(this, equipo, cantidad, factorPrecio, factorUtilidad, descripcionPersonalizada);
             _itemsEquipos.Add(item);
             RecalcularTotales();
@@ -242,6 +245,18 @@ namespace CotizacionMVC.Models.Entidades
         public void ActualizarAlcance(AlcanceVenta alcance)
         {
             AlcanceVenta = alcance;
+        }
+
+        public static string GenerarSiguienteNumero(string? ultimoNumero)
+        {
+            if (string.IsNullOrEmpty(ultimoNumero))
+                return "COT-0001";
+
+            var partes = ultimoNumero.Split('-');
+            if (partes.Length == 2 && int.TryParse(partes[1], out int numero))
+                return $"COT-{numero + 1:D4}";
+
+            return "COT-0001";
         }
     }
 }

@@ -29,6 +29,10 @@ builder.Services.AddControllersWithViews(config =>
 // ========== SignalR ==========
 builder.Services.AddSignalR();
 
+// ========== Servicios de Contexto ==========
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IUserContextService, UserContextService>();
+
 // ========== Servicios de infraestructura ==========
 builder.Services.AddScoped<NotificacionServicio>();
 builder.Services.AddHostedService<RecordatorioBackgroundService>();
@@ -44,15 +48,21 @@ builder.Services.AddScoped<IRecepcionServicio, RecepcionServicio>();
 builder.Services.AddScoped<ISeguimientoServicio, SeguimientoServicio>();
 builder.Services.AddScoped<IInstalacionServicio, InstalacionServicio>();
 builder.Services.AddScoped<IAdminDashboardServicio, AdminDashboardServicio>();
+builder.Services.AddScoped<IUsuarioServicio, UsuarioServicio>();
+builder.Services.AddScoped<IAutenticacionServicio, AutenticacionServicio>();
 
-
-// ========== Repositorios ==========
+// ========== REPOSITORIOS ==========
+// ✅ Repositorios existentes
 builder.Services.AddScoped<ICotizacionRepository, CotizacionRepository>();
 builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
 builder.Services.AddScoped<IEquipoRepository, EquipoRepository>();
 builder.Services.AddScoped<IInstalacionRepository, InstalacionRepository>();
 builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
 builder.Services.AddScoped<ISeguimientoRepository, SeguimientoRepository>();
+
+// ✅ NUEVOS REPOSITORIOS (FALTABAN)
+builder.Services.AddScoped<ILeadRepository, LeadRepository>();
+builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 
 // Registrar el DbContext con PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(opciones =>
@@ -90,9 +100,6 @@ builder.Services.AddSession(opciones =>
 });
 
 QuestPDF.Settings.License = LicenseType.Community;
-
-// Para acceder a la sesión y al contexto HTTP desde las vistas
-builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 

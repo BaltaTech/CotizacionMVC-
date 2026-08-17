@@ -14,7 +14,6 @@ namespace CotizacionMVC.ViewModels.Empresa
 
         [Range(0, 100, ErrorMessage = "La utilidad del vendedor debe estar entre 0 y 100")]
         public decimal UtilidadVendedorPorcentaje { get; set; }
-
         public string? TelefonoContacto { get; set; }
         public string? CorreoContacto { get; set; }
         public string LogoUrl { get; set; } = string.Empty;

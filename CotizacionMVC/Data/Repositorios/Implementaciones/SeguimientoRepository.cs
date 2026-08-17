@@ -98,5 +98,19 @@ namespace CotizacionMVC.Data.Repositorios.Implementaciones
         {
             await _context.SaveChangesAsync();
         }
+
+        public async Task<IReadOnlyList<Seguimiento>> ObtenerPorClientesAsync(List<Guid> clienteIds)
+        {
+            if (!clienteIds.Any())
+                return new List<Seguimiento>();
+
+            return await _context.Seguimientos
+                .Include(s => s.Lead)
+                .Include(s => s.Cotizacion)
+                .Where(s => s.ProximoContacto.HasValue)
+                .Where(s => (s.Lead != null && s.Lead.ClienteId != null && clienteIds.Contains(s.Lead.ClienteId.Value)) ||
+                            (s.Cotizacion != null && clienteIds.Contains(s.Cotizacion.ClienteId)))
+                .ToListAsync();
+        }
     }
 }

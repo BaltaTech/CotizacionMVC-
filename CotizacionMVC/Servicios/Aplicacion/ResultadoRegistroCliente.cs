@@ -9,7 +9,6 @@ namespace CotizacionMVC.Servicios.Aplicacion
         public string? MensajeError { get; private set; }
         public Cliente? Cliente { get; private set; }
         public Cliente? ClienteExistente { get; private set; }
-
         public static ResultadoRegistroCliente Exito(Cliente cliente)
         {
             return new ResultadoRegistroCliente

@@ -5,12 +5,47 @@
     var lead = ViewBag.Lead as CotizacionMVC.Servicios.Aplicacion.Dtos.Cotizacion.LeadResumenDto;
     var clientes = ViewBag.Clientes as List<CotizacionMVC.Servicios.Aplicacion.Dtos.Cotizacion.ClienteResumenDto>;
     var instalacionesCatalogo = ViewBag.InstalacionesCatalogo as CotizacionMVC.ViewModels.Instalacion.InstalacionCatalogoViewModel;
+    var empresaActiva = ViewBag.EmpresaActiva as CotizacionMVC.Models.Entidades.Empresa;
 }
 
 <div class="cotizacion-layout">
     <div class="cotizacion-main">
         <form id="formCotizacion" method="post" asp-action="Crear" asp-controller="Cotizacion">
             @Html.AntiForgeryToken()
+
+            <!-- 🔥 MOSTRAR ERRORES DE VALIDACIÓN -->
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong><i class="fas fa-exclamation-triangle"></i> Error:</strong>
+                    <ul class="mb-0 mt-1">
+                        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                        {
+                            <li>@error.ErrorMessage</li>
+                        }
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @if (TempData["MensajeError"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i> @TempData["MensajeError"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <!-- 🔥 MOSTRAR EMPRESA ACTIVA -->
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <i class="fas fa-building me-2"></i>
+                <strong>Empresa:</strong> @(empresaActiva?.NombreComercial ?? "No seleccionada")
+                @if (empresaActiva != null && empresaActiva.EsExclusivaTrane)
+                {
+                    <span class="badge bg-danger ms-2">Exclusiva Trane</span>
+                }
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
 
             @if (modoLead && lead != null)
             {
@@ -214,6 +249,15 @@
     .total-row{display:flex;justify-content:space-between;font-size:.8rem;padding:.15rem 0}
     .total-final{font-size:1.1rem;font-weight:700;color:#C8102E}
     .form-actions{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.75rem;padding-top:.75rem;border-top:1px solid #f1f3f5}
+
+    /* 🔥 ESTILOS PARA ALERTAS DE ERROR */
+    .alert-danger ul {
+        padding-left: 1.5rem;
+        margin-bottom: 0;
+    }
+    .alert-danger ul li {
+        list-style-type: disc;
+    }
 </style>
 
 @section Scripts {
@@ -314,16 +358,62 @@
             $('#utilidadVendedor').on('input',function(){utilidadVendedor=parseFloat($(this).val())||10;recalcularTodo();});
             $('#recargoCiudad').on('input',function(){recargoCiudadPct=parseFloat($(this).val())||0;$('#hiddenRecargoCiudad').val(recargoCiudadPct);at();});
             $('#toggleMoneda').on('change',function(){mostrarUSD=$(this).is(':checked');re();ri();});
+            
+            // 🔥 CORRECCIÓN: Validación mejorada antes de enviar
             $('#formCotizacion').submit(function(e){
-                @if(!modoLead){<text> var clienteId=$('#clienteId').val();if(!clienteId||clienteId===''){alert('Seleccione un cliente');e.preventDefault();return false;}</text>}
-                if(!equiposAgregados.length){alert('Agregue al menos un equipo');e.preventDefault();return false;}
-                var fp=parseFloat($('#factorPrecio').val())||0.31,fu=parseFloat($('#factorUtilidad').val())||1.18;
-                var eqJson=JSON.stringify(equiposAgregados.map(function(e){return{equipoId:e.equipoId,cantidad:e.cantidad,factorPrecio:fp,factorUtilidad:fu,marca:e.marca};}));
-                var inJson=JSON.stringify(instalacionesAgregadas.map(function(i){return{instalacionId:i.instalacionId,concepto:i.concepto,descripcion:i.descripcion,cantidad:i.cantidad,costoUnitario:i.costoUnitario};}));
-                $('#equiposJson').val(eqJson);$('#instalacionesJson').val(inJson);
+                @if(!modoLead){
+                    <text> 
+                    var clienteId = $('#clienteId').val();
+                    if(!clienteId || clienteId === ''){
+                        alert('⚠️ Seleccione un cliente antes de guardar');
+                        e.preventDefault();
+                        return false;
+                    }
+                    </text>
+                }
+                if(!equiposAgregados.length){
+                    alert('⚠️ Agregue al menos un equipo antes de guardar');
+                    e.preventDefault();
+                    return false;
+                }
+                
+                var fp=parseFloat($('#factorPrecio').val())||0.31;
+                var fu=parseFloat($('#factorUtilidad').val())||1.18;
+                
+                var eqJson=JSON.stringify(equiposAgregados.map(function(e){
+                    return{
+                        equipoId:e.equipoId,
+                        cantidad:e.cantidad,
+                        factorPrecio:fp,
+                        factorUtilidad:fu,
+                        marca:e.marca
+                    };
+                }));
+                
+                var inJson=JSON.stringify(instalacionesAgregadas.map(function(i){
+                    return{
+                        instalacionId:i.instalacionId,
+                        concepto:i.concepto,
+                        descripcion:i.descripcion,
+                        cantidad:i.cantidad,
+                        costoUnitario:i.costoUnitario
+                    };
+                }));
+                
+                $('#equiposJson').val(eqJson);
+                $('#instalacionesJson').val(inJson);
+                
+                // 🔥 MOSTRAR INDICADOR DE CARGA
+                var btn = $('#btnGuardarCotizacion');
+                btn.html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Guardando...');
+                btn.prop('disabled', true);
+                
+                return true;
             });
+            
             $('#AreaMetrosCuadrados').on('input',function(){var a=$(this).val();if(a>0)$.get('/Cotizacion/CalcularCargaTermica',{area:a},d=>$('#cargaTermicaInfo').html('<i class="fas fa-thermometer-half"></i> '+d.tr+' TR sugeridos'));}).trigger('input');
         });
+        
         $(document).on('change','.cantidad-equipo',function(){var i=$(this).data('indice'),c=parseInt($(this).val())||1;equiposAgregados[i].cantidad=c;equiposAgregados[i].subtotal=equiposAgregados[i].precioUnitario*c;re();});
         $(document).on('click','.eliminar-equipo',function(){equiposAgregados.splice($(this).data('indice'),1);toggleParamsMarca();re();});
         $(document).on('change','.cantidad-instalacion',function(){var i=$(this).data('indice'),c=parseInt($(this).val())||1;instalacionesAgregadas[i].cantidad=c;instalacionesAgregadas[i].subtotal=instalacionesAgregadas[i].costoUnitario*c;ri();});

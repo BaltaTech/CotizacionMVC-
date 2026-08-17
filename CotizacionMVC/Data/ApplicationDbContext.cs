@@ -1,5 +1,4 @@
-﻿// Data/ApplicationDbContext.cs
-using CotizacionMVC.Models.Entidades;
+﻿using CotizacionMVC.Models.Entidades;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;

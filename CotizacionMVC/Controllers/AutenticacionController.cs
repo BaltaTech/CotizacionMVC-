@@ -1,23 +1,19 @@
-﻿using CotizacionMVC.Models.Entidades;
+﻿using CotizacionMVC.Servicios.Aplicacion.Dtos.Autenticacion;
+using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using CotizacionMVC.ViewModels;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CotizacionMVC.Controllers
 {
     [AllowAnonymous]
-    public class AutenticacionController : Controller 
+    public class AutenticacionController : Controller
     {
-        private readonly UserManager<Usuario> _userManager;
-        private readonly SignInManager<Usuario> _signInManager;
+        private readonly IAutenticacionServicio _autenticacionServicio;
 
-        public AutenticacionController(
-            UserManager<Usuario> userManager,
-            SignInManager<Usuario> signInManager)
+        public AutenticacionController(IAutenticacionServicio autenticacionServicio)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
+            _autenticacionServicio = autenticacionServicio;
         }
 
         [HttpGet]
@@ -34,33 +30,25 @@ namespace CotizacionMVC.Controllers
             if (!ModelState.IsValid)
                 return View(modelo);
 
-            var usuario = await _userManager.FindByEmailAsync(modelo.Email);
-            if (usuario != null && usuario.Activo)
+            var resultado = await _autenticacionServicio.LoginConCookiesAsync(modelo);
+
+            if (!resultado.Exitoso)
             {
-                var resultado = await _signInManager.PasswordSignInAsync(
-                    usuario, modelo.Password, modelo.Recordarme, lockoutOnFailure: false);
-
-                if (resultado.Succeeded)
-                {
-                    usuario.RegistrarAcceso();
-                    await _userManager.UpdateAsync(usuario);
-
-                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                        return Redirect(returnUrl);
-
-                    return RedirectToAction("Index", "Home");
-                }
+                ModelState.AddModelError(string.Empty, resultado.MensajeError ?? "Error al iniciar sesión");
+                return View(modelo);
             }
 
-            ModelState.AddModelError(string.Empty, "Correo o contraseña incorrectos.");
-            return View(modelo);
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return RedirectToAction("Index", "Home");
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
-            await _signInManager.SignOutAsync();
+            await _autenticacionServicio.LogoutAsync();
             return RedirectToAction("Index", "Home");
         }
 

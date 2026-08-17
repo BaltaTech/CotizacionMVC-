@@ -179,13 +179,18 @@ namespace CotizacionMVC.Controllers
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Editar(EquipoFormViewModel formulario)
         {
-            if (!ModelState.IsValid) { ViewBag.Marcas = ObtenerListaMarcas(); return View(formulario); }
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Marcas = ObtenerListaMarcas(); return View(formulario);            
+            }
             try
             {
                 await _equipoServicio.ActualizarAsync(new ActualizarEquipoDto
                 {
                     Id = formulario.Id.GetValueOrDefault(),
-                    PrecioBase = formulario.PrecioBase
+                    PrecioBase = formulario.PrecioBase,
+                    Descripcion = formulario.Descripcion
+                   
                 });
                 TempData["MensajeExito"] = "Equipo actualizado";
                 return RedirectToAction(nameof(Indice));
@@ -232,6 +237,33 @@ namespace CotizacionMVC.Controllers
                 return RedirectToAction(nameof(Indice));
             }
             catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> Activar(Guid id)
+        {
+            try
+            {
+                await _equipoServicio.ActivarAsync(id);
+                TempData["MensajeExito"] = "Equipo activado correctamente";
+                return RedirectToAction(nameof(Indice));
+
+            }
+
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+
+            catch (Exception ex)
+            {
+                TempData["MensajeError"] = $"Error al activar: {ex.Message}";
+                return RedirectToAction(nameof(Indice));
+            
+            }
+        
         }
 
         private List<object> ObtenerListaMarcas()

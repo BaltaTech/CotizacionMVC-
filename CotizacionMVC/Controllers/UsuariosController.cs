@@ -1,57 +1,35 @@
-﻿using CotizacionMVC.Models.Entidades;
+﻿using CotizacionMVC.Servicios.Aplicacion.Interfaces;
+using CotizacionMVC.ViewModels.Usuarios;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Controllers
 {
     [Authorize(Roles = "Administrador")]
     public class UsuariosController : Controller
     {
-        private readonly UserManager<Usuario> _userManager;
-        private readonly RoleManager<IdentityRole<Guid>> _roleManager;
+        private readonly IUsuarioServicio _usuarioServicio;
+        private readonly IUserContextService _userContextService;
 
         public UsuariosController(
-            UserManager<Usuario> userManager,
-            RoleManager<IdentityRole<Guid>> roleManager)
+            IUsuarioServicio usuarioServicio,
+            IUserContextService userContextService)
         {
-            _userManager = userManager;
-            _roleManager = roleManager;
+            _usuarioServicio = usuarioServicio;
+            _userContextService = userContextService;
         }
 
-         public async Task<IActionResult> Indice()
+        public async Task<IActionResult> Indice()
         {
-            var usuarios = await _userManager.Users
-                .OrderBy(u => u.NombreCompleto)
-                .ToListAsync();
-
-            var usuariosConRoles = new List<UsuarioConRolesViewModel>();
-
-            foreach (var usuario in usuarios)
-            {
-                var roles = await _userManager.GetRolesAsync(usuario);
-                usuariosConRoles.Add(new UsuarioConRolesViewModel
-                {
-                    Id = usuario.Id,
-                    NombreCompleto = usuario.NombreCompleto,
-                    Email = usuario.Email!,
-                    Activo = usuario.Activo,
-                    FechaRegistro = usuario.FechaRegistro,
-                    UltimoAcceso = usuario.UltimoAcceso,
-                    Roles = roles.ToList()
-                });
-            }
-
-            return View(usuariosConRoles);
+            var usuarios = await _usuarioServicio.ObtenerTodosAsync();
+            return View(usuarios);
         }
 
-         public async Task<IActionResult> Crear()
+        public async Task<IActionResult> Crear()
         {
-            ViewBag.Roles = await _roleManager.Roles
-                .Select(r => r.Name)
-                .ToListAsync();
-            return View();
+            ViewBag.Roles = await _usuarioServicio.ObtenerRolesAsync();
+            ViewBag.Empresas = await _usuarioServicio.ObtenerEmpresasAsync();
+            return View(new CrearUsuarioViewModel());
         }
 
         [HttpPost]
@@ -59,44 +37,33 @@ namespace CotizacionMVC.Controllers
         public async Task<IActionResult> Crear(CrearUsuarioViewModel modelo)
         {
             if (!ModelState.IsValid)
+                return View(modelo);
+
+            var resultado = await _usuarioServicio.CrearAsync(modelo);
+
+            if (!resultado.Exitoso)
             {
-                ViewBag.Roles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
+                ModelState.AddModelError("", resultado.MensajeError ?? "Error al crear usuario");
                 return View(modelo);
             }
 
-            var usuario = new Usuario(modelo.NombreCompleto, modelo.Email);
-            var resultado = await _userManager.CreateAsync(usuario, modelo.Password);
-
-            if (resultado.Succeeded)
-            {
-                if (!string.IsNullOrEmpty(modelo.Rol))
-                    await _userManager.AddToRoleAsync(usuario, modelo.Rol);
-
-                TempData["MensajeExito"] = $"Usuario {usuario.NombreCompleto} creado exitosamente";
-                return RedirectToAction(nameof(Indice));
-            }
-
-            foreach (var error in resultado.Errors)
-                ModelState.AddModelError("", error.Description);
-
-            ViewBag.Roles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
-            return View(modelo);
+            TempData["MensajeExito"] = $"Usuario {resultado.Nombre} creado exitosamente";
+            return RedirectToAction(nameof(Indice));
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CambiarEstado(Guid id)
         {
-            var usuario = await _userManager.FindByIdAsync(id.ToString());
-            if (usuario == null) return NotFound();
+            var resultado = await _usuarioServicio.CambiarEstadoAsync(id);
 
-            if (usuario.Activo)
-                usuario.Desactivar();
-            else
-                usuario.Activar();
+            if (!resultado.Exitoso)
+            {
+                TempData["MensajeError"] = resultado.MensajeError ?? "Error al cambiar estado";
+                return RedirectToAction(nameof(Indice));
+            }
 
-            await _userManager.UpdateAsync(usuario);
-            TempData["MensajeExito"] = $"Usuario {(usuario.Activo ? "activado" : "desactivado")} correctamente";
+            TempData["MensajeExito"] = "Estado del usuario actualizado correctamente";
             return RedirectToAction(nameof(Indice));
         }
 
@@ -110,46 +77,16 @@ namespace CotizacionMVC.Controllers
                 return RedirectToAction(nameof(Indice));
             }
 
-            var usuario = await _userManager.FindByIdAsync(id.ToString());
-            if (usuario == null) return NotFound();
+            var resultado = await _usuarioServicio.CambiarPasswordAsync(id, nuevaPassword);
 
-            var token = await _userManager.GeneratePasswordResetTokenAsync(usuario);
-            var resultado = await _userManager.ResetPasswordAsync(usuario, token, nuevaPassword);
+            if (!resultado.Exitoso)
+            {
+                TempData["MensajeError"] = resultado.MensajeError ?? "Error al cambiar contraseña";
+                return RedirectToAction(nameof(Indice));
+            }
 
-            if (resultado.Succeeded)
-                TempData["MensajeExito"] = "Contraseña cambiada exitosamente";
-            else
-                TempData["MensajeError"] = "Error al cambiar la contraseña";
-
+            TempData["MensajeExito"] = "Contraseña cambiada exitosamente";
             return RedirectToAction(nameof(Indice));
         }
-    }
-
-    public class UsuarioConRolesViewModel
-    {
-        public Guid Id { get; set; }
-        public string NombreCompleto { get; set; } = "";
-        public string Email { get; set; } = "";
-        public bool Activo { get; set; }
-        public DateTime FechaRegistro { get; set; }
-        public DateTime? UltimoAcceso { get; set; }
-        public List<string> Roles { get; set; } = new();
-        public string RolesDisplay => string.Join(", ", Roles);
-    }
-
-    public class CrearUsuarioViewModel
-    {
-        [System.ComponentModel.DataAnnotations.Required]
-        public string NombreCompleto { get; set; } = "";
-
-        [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.EmailAddress]
-        public string Email { get; set; } = "";
-
-        [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.MinLength(6)]
-        public string Password { get; set; } = "";
-
-        public string? Rol { get; set; }
     }
 }

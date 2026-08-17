@@ -128,6 +128,13 @@ namespace CotizacionMVC.Models.Entidades
                 throw new ArgumentException("El folio es obligatorio");
 
             Folio = folio;
-        }        
+        }
+
+        public static string GenerarFolio()
+        {
+            var fecha = DateTime.UtcNow.ToString("yyMMdd");
+            var guidCorto = Guid.NewGuid().ToString("N")[..6].ToUpper();
+            return $"CLI-{fecha}-{guidCorto}";
+        }
     }
 }
