@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
-namespace CotizacionMVC.Controllers
+namespace CotizacionMVC.Controllers.MVC
 {
     [Authorize(Roles = "Administrador,Vendedor")]
     public class CotizacionController : Controller

@@ -3,7 +3,7 @@ using CotizacionMVC.ViewModels.Usuarios;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CotizacionMVC.Controllers
+namespace CotizacionMVC.Controllers.MVC
 {
     [Authorize(Roles = "Administrador")]
     public class UsuariosController : Controller

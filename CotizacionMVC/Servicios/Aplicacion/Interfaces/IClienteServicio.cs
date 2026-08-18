@@ -12,5 +12,6 @@ namespace CotizacionMVC.Servicios.Aplicacion.Interfaces
         Task<ClienteDetalleDto> ActualizarAsync(ActualizarClienteDto dto);
         Task<EliminarClienteResultado> EliminarAsync(Guid id);
 
+
     }
 }

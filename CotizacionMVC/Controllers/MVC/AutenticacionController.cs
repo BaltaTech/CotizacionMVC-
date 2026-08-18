@@ -4,7 +4,7 @@ using CotizacionMVC.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CotizacionMVC.Controllers
+namespace CotizacionMVC.Controllers.MVC
 {
     [AllowAnonymous]
     public class AutenticacionController : Controller

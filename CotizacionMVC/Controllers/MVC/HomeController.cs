@@ -2,7 +2,7 @@ using System.Diagnostics;
 using CotizacionMVC.Models;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CotizacionMVC.Controllers
+namespace CotizacionMVC.Controllers.MVC
 {
     public class HomeController : Controller
     {
