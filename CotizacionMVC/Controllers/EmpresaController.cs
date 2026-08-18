@@ -148,7 +148,6 @@ namespace CotizacionMVC.Controllers
                 return RedirectToLocal(returnUrl);
             }
 
-            // ✅ Guardar en sesión usando el servicio
             await _empresaServicio.EstablecerEmpresaActivaAsync(empresaId);
 
             TempData["MensajeExito"] = $"Ahora estás trabajando en: {empresa.NombreComercial}";

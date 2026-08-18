@@ -234,8 +234,6 @@ namespace CotizacionMVC.Controllers
             }
         }
 
-        // ==================== MÉTODOS PRIVADOS ====================
-
         private ClienteDetalleViewModel MapearADetalleViewModel(ClienteDetalleDto dto)
         {
             return new ClienteDetalleViewModel

@@ -29,10 +29,21 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
         public async Task<IReadOnlyList<ClienteResumenDto>> ObtenerTodosAsync(Guid usuarioId, string? termino = null)
         {
+            // ========== 1. CONSTRUIR LA CONSULTA BASE ==========
             var query = _clienteRepository.ObtenerQueryable();
             query = await _autorizacionServicio.FiltrarClientesAsync(usuarioId, query);
-            query = query.Include(c => c.Cotizaciones).ThenInclude(co => co.Empresa);
 
+            // ========== 2. INCLUIR TODAS LAS RELACIONES NECESARIAS ==========
+            // ✅ Una sola consulta con todas las relaciones
+            query = query
+                .Include(c => c.Cotizaciones)
+                    .ThenInclude(co => co.Empresa)
+                .Include(c => c.Cotizaciones)
+                    .ThenInclude(co => co.Seguimientos)
+                .Include(c => c.Cotizaciones)
+                    .ThenInclude(co => co.ItemsEquipos);
+
+            // ========== 3. APLICAR FILTRO DE BÚSQUEDA ==========
             if (!string.IsNullOrWhiteSpace(termino))
             {
                 termino = termino.ToLower();
@@ -44,10 +55,14 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 );
             }
 
-            var hoy = DateTime.UtcNow.Date;
+            // ========== 4. PAGINACIÓN (OBLIGATORIA) ==========
+            const int pageSize = 50;
+            var page = 1; // O recibir como parámetro
 
             var clientes = await query
                 .OrderBy(c => c.Nombre)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(c => new
                 {
                     c.Id,
@@ -55,53 +70,86 @@ namespace CotizacionMVC.Servicios.Aplicacion
                     Telefono = c.Contacto.Telefono,
                     Correo = c.Contacto.Correo,
                     Estado = c.Estado.ToString(),
-                    CantidadCotizaciones = c.Cotizaciones.Count,
-                    Empresa = c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
-                        .Select(co => co.Empresa.NombreComercial).FirstOrDefault(),
                     c.FechaRegistro,
-                    UltimaFechaCotizacion = c.Cotizaciones.Any()
-                        ? c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
-                            .Select(co => (DateTime?)co.FechaCreacion).FirstOrDefault()
-                        : null,
-                    TotalUltimaCotizacion = c.Cotizaciones.Any()
-                        ? c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
-                            .Select(co => co.Total.Monto).FirstOrDefault()
-                        : 0,
-                    Moneda = c.Cotizaciones.Any()
-                        ? c.Cotizaciones.OrderByDescending(co => co.FechaCreacion)
-                            .Select(co => co.Empresa.MonedaBase).FirstOrDefault() ?? "MXN"
-                        : "MXN",
-                    EsCaliente = c.Cotizaciones.Any(co =>
-                        co.Estado == EstadoCotizacion.InformacionSolicitada ||
-                        co.Estado == EstadoCotizacion.CotizacionEnviada)
+
+                    // ✅ Ahora las cotizaciones ya están cargadas en memoria
+                    Cotizaciones = c.Cotizaciones
+                        .OrderByDescending(co => co.FechaCreacion)
+                        .ToList(),
+
+                    // ✅ Última cotización (pre-calculada)
+                    UltimaCotizacion = c.Cotizaciones
+                        .OrderByDescending(co => co.FechaCreacion)
+                        .FirstOrDefault(),
+
+                    // ✅ Seguimientos (pre-cargados)
+                    Seguimientos = c.Cotizaciones
+                        .SelectMany(co => co.Seguimientos)
+                        .Where(s => s.ProximoContacto.HasValue)
+                        .ToList()
                 })
                 .ToListAsync();
 
-                    var clienteIds = clientes.Select(c => c.Id).ToList();                
-                    var infoSeguimientos = await ObtenerInfoSeguimientosAsync(clienteIds);
+            // ========== 5. PROCESAR EN MEMORIA ==========
+            var hoy = DateTime.UtcNow.Date;
 
             return clientes.Select(c =>
             {
-                infoSeguimientos.TryGetValue(c.Id, out var info);
+                // Ya tenemos los datos en memoria, sin nuevas consultas
+                var ultimaCotizacion = c.UltimaCotizacion;
+                var cantidadCotizaciones = c.Cotizaciones.Count;
+                var empresa = c.Cotizaciones
+                    .OrderByDescending(co => co.FechaCreacion)
+                    .Select(co => co.Empresa?.NombreComercial)
+                    .FirstOrDefault() ?? "Sin empresa";
+
+                var moneda = c.Cotizaciones
+                    .OrderByDescending(co => co.FechaCreacion)
+                    .Select(co => co.Empresa?.MonedaBase)
+                    .FirstOrDefault() ?? "MXN";
+
+                // ✅ Seguimientos: próximo contacto más cercano
+                var proximosContactos = c.Seguimientos
+                    .Where(s => s.ProximoContacto.HasValue)
+                    .OrderBy(s => s.ProximoContacto)
+                    .ToList();
+
+                var proximoContacto = proximosContactos.FirstOrDefault()?.ProximoContacto;
+                var tieneSeguimientoHoy = proximosContactos.Any(s =>
+                    s.ProximoContacto.HasValue &&
+                    s.ProximoContacto.Value.Date == hoy);
+
+                // ✅ EsCaliente: verificar estado de cotizaciones
+                var esCaliente = c.Cotizaciones.Any(co =>
+                    co.Estado == EstadoCotizacion.InformacionSolicitada ||
+                    co.Estado == EstadoCotizacion.CotizacionEnviada);
+
+                // ✅ Última fecha de actividad
+                var ultimaFechaActividad = c.Cotizaciones
+                    .OrderByDescending(co => co.FechaCreacion)
+                    .FirstOrDefault()?.FechaCreacion;
+
+                var diasSinActividad = ultimaFechaActividad.HasValue
+                    ? (hoy - ultimaFechaActividad.Value).Days
+                    : (hoy - c.FechaRegistro).Days;
+
                 return new ClienteResumenDto
                 {
                     Id = c.Id,
                     Nombre = c.Nombre,
-                    Telefono = c.Telefono,
-                    Correo = c.Correo,
+                    Telefono = c.Telefono ?? "Sin teléfono",
+                    Correo = c.Correo ?? "Sin correo",
                     Estado = c.Estado,
-                    CantidadCotizaciones = c.CantidadCotizaciones,
-                    Empresa = c.Empresa,
+                    CantidadCotizaciones = cantidadCotizaciones,
+                    Empresa = empresa,
                     FechaRegistro = c.FechaRegistro,
-                    UltimaFechaSeguimiento = c.UltimaFechaCotizacion,
-                    ProximaFechaSeguimiento = info.ProximoContacto,
-                    DiasSinActividad = c.UltimaFechaCotizacion.HasValue
-                        ? (hoy - c.UltimaFechaCotizacion.Value).Days
-                        : (hoy - c.FechaRegistro).Days,
-                    TotalUltimaCotizacion = c.TotalUltimaCotizacion,
-                    Moneda = c.Moneda,
-                    TieneSeguimientoHoy = info.EsHoy,
-                    EsCaliente = c.EsCaliente
+                    UltimaFechaSeguimiento = ultimaFechaActividad,
+                    ProximaFechaSeguimiento = proximoContacto,
+                    DiasSinActividad = diasSinActividad,
+                    TotalUltimaCotizacion = ultimaCotizacion?.Total?.Monto ?? 0,
+                    Moneda = moneda,
+                    TieneSeguimientoHoy = tieneSeguimientoHoy,
+                    EsCaliente = esCaliente
                 };
             }).ToList();
         }

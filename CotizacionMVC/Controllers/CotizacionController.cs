@@ -82,7 +82,6 @@ namespace CotizacionMVC.Controllers
         [HttpGet]
         public async Task<IActionResult> Crear(Guid? leadId = null)
         {
-            // ========== VALIDAR EMPRESA ACTIVA ==========
             var empresaActiva = await _cotizacionServicio.ObtenerEmpresaActivaAsync();
             if (empresaActiva == null)
             {
@@ -117,7 +116,6 @@ namespace CotizacionMVC.Controllers
             ViewBag.Equipos = datos.Equipos;
             ViewBag.Instalaciones = datos.Instalaciones;
 
-            // ========== CONFIGURAR MARCAS SEGÚN EMPRESA ==========
             if (empresaActiva != null && empresaActiva.EsExclusivaTrane)
             {
                 ViewBag.Marcas = new List<TipoMarca> { TipoMarca.Trane };
@@ -131,11 +129,8 @@ namespace CotizacionMVC.Controllers
             }
 
             ViewBag.MarcaSeleccionada = ViewBag.Marcas.Count == 1 ? ViewBag.Marcas[0] : (TipoMarca?)null;
-
-            // ========== CATÁLOGO DE INSTALACIONES ==========
             ViewBag.InstalacionesCatalogo = await _cotizacionServicio.ObtenerCatalogoInstalacionesAsync();
 
-            // ========== GUARDAR EMPRESA ACTIVA EN VIEWBAG ==========
             ViewBag.EmpresaActiva = empresaActiva;
             ViewBag.EmpresaId = empresaActiva.Id;
 
@@ -146,7 +141,6 @@ namespace CotizacionMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(CrearCotizacionViewModel formulario)
         {
-            // ========== VALIDAR EMPRESA ACTIVA ==========
             var empresaActiva = await _cotizacionServicio.ObtenerEmpresaActivaAsync();
             if (empresaActiva == null)
             {
@@ -154,14 +148,12 @@ namespace CotizacionMVC.Controllers
                 return RedirectToAction("Indice", "Empresa");
             }
 
-            // ========== VALIDAR MODELO ==========
             if (!ModelState.IsValid)
             {
                 await RecargarDatosFormulario(formulario);
                 return View(formulario);
             }
 
-            // ========== VALIDAR CLIENTE ==========
             if (!formulario.ClienteId.HasValue || formulario.ClienteId.Value == Guid.Empty)
             {
                 ModelState.AddModelError("", "Debe seleccionar un cliente");
@@ -169,7 +161,6 @@ namespace CotizacionMVC.Controllers
                 return View(formulario);
             }
 
-            // ========== DESERIALIZAR EQUIPOS ==========
             var equipos = DeserializarEquipos(formulario.EquiposJson);
             if (equipos == null || !equipos.Any())
             {
@@ -180,7 +171,6 @@ namespace CotizacionMVC.Controllers
 
             var instalaciones = DeserializarInstalaciones(formulario.InstalacionesJson);
 
-            // ========== OBTENER VENDEDOR ==========
             var vendedor = await _userContextService.GetCurrentUserAsync();
             if (vendedor == null)
             {
@@ -189,11 +179,10 @@ namespace CotizacionMVC.Controllers
                 return View(formulario);
             }
 
-            // ========== CREAR DTO ==========
             var dto = new CrearCotizacionDto
             {
                 ClienteId = formulario.ClienteId.Value,
-                EmpresaId = empresaActiva.Id, // ✅ Usar empresa activa
+                EmpresaId = empresaActiva.Id, 
                 VendedorId = vendedor.Id,
                 AreaMetrosCuadrados = formulario.AreaMetrosCuadrados,
                 CondicionesPago = formulario.CondicionesPago ?? string.Empty,
@@ -204,7 +193,6 @@ namespace CotizacionMVC.Controllers
                 RecargoCiudadPorcentaje = 0
             };
 
-            // ========== GUARDAR ==========
             var resultado = await _cotizacionServicio.CrearAsync(dto);
 
             if (!resultado.Exitoso)
@@ -218,14 +206,12 @@ namespace CotizacionMVC.Controllers
             return RedirectToAction(nameof(Detalles), new { id = resultado.Cotizacion.Id });
         }
 
-        // ========== MÉTODO PARA RECARGAR DATOS DEL FORMULARIO ==========
         private async Task RecargarDatosFormulario(CrearCotizacionViewModel formulario)
         {
             var empresaActiva = await _cotizacionServicio.ObtenerEmpresaActivaAsync();
             var datos = await _cotizacionServicio.ObtenerDatosParaCrearAsync(formulario.LeadId);
             var instalacionesCatalogo = await _cotizacionServicio.ObtenerCatalogoInstalacionesAsync();
 
-            // ✅ Conservar datos para la vista
             if (datos.Lead != null)
             {
                 ViewBag.ModoLead = true;
@@ -247,7 +233,6 @@ namespace CotizacionMVC.Controllers
             ViewBag.EmpresaActiva = empresaActiva;
             ViewBag.EmpresaId = empresaActiva?.Id ?? Guid.Empty;
 
-            // ✅ Configurar marcas según empresa
             if (empresaActiva != null && empresaActiva.EsExclusivaTrane)
             {
                 ViewBag.Marcas = new List<TipoMarca> { TipoMarca.Trane };
@@ -262,7 +247,6 @@ namespace CotizacionMVC.Controllers
 
             ViewBag.MarcaSeleccionada = ViewBag.Marcas.Count == 1 ? ViewBag.Marcas[0] : (TipoMarca?)null;
 
-            // ✅ Conservar los JSON de equipos e instalaciones
             ViewBag.EquiposJson = formulario.EquiposJson;
             ViewBag.InstalacionesJson = formulario.InstalacionesJson;
         }
@@ -361,8 +345,6 @@ namespace CotizacionMVC.Controllers
 
             return Json(new { success = true, nuevoEstado = ((EstadoCotizacion)nuevoEstado).ToString() });
         }
-
-        // ==================== MÉTODOS AUXILIARES ====================
 
         private List<ItemCotizacionJson> DeserializarEquipos(string? json)
         {
