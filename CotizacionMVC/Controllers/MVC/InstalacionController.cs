@@ -1,7 +1,7 @@
 ﻿using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CotizacionMVC.Controllers
+namespace CotizacionMVC.Controllers.MVC
 {
     public class InstalacionController : Controller
     {

@@ -3,30 +3,24 @@ using CotizacionMVC.Servicios.Aplicacion.Dtos.Empresa;
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using CotizacionMVC.ViewModels.Empresa;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CotizacionMVC.Controllers
+namespace CotizacionMVC.Controllers.MVC
 {
-     
-    [Authorize]  
+    [Authorize]
     public class EmpresaController : Controller
     {
         private readonly IEmpresaServicio _empresaServicio;
-        private readonly UserManager<Usuario> _userManager;
-        private readonly IAutorizacionServicio _autorizacionServicio;
+        private readonly IUserContextService _userContextService;
 
         public EmpresaController(
             IEmpresaServicio empresaServicio,
-            UserManager<Usuario> userManager,
-            IAutorizacionServicio autorizacionServicio)
+            IUserContextService userContextService)
         {
             _empresaServicio = empresaServicio;
-            _userManager = userManager;
-            _autorizacionServicio = autorizacionServicio;
+            _userContextService = userContextService;
         }
 
-        // SOLO ADMIN puede ver el índice de empresas
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Indice()
         {
@@ -48,7 +42,6 @@ namespace CotizacionMVC.Controllers
             return View(viewModel);
         }
 
-        // SOLO ADMIN puede editar empresas
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Editar(Guid? id)
         {
@@ -78,7 +71,6 @@ namespace CotizacionMVC.Controllers
             return View(viewModel);
         }
 
-        // SOLO ADMIN puede guardar edición
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador")]
@@ -119,7 +111,6 @@ namespace CotizacionMVC.Controllers
             }
         }
 
-        //Admin y Recepción pueden ver todas las empresas
         [HttpPost]
         [Authorize(Roles = "Administrador,Recepcion,Vendedor")]
         public IActionResult VerTodasLasEmpresas(string? returnUrl = null)
@@ -135,15 +126,12 @@ namespace CotizacionMVC.Controllers
             return RedirectToLocal(returnUrl);
         }
 
-        // Todos los roles autenticados pueden cambiar de empresa
         [HttpPost]
         public async Task<IActionResult> CambiarEmpresaActiva(Guid empresaId, string? returnUrl = null)
         {
-            var usuarioActual = await _userManager.GetUserAsync(User);
-            if (usuarioActual == null)
-                return RedirectToAction("Login", "Autenticacion");
+            var usuarioId = await _userContextService.GetCurrentUserIdAsync();
 
-            var tieneAcceso = await _autorizacionServicio.TieneAccesoAEmpresaAsync(usuarioActual.Id, empresaId);
+            var tieneAcceso = await _empresaServicio.TieneAccesoAEmpresaAsync(usuarioId, empresaId);
             if (!tieneAcceso)
             {
                 TempData["MensajeError"] = "No tienes acceso a la empresa seleccionada";
@@ -151,7 +139,6 @@ namespace CotizacionMVC.Controllers
             }
 
             var empresa = await _empresaServicio.ObtenerPorIdAsync(empresaId);
-
             if (empresa == null)
                 return NotFound("No se encontró la empresa seleccionada");
 
@@ -161,12 +148,7 @@ namespace CotizacionMVC.Controllers
                 return RedirectToLocal(returnUrl);
             }
 
-            HttpContext.Session.SetString("EmpresaActivaId", empresa.Id.ToString());
-            HttpContext.Session.SetString("EmpresaActivaNombre", empresa.NombreComercial);
-            HttpContext.Session.SetString("EmpresaActivaSlug", empresa.Slug);
-            HttpContext.Session.SetString("EmpresaEsExclusivaTrane", empresa.EsExclusivaTrane.ToString());
-            HttpContext.Session.SetString("EmpresaColorPrimario", empresa.ColorPrimario ?? "#C8102E");
-            HttpContext.Session.SetString("EmpresaColorSecundario", empresa.ColorSecundario ?? "#FFFFFF");
+            await _empresaServicio.EstablecerEmpresaActivaAsync(empresaId);
 
             TempData["MensajeExito"] = $"Ahora estás trabajando en: {empresa.NombreComercial}";
             return RedirectToLocal(returnUrl);
@@ -184,6 +166,7 @@ namespace CotizacionMVC.Controllers
 
             return RedirectToAction("Index", "Home");
         }
+
         private IActionResult RedirectToLocal(string? returnUrl)
         {
             if (Url.IsLocalUrl(returnUrl))

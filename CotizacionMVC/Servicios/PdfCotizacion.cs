@@ -38,7 +38,7 @@ namespace CotizacionMVC.Servicios
             _primary = HexToColor(empresa.ColorPrimario ?? "#0F172A");
             _primaryLight = LightenColor(_primary, 0.4f);
             _accent = _primary;
-            _textPrimary = HexToColor("#1E293B"); // Gris oscuro premium
+            _textPrimary = HexToColor("#1E293B"); 
             _textSecondary = HexToColor("#475569");
             _textMuted = HexToColor("#64748B");
             _surface = HexToColor("#F8FAFC");
@@ -97,7 +97,7 @@ namespace CotizacionMVC.Servicios
                         });
                     });
 
-                    // Lado Derecho: Datos de la Cotización (Sin saltos de letra extraños)
+                    // Lado Derecho: Datos de la Cotización 
                     row.RelativeItem().AlignRight().Column(cotiz =>
                     {
                         cotiz.Item().Text("COTIZACIÓN")
@@ -128,7 +128,6 @@ namespace CotizacionMVC.Servicios
 
         private void ConstruirInformacionCliente(ColumnDescriptor content, Cotizacion cotizacion)
         {
-            // Bloque unificado con borde sutil para mejor estructura visual
             content.Item().PaddingTop(12).Border(1).BorderColor(_border).Background(_surface).Padding(12).Row(row =>
             {
                 // Columna Cliente
@@ -145,7 +144,7 @@ namespace CotizacionMVC.Servicios
                         .FontSize(FontSizeBody).FontColor(_textSecondary);
                 });
 
-                // Divisor Vertical sutil
+                // Divisor Vertical 
                 row.ConstantItem(1).Height(45).Background(_border);
 
                 // Columna Datos Comerciales

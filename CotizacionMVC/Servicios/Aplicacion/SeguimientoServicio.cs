@@ -5,6 +5,9 @@ using CotizacionMVC.Models.Enums;
 using CotizacionMVC.Servicios.Aplicacion.Dtos.Seguimientos;
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using CotizacionMVC.Servicios.Infraestructura;
+using CotizacionMVC.ViewModels.Seguimientos;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace CotizacionMVC.Servicios.Aplicacion
@@ -14,21 +17,36 @@ namespace CotizacionMVC.Servicios.Aplicacion
         private readonly ISeguimientoRepository _seguimientoRepo;
         private readonly ICotizacionRepository _cotizacionRepo;
         private readonly IClienteRepository _clienteRepo;
+        private readonly ILeadRepository _leadRepository;
+        private readonly IUsuarioRepository _usuarioRepository;
+        private readonly IEmpresaRepository _empresaRepository;
         private readonly NotificacionServicio _notificacionServicio;
-        private readonly ApplicationDbContext _context;
+        private readonly IUserContextService _userContextService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly UserManager<Usuario> _userManager;
 
         public SeguimientoServicio(
             ISeguimientoRepository seguimientoRepo,
             ICotizacionRepository cotizacionRepo,
             IClienteRepository clienteRepo,
+            ILeadRepository leadRepository,
+            IUsuarioRepository usuarioRepository,
+            IEmpresaRepository empresaRepository,
             NotificacionServicio notificacionServicio,
-            ApplicationDbContext context)
+            IUserContextService userContextService,
+            IHttpContextAccessor httpContextAccessor,
+            UserManager<Usuario> userManager) 
         {
             _seguimientoRepo = seguimientoRepo;
             _cotizacionRepo = cotizacionRepo;
             _clienteRepo = clienteRepo;
+            _leadRepository = leadRepository;
+            _usuarioRepository = usuarioRepository;
+            _empresaRepository = empresaRepository;
             _notificacionServicio = notificacionServicio;
-            _context = context;
+            _userContextService = userContextService;
+            _httpContextAccessor = httpContextAccessor;
+            _userManager = userManager;
         }
 
         public async Task<SeguimientoListaDto> RegistrarSeguimientoAsync(CrearSeguimientoDto dto)
@@ -48,9 +66,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
             if (dto.LeadId.HasValue)
             {
-                lead = await _context.Leads
-                    .Include(l => l.Empresa)
-                    .FirstOrDefaultAsync(l => l.Id == dto.LeadId.Value);
+                lead = await _leadRepository.GetByIdAsync(dto.LeadId.Value);
 
                 if (lead == null)
                     throw new ArgumentException("Lead no encontrado");
@@ -64,10 +80,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
             if (dto.CotizacionId.HasValue)
             {
-                cotizacion = await _context.Cotizaciones
-                    .Include(c => c.Empresa)
-                    .Include(c => c.Cliente)
-                    .FirstOrDefaultAsync(c => c.Id == dto.CotizacionId.Value);
+                cotizacion = await _cotizacionRepo.GetByIdAsync(dto.CotizacionId.Value);
 
                 if (cotizacion == null)
                     throw new ArgumentException("Cotización no encontrada");
@@ -79,7 +92,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
                     throw new InvalidOperationException("Esta cotización está cerrada");
             }
 
-            vendedor = await _context.Users.FirstOrDefaultAsync(u => u.Id == dto.VendedorId);
+            vendedor = await _usuarioRepository.GetByIdAsync(dto.VendedorId);
             if (vendedor == null)
                 throw new ArgumentException("Vendedor no encontrado");
 
@@ -203,11 +216,12 @@ namespace CotizacionMVC.Servicios.Aplicacion
 
         private async Task NotificarRecepcionCotizadoAsync(Cotizacion cotizacion)
         {
-            var usuarios = await _context.Users.Where(u => u.Activo).ToListAsync();
-            var recepcion = usuarios.Where(u =>
-                _context.UserRoles.Any(ur => ur.UserId == u.Id)).ToList();
+            var recepcionistas = await _userManager.GetUsersInRoleAsync("Recepcion");
+            var admins = await _userManager.GetUsersInRoleAsync("Administrador");
 
-            foreach (var r in recepcion)
+            var usuarios = recepcionistas.Concat(admins).Distinct().ToList();
+
+            foreach (var r in usuarios)
             {
                 await _notificacionServicio.EnviarNotificacionAsync(
                     r.Id.ToString(),
@@ -222,7 +236,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
             var nombre = lead?.NombreContacto ?? cotizacion?.Cliente?.Nombre ?? "Cliente";
             var monto = cotizacion?.Total?.Monto ?? 0;
 
-            var usuarios = await _context.Users.Where(u => u.Activo).ToListAsync();
+            var usuarios = await _userManager.Users.Where(u => u.Activo).ToListAsync();
             foreach (var u in usuarios)
             {
                 await _notificacionServicio.EnviarNotificacionAsync(
@@ -255,11 +269,10 @@ namespace CotizacionMVC.Servicios.Aplicacion
         {
             var hoy = DateTime.UtcNow.Date;
             var inicioMes = new DateTime(hoy.Year, hoy.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-            var leadsVendedor = await _context.Leads
-                .Where(l => l.VendedorAsignadoId == vendedorId)
-                .ToListAsync();
 
-            var cotizacionesActivas = await _context.Cotizaciones
+            var leadsVendedor = await _leadRepository.ObtenerPorVendedorAsync(vendedorId);
+
+            var cotizacionesActivas = await _cotizacionRepo.ObtenerQueryable()
                 .Where(c => c.VendedorId == vendedorId
                     && c.Estado != EstadoCotizacion.Cerrada
                     && c.Estado != EstadoCotizacion.Perdida)
@@ -269,7 +282,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
             var vencidos = await _seguimientoRepo.GetVencidosAsync(vendedorId);
             var realizadosHoy = await _seguimientoRepo.GetCountByVendedorFechaAsync(vendedorId, hoy);
 
-            var vendidasMes = await _context.Cotizaciones
+            var vendidasMes = await _cotizacionRepo.ObtenerQueryable()
                 .Where(c => c.VendedorId == vendedorId
                     && c.Estado == EstadoCotizacion.Cerrada
                     && c.FechaCreacion >= inicioMes)
@@ -310,28 +323,54 @@ namespace CotizacionMVC.Servicios.Aplicacion
             }
         }
 
-        private SeguimientoListaDto MapearADto(Seguimiento s)
+        public async Task<ResultadoCrearLead> CrearLeadAsync(CrearLeadViewModel modelo)
         {
-            return new SeguimientoListaDto
-            {
-                Id = s.Id,
-                LeadId = s.LeadId,
-                CotizacionId = s.CotizacionId,
-                FechaContacto = s.FechaContacto,
-                MedioContacto = s.MedioContacto.ToString(),
-                Resultado = s.Resultado.ToString(),
-                Notas = s.Notas,
-                ProximoContacto = s.ProximoContacto,
-                VendedorNombre = s.Vendedor?.NombreCompleto ?? "",
-                LeadNombre = s.Lead?.NombreContacto,
-                CotizacionNumero = s.Cotizacion?.NumeroCotizacion,
-                Telefono = s.Lead?.Telefono,
-                CorreoElectronico = s.Lead?.CorreoElectronico,
-                EtapaNegociacion = s.Lead?.EtapaNegociacion?.ToString() ?? s.Cotizacion?.EtapaNegociacion?.ToString(),
-                AlcanceVenta = s.Cotizacion?.AlcanceVenta?.ToString(),
-                EsDeLead = s.EsDeLead(),
-                EsDeCotizacion = s.EsDeCotizacion()
-            };
+            if (string.IsNullOrWhiteSpace(modelo.NombreContacto))
+                return ResultadoCrearLead.Error("El nombre de contacto es obligatorio");
+
+            if (string.IsNullOrWhiteSpace(modelo.Telefono))
+                return ResultadoCrearLead.Error("El teléfono es obligatorio");
+
+            var vendedor = await _userContextService.GetCurrentUserAsync();
+            if (vendedor == null)
+                return ResultadoCrearLead.Error("Vendedor no encontrado");
+
+            var empresaId = _httpContextAccessor.HttpContext?.Session.GetString("EmpresaActivaId");
+            Empresa? empresa = null;
+
+            if (!string.IsNullOrEmpty(empresaId))
+                empresa = await _empresaRepository.GetByIdAsync(Guid.Parse(empresaId));
+
+            if (empresa == null)
+                empresa = await _empresaRepository.ObtenerActivaAsync();
+
+            if (empresa == null)
+                return ResultadoCrearLead.Error("No hay empresa configurada");
+
+            var lead = new Lead(
+                empresa,
+                modelo.NombreContacto,
+                modelo.Telefono,
+                CategoriaLead.SinContactar,
+                "Prospeccion",
+                OrigenLead.Prospeccion,
+                modelo.CorreoElectronico);
+
+            lead.AsignarVendedor(vendedor);
+
+            if (!string.IsNullOrWhiteSpace(modelo.ProductoBusca))
+                lead.EstablecerProducto(modelo.ProductoBusca);
+
+            if (!string.IsNullOrWhiteSpace(modelo.EmpresaCliente))
+                lead.ActualizarDatosContacto(null, null, modelo.EmpresaCliente);
+
+            if (!string.IsNullOrWhiteSpace(modelo.Comentarios))
+                lead.AgregarComentario(modelo.Comentarios);
+
+            await _leadRepository.AddAsync(lead);
+            await _leadRepository.SaveChangesAsync();
+
+            return ResultadoCrearLead.Exito(lead.Id);
         }
 
         public async Task<DashboardRecepcionDto> ObtenerDashboardRecepcionAsync()
@@ -340,10 +379,10 @@ namespace CotizacionMVC.Servicios.Aplicacion
             var hace48h = hoy.AddDays(-2);
             var hace7d = hoy.AddDays(-7);
 
-            var clientes = await _context.Clientes.ToListAsync();
-            var leads = await _context.Leads.ToListAsync();
-            var cotizaciones = await _context.Cotizaciones.ToListAsync();
-            var usuarios = await _context.Users.ToListAsync();
+            var clientes = await _clienteRepo.GetAllAsync();
+            var leads = await _leadRepository.GetAllAsync();
+            var cotizaciones = await _cotizacionRepo.GetAllAsync();
+            var usuarios = await _usuarioRepository.ObtenerActivosAsync();
 
             var alertas = new List<AlertaRecepcionDto>();
 
@@ -383,6 +422,30 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 ClientesPerdidos = clientes.Count(c => c.Estado == EstadoCliente.Perdido),
                 CotizadosHoy = clientes.Count(c => c.FechaCotizacion.HasValue && c.FechaCotizacion.Value.Date == hoy),
                 Alertas = alertas
+            };
+        }
+
+        private SeguimientoListaDto MapearADto(Seguimiento s)
+        {
+            return new SeguimientoListaDto
+            {
+                Id = s.Id,
+                LeadId = s.LeadId,
+                CotizacionId = s.CotizacionId,
+                FechaContacto = s.FechaContacto,
+                MedioContacto = s.MedioContacto.ToString(),
+                Resultado = s.Resultado.ToString(),
+                Notas = s.Notas,
+                ProximoContacto = s.ProximoContacto,
+                VendedorNombre = s.Vendedor?.NombreCompleto ?? "",
+                LeadNombre = s.Lead?.NombreContacto,
+                CotizacionNumero = s.Cotizacion?.NumeroCotizacion,
+                Telefono = s.Lead?.Telefono,
+                CorreoElectronico = s.Lead?.CorreoElectronico,
+                EtapaNegociacion = s.Lead?.EtapaNegociacion?.ToString() ?? s.Cotizacion?.EtapaNegociacion?.ToString(),
+                AlcanceVenta = s.Cotizacion?.AlcanceVenta?.ToString(),
+                EsDeLead = s.EsDeLead(),
+                EsDeCotizacion = s.EsDeCotizacion()
             };
         }
     }

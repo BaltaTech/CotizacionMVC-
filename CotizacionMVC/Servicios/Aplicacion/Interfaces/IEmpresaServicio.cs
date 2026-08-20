@@ -8,5 +8,7 @@ namespace CotizacionMVC.Servicios.Aplicacion.Interfaces
         Task<EmpresaDetalleDto?> ObtenerPorIdAsync(Guid id);
         Task<EmpresaDetalleDto> ActualizarAsync(ActualizarEmpresaDto dto);
         Task<EmpresaDetalleDto?> ObtenerEmpresaActualAsync();
+        Task<bool> TieneAccesoAEmpresaAsync(Guid usuarioId, Guid empresaId);
+        Task EstablecerEmpresaActivaAsync(Guid empresaId);
     }
 }

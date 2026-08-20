@@ -1,47 +1,36 @@
-﻿using CotizacionMVC.Data.Repositorios.Interfaces;
-using CotizacionMVC.Models.Entidades;
+﻿using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Models.Enums;
 using CotizacionMVC.Servicios.Aplicacion.Dtos.Cotizacion;
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 using CotizacionMVC.ViewModels;
 using CotizacionMVC.ViewModels.Cotizacion;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
-namespace CotizacionMVC.Controllers
+namespace CotizacionMVC.Controllers.MVC
 {
     [Authorize(Roles = "Administrador,Vendedor")]
     public class CotizacionController : Controller
     {
         private readonly ICotizacionServicio _cotizacionServicio;
-        private readonly UserManager<Usuario> _userManager;
-        private readonly IEmpresaRepository _empresaRepo;
-        private readonly IAutorizacionServicio _autorizacionServicio;
-        private readonly IInstalacionServicio _instalacionServicio;
+        private readonly IUserContextService _userContextService;
+        private readonly IEmpresaServicio _empresaServicio;
 
         public CotizacionController(
             ICotizacionServicio cotizacionServicio,
-            UserManager<Usuario> userManager,
-            IEmpresaRepository empresaRepo,
-            IInstalacionServicio instalacionServicio,
-            IAutorizacionServicio autorizacionServicio)
+            IUserContextService userContextService,
+            IEmpresaServicio empresaServicio)
         {
             _cotizacionServicio = cotizacionServicio;
-            _userManager = userManager;
-            _empresaRepo = empresaRepo;
-            _instalacionServicio = instalacionServicio;
-            _autorizacionServicio = autorizacionServicio;
+            _userContextService = userContextService;
+            _empresaServicio = empresaServicio;
         }
 
         public async Task<IActionResult> Indice()
         {
-            var usuarioActual = await _userManager.GetUserAsync(User);
-            if (usuarioActual == null)
-                return RedirectToAction("Login", "Autenticacion");
-
-            var cotizaciones = await _cotizacionServicio.ObtenerIndiceAsync(usuarioActual.Id);
-            var leads = await _cotizacionServicio.ObtenerLeadsAsync(usuarioActual.Id);
+            var cotizaciones = await _cotizacionServicio.ObtenerIndiceAsync();
+            var leads = await _cotizacionServicio.ObtenerLeadsAsync();
 
             var viewModel = new CotizacionIndiceViewModel
             {
@@ -90,21 +79,31 @@ namespace CotizacionMVC.Controllers
             return View(viewModel);
         }
 
+        [HttpGet]
         public async Task<IActionResult> Crear(Guid? leadId = null)
         {
-            var usuarioActual = await _userManager.GetUserAsync(User);
+            var empresaActiva = await _cotizacionServicio.ObtenerEmpresaActivaAsync();
+            if (empresaActiva == null)
+            {
+                TempData["MensajeError"] = "Debe seleccionar una empresa primero";
+                return RedirectToAction("Indice", "Empresa");
+            }
+
+            var usuarioActual = await _userContextService.GetCurrentUserAsync();
             if (usuarioActual == null)
                 return RedirectToAction("Login", "Autenticacion");
 
-            var datos = await _cotizacionServicio.ObtenerDatosParaCrearAsync(
-                usuarioActual.Id, leadId);
+            var datos = await _cotizacionServicio.ObtenerDatosParaCrearAsync(leadId);
 
-            var viewModel = new CrearCotizacionViewModel();
+            var viewModel = new CrearCotizacionViewModel
+            {
+                LeadId = leadId,
+                AreaMetrosCuadrados = 100
+            };
 
             if (datos.Lead != null)
             {
-                viewModel.LeadId = datos.Lead.Id;
-                viewModel.ClienteId = datos.Lead.ClienteId.GetValueOrDefault();
+                viewModel.ClienteId = datos.Lead.ClienteId;
                 ViewBag.ModoLead = true;
                 ViewBag.Lead = datos.Lead;
             }
@@ -117,33 +116,126 @@ namespace CotizacionMVC.Controllers
             ViewBag.Equipos = datos.Equipos;
             ViewBag.Instalaciones = datos.Instalaciones;
 
-            Guid? empresaId = null;
-
-            if (datos.Lead?.EmpresaId != null)
+            if (empresaActiva != null && empresaActiva.EsExclusivaTrane)
             {
-                empresaId = datos.Lead.EmpresaId.Value;
+                ViewBag.Marcas = new List<TipoMarca> { TipoMarca.Trane };
             }
             else
             {
-                
-                var empresa = await _autorizacionServicio.ObtenerEmpresaActivaAsync(usuarioActual.Id);
-                empresaId = empresa?.Id;
+                ViewBag.Marcas = Enum.GetValues(typeof(TipoMarca))
+                    .Cast<TipoMarca>()
+                    .Where(m => m != TipoMarca.Otro)
+                    .ToList();
             }
 
-            if (empresaId.HasValue)
+            ViewBag.MarcaSeleccionada = ViewBag.Marcas.Count == 1 ? ViewBag.Marcas[0] : (TipoMarca?)null;
+            ViewBag.InstalacionesCatalogo = await _cotizacionServicio.ObtenerCatalogoInstalacionesAsync();
+
+            ViewBag.EmpresaActiva = empresaActiva;
+            ViewBag.EmpresaId = empresaActiva.Id;
+
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Crear(CrearCotizacionViewModel formulario)
+        {
+            var empresaActiva = await _cotizacionServicio.ObtenerEmpresaActivaAsync();
+            if (empresaActiva == null)
             {
-                var empresa = await _empresaRepo.GetByIdAsync(empresaId.Value);
-                if (empresa != null && empresa.EsExclusivaTrane)
+                TempData["MensajeError"] = "Debe seleccionar una empresa primero";
+                return RedirectToAction("Indice", "Empresa");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                await RecargarDatosFormulario(formulario);
+                return View(formulario);
+            }
+
+            if (!formulario.ClienteId.HasValue || formulario.ClienteId.Value == Guid.Empty)
+            {
+                ModelState.AddModelError("", "Debe seleccionar un cliente");
+                await RecargarDatosFormulario(formulario);
+                return View(formulario);
+            }
+
+            var equipos = DeserializarEquipos(formulario.EquiposJson);
+            if (equipos == null || !equipos.Any())
+            {
+                ModelState.AddModelError("", "Debe agregar al menos un equipo");
+                await RecargarDatosFormulario(formulario);
+                return View(formulario);
+            }
+
+            var instalaciones = DeserializarInstalaciones(formulario.InstalacionesJson);
+
+            var vendedor = await _userContextService.GetCurrentUserAsync();
+            if (vendedor == null)
+            {
+                ModelState.AddModelError("", "Usuario no autenticado");
+                await RecargarDatosFormulario(formulario);
+                return View(formulario);
+            }
+
+            var dto = new CrearCotizacionDto
+            {
+                ClienteId = formulario.ClienteId.Value,
+                EmpresaId = empresaActiva.Id, 
+                VendedorId = vendedor.Id,
+                AreaMetrosCuadrados = formulario.AreaMetrosCuadrados,
+                CondicionesPago = formulario.CondicionesPago ?? string.Empty,
+                Equipos = equipos,
+                Instalaciones = instalaciones,
+                LeadId = formulario.LeadId,
+                TipoCambio = 17.43m,
+                RecargoCiudadPorcentaje = 0
+            };
+
+            var resultado = await _cotizacionServicio.CrearAsync(dto);
+
+            if (!resultado.Exitoso)
+            {
+                ModelState.AddModelError("", resultado.MensajeError ?? "Error al crear la cotización");
+                await RecargarDatosFormulario(formulario);
+                return View(formulario);
+            }
+
+            TempData["MensajeExito"] = $"Cotización {resultado.Cotizacion!.NumeroCotizacion} creada exitosamente";
+            return RedirectToAction(nameof(Detalles), new { id = resultado.Cotizacion.Id });
+        }
+
+        private async Task RecargarDatosFormulario(CrearCotizacionViewModel formulario)
+        {
+            var empresaActiva = await _cotizacionServicio.ObtenerEmpresaActivaAsync();
+            var datos = await _cotizacionServicio.ObtenerDatosParaCrearAsync(formulario.LeadId);
+            var instalacionesCatalogo = await _cotizacionServicio.ObtenerCatalogoInstalacionesAsync();
+
+            if (datos.Lead != null)
+            {
+                ViewBag.ModoLead = true;
+                ViewBag.Lead = datos.Lead;
+                if (!formulario.ClienteId.HasValue)
                 {
-                    ViewBag.Marcas = new List<TipoMarca> { TipoMarca.Trane };
+                    formulario.ClienteId = datos.Lead.ClienteId;
                 }
-                else
-                {
-                    ViewBag.Marcas = Enum.GetValues(typeof(TipoMarca))
-                        .Cast<TipoMarca>()
-                        .Where(m => m != TipoMarca.Otro)
-                        .ToList();
-                }
+            }
+            else
+            {
+                ViewBag.ModoLead = false;
+                ViewBag.Clientes = datos.Clientes;
+            }
+
+            ViewBag.Equipos = datos.Equipos;
+            ViewBag.Instalaciones = datos.Instalaciones;
+            ViewBag.InstalacionesCatalogo = instalacionesCatalogo;
+            ViewBag.EmpresaActiva = empresaActiva;
+            ViewBag.EmpresaId = empresaActiva?.Id ?? Guid.Empty;
+
+            if (empresaActiva != null && empresaActiva.EsExclusivaTrane)
+            {
+                ViewBag.Marcas = new List<TipoMarca> { TipoMarca.Trane };
             }
             else
             {
@@ -155,67 +247,8 @@ namespace CotizacionMVC.Controllers
 
             ViewBag.MarcaSeleccionada = ViewBag.Marcas.Count == 1 ? ViewBag.Marcas[0] : (TipoMarca?)null;
 
-            ViewBag.InstalacionesCatalogo = await _instalacionServicio.ObtenerCatalogoAsync();
-
-            return View(viewModel);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Crear(CrearCotizacionViewModel formulario)
-        {
-            if (!ModelState.IsValid)
-                return RedirectToAction(nameof(Crear), new { leadId = formulario.LeadId });
-
-            var vendedor = await _userManager.GetUserAsync(User);
-            if (vendedor == null)
-            {
-                TempData["MensajeError"] = "Debe iniciar sesión para crear cotizaciones";
-                return RedirectToAction("Login", "Autenticacion");
-            }
-
-            Empresa? empresa = null;
-
-            if (formulario.LeadId.HasValue)
-            {
-                var datosLead = await _cotizacionServicio.ObtenerDatosParaCrearAsync(
-                    vendedor.Id, formulario.LeadId);
-
-                if (datosLead.Lead?.EmpresaId != null)
-                    empresa = await _empresaRepo.GetByIdAsync(datosLead.Lead.EmpresaId.Value);
-            }
-
-            if (empresa == null)
-                empresa = await _autorizacionServicio.ObtenerEmpresaActivaAsync(vendedor.Id);
-
-            if (empresa == null)
-            {
-                TempData["MensajeError"] = "No hay empresa activa";
-                return RedirectToAction(nameof(Crear), new { leadId = formulario.LeadId });
-            }
-
-            var dto = new CrearCotizacionDto
-            {
-                ClienteId = formulario.ClienteId ?? Guid.Empty,
-                EmpresaId = empresa.Id,
-                VendedorId = vendedor.Id,
-                AreaMetrosCuadrados = formulario.AreaMetrosCuadrados,
-                CondicionesPago = formulario.CondicionesPago,
-                Equipos = DeserializarEquipos(formulario.EquiposJson),
-                Instalaciones = DeserializarInstalaciones(formulario.InstalacionesJson),
-                LeadId = formulario.LeadId
-            };
-
-            var resultado = await _cotizacionServicio.CrearAsync(dto);
-
-            if (!resultado.Exitoso)
-            {
-                TempData["MensajeError"] = resultado.MensajeError;
-                return RedirectToAction(nameof(Crear), new { leadId = formulario.LeadId });
-            }
-
-            TempData["MensajeExito"] = $"Cotización {resultado.Cotizacion!.NumeroCotizacion} creada exitosamente";
-            return RedirectToAction(nameof(Detalles), new { id = resultado.Cotizacion.Id });
+            ViewBag.EquiposJson = formulario.EquiposJson;
+            ViewBag.InstalacionesJson = formulario.InstalacionesJson;
         }
 
         [HttpGet]
@@ -231,6 +264,11 @@ namespace CotizacionMVC.Controllers
             catch (KeyNotFoundException)
             {
                 return NotFound("Cotización no encontrada");
+            }
+            catch (Exception ex)
+            {
+                TempData["MensajeError"] = $"Error al generar PDF: {ex.Message}";
+                return RedirectToAction(nameof(Detalles), new { id });
             }
         }
 
@@ -308,20 +346,18 @@ namespace CotizacionMVC.Controllers
             return Json(new { success = true, nuevoEstado = ((EstadoCotizacion)nuevoEstado).ToString() });
         }
 
-        // ==================== MÉTODOS AUXILIARES ====================
-
         private List<ItemCotizacionJson> DeserializarEquipos(string? json)
         {
             if (string.IsNullOrEmpty(json)) return new();
-            return System.Text.Json.JsonSerializer.Deserialize<List<ItemCotizacionJson>>(json,
-                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
+            return JsonSerializer.Deserialize<List<ItemCotizacionJson>>(json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
         }
 
         private List<ItemInstalacionJson> DeserializarInstalaciones(string? json)
         {
             if (string.IsNullOrEmpty(json)) return new();
-            return System.Text.Json.JsonSerializer.Deserialize<List<ItemInstalacionJson>>(json,
-                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
+            return JsonSerializer.Deserialize<List<ItemInstalacionJson>>(json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
         }
 
         private CotizacionDetalleViewModel MapearADetalleViewModel(CotizacionDetalleDto dto)

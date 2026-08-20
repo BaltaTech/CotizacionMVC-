@@ -4,7 +4,9 @@ using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Models.Enums;
 using CotizacionMVC.Servicios.Aplicacion.Dtos.Cotizacion;
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
+using CotizacionMVC.ViewModels.Instalacion;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace CotizacionMVC.Servicios.Aplicacion
 {
@@ -15,8 +17,10 @@ namespace CotizacionMVC.Servicios.Aplicacion
         private readonly IEquipoRepository _equipoRepo;
         private readonly IInstalacionRepository _instalacionRepo;
         private readonly IEmpresaRepository _empresaRepo;
+        private readonly ILeadRepository _leadRepository;
         private readonly IDocumento _documentoService;
-        private readonly ApplicationDbContext _context;
+        private readonly IUserContextService _userContextService;
+        private readonly IInstalacionServicio _instalacionServicio;
         private readonly IAutorizacionServicio _autorizacionServicio;
 
         public CotizacionServicio(
@@ -25,8 +29,10 @@ namespace CotizacionMVC.Servicios.Aplicacion
             IEquipoRepository equipoRepo,
             IInstalacionRepository instalacionRepo,
             IEmpresaRepository empresaRepo,
+            ILeadRepository leadRepository,
             IDocumento documentoService,
-            ApplicationDbContext context,
+            IUserContextService userContextService,
+            IInstalacionServicio instalacionServicio,
             IAutorizacionServicio autorizacionServicio)
         {
             _cotizacionRepo = cotizacionRepo;
@@ -34,22 +40,22 @@ namespace CotizacionMVC.Servicios.Aplicacion
             _equipoRepo = equipoRepo;
             _instalacionRepo = instalacionRepo;
             _empresaRepo = empresaRepo;
+            _leadRepository = leadRepository;
             _documentoService = documentoService;
-            _context = context;
+            _userContextService = userContextService;
+            _instalacionServicio = instalacionServicio;
             _autorizacionServicio = autorizacionServicio;
         }
 
-        // ==================== QUERIES ====================
-
-        public async Task<IReadOnlyList<CotizacionResumenDto>> ObtenerIndiceAsync(Guid usuarioId)
+        public async Task<IReadOnlyList<CotizacionResumenDto>> ObtenerIndiceAsync()
         {
-            var query = _context.Cotizaciones
-                .Include(c => c.Cliente)
-                .Include(c => c.Empresa)
-                .Include(c => c.Vendedor)
-                .AsQueryable();
+            var usuarioId = await _userContextService.GetCurrentUserIdAsync();
 
-            // El servicio de autorización aplica los filtros según el rol
+            var query = _cotizacionRepo.ObtenerQueryable();
+            query = query.Include(c => c.Cliente)
+                         .Include(c => c.Empresa)
+                         .Include(c => c.Vendedor);
+
             query = await _autorizacionServicio.FiltrarCotizacionesAsync(usuarioId, query);
 
             return await query
@@ -80,51 +86,47 @@ namespace CotizacionMVC.Servicios.Aplicacion
             return MapearADetalleDto(cotizacion);
         }
 
-        public async Task<IReadOnlyList<LeadResumenDto>> ObtenerLeadsAsync(Guid usuarioId)
+        public async Task<IReadOnlyList<LeadResumenDto>> ObtenerLeadsAsync()
         {
-            var query = _context.Leads
-                .Include(l => l.Cliente)
-                .Include(l => l.Empresa)
-                .AsQueryable();
+            var usuarioId = await _userContextService.GetCurrentUserIdAsync();
 
-            // El servicio de autorización aplica los filtros según el rol
-            query = await _autorizacionServicio.FiltrarLeadsAsync(usuarioId, query);
+            var leads = await _leadRepository.ObtenerConClientesAsync();
 
-            return await query
+            var leadsFiltrados = leads
+                .Where(l => l.VendedorAsignadoId == usuarioId)
                 .OrderByDescending(l => l.FechaAsignacion)
-                .Select(l => new LeadResumenDto
-                {
-                    Id = l.Id,
-                    ClienteNombre = l.Cliente != null ? l.Cliente.Nombre : l.NombreContacto ?? "",
-                    ClienteId = l.ClienteId,
-                    Telefono = l.Telefono,
-                    ProductoBusca = l.ProductoBusca,
-                    EmpresaNombre = l.Empresa != null ? l.Empresa.NombreComercial : "",
-                    Estado = (int)l.Estado,
-                    FechaAsignacion = l.FechaAsignacion,
-                    FechaCreacion = l.FechaCreacion,
-                    NombreContacto = l.NombreContacto,
-                    ClienteTelefono = l.Cliente != null ? l.Cliente.Contacto.Telefono : l.Telefono,
-                    EmpresaId = l.EmpresaId,
-                    EmpresaColorPrimario = l.Empresa != null ? l.Empresa.ColorPrimario : null,
-                    EmpresaEslogan = l.Empresa != null ? l.Empresa.Eslogan : null,
-                    OrigenLead = (int)l.OrigenLead
-                })
-                .ToListAsync();
+                .ToList();
+
+            return leadsFiltrados.Select(l => new LeadResumenDto
+            {
+                Id = l.Id,
+                ClienteNombre = l.Cliente != null ? l.Cliente.Nombre : l.NombreContacto ?? "",
+                ClienteId = l.ClienteId,
+                Telefono = l.Telefono,
+                ProductoBusca = l.ProductoBusca,
+                EmpresaNombre = l.Empresa?.NombreComercial ?? "",
+                Estado = (int)l.Estado,
+                FechaAsignacion = l.FechaAsignacion,
+                FechaCreacion = l.FechaCreacion,
+                NombreContacto = l.NombreContacto,
+                ClienteTelefono = l.Cliente != null ? l.Cliente.Contacto.Telefono : l.Telefono,
+                EmpresaId = l.EmpresaId,
+                EmpresaColorPrimario = l.Empresa?.ColorPrimario,
+                EmpresaEslogan = l.Empresa?.Eslogan,
+                OrigenLead = (int)l.OrigenLead
+            }).ToList();
         }
 
-        public async Task<DatosCrearCotizacionDto> ObtenerDatosParaCrearAsync(Guid usuarioId, Guid? leadId)
+        public async Task<DatosCrearCotizacionDto> ObtenerDatosParaCrearAsync(Guid? leadId)
         {
-            var datos = new DatosCrearCotizacionDto();
-            var esVendedor = await _autorizacionServicio.EsVendedorAsync(usuarioId);
+            var usuarioId = await _userContextService.GetCurrentUserIdAsync();
+            var esVendedor = await _userContextService.IsUserInRoleAsync("Vendedor");
 
-            // Lead específico
+            var datos = new DatosCrearCotizacionDto();
+
             if (leadId.HasValue)
             {
-                var lead = await _context.Leads
-                    .Include(l => l.Empresa)
-                    .Include(l => l.Cliente)
-                    .FirstOrDefaultAsync(l => l.Id == leadId.Value);
+                var lead = await _leadRepository.GetByIdAsync(leadId.Value);
 
                 if (lead != null && lead.VendedorAsignadoId == usuarioId)
                 {
@@ -147,14 +149,9 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 }
             }
 
-            // Clientes
             if (esVendedor)
             {
-                var leadsDelVendedor = await _context.Leads
-                    .Include(l => l.Cliente)
-                    .Where(l => l.VendedorAsignadoId == usuarioId)
-                    .OrderByDescending(l => l.FechaAsignacion)
-                    .ToListAsync();
+                var leadsDelVendedor = await _leadRepository.ObtenerPorVendedorAsync(usuarioId);
 
                 datos.Clientes = leadsDelVendedor
                     .Where(l => l.Cliente != null)
@@ -169,7 +166,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
                         Observaciones = l.Cliente.Observaciones,
                         TieneVendedor = l.Cliente.VendedorAsignadoId.HasValue
                     })
-                    .Distinct()
+                    .DistinctBy(c => c.Id)
                     .ToList();
             }
             else
@@ -188,7 +185,6 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 }).ToList();
             }
 
-            // Equipos
             var equipos = await _equipoRepo.ObtenerTodosOrdenadosAsync();
             datos.Equipos = equipos.Select(e => new EquipoResumenDto
             {
@@ -200,7 +196,6 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 MonedaOriginal = e.MonedaOriginal
             }).ToList();
 
-            // Instalaciones
             var instalaciones = await _instalacionRepo.ObtenerActivasAsync();
             datos.Instalaciones = instalaciones.Select(i => new InstalacionResumenDto
             {
@@ -213,12 +208,26 @@ namespace CotizacionMVC.Servicios.Aplicacion
             return datos;
         }
 
-        // ==================== COMANDOS ====================
+        public async Task<Empresa?> ObtenerEmpresaActivaAsync()
+        {
+            var usuarioId = await _userContextService.GetCurrentUserIdAsync();
+            return await _autorizacionServicio.ObtenerEmpresaActivaAsync(usuarioId);
+        }
 
+        public async Task<InstalacionCatalogoViewModel> ObtenerCatalogoInstalacionesAsync()
+        {
+            return await _instalacionServicio.ObtenerCatalogoAsync();
+        }
+
+        // ==================== MÉTODO CREAR CORREGIDO ====================
         public async Task<ResultadoCotizacionDto> CrearAsync(CrearCotizacionDto dto)
         {
+            // ========== VALIDACIONES BÁSICAS ==========
             if (dto.ClienteId == Guid.Empty)
                 return ResultadoCotizacionDto.Error("Debe seleccionar un cliente");
+
+            if (dto.EmpresaId == Guid.Empty)
+                return ResultadoCotizacionDto.Error("Debe seleccionar una empresa");
 
             if (dto.Equipos == null || !dto.Equipos.Any())
                 return ResultadoCotizacionDto.Error("Debe agregar al menos un equipo");
@@ -226,6 +235,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
             if (dto.AreaMetrosCuadrados <= 0)
                 return ResultadoCotizacionDto.Error("El área debe ser mayor a cero");
 
+            // ========== OBTENER ENTIDADES ==========
             var cliente = await _clienteRepo.GetByIdAsync(dto.ClienteId);
             if (cliente == null)
                 return ResultadoCotizacionDto.Error("Cliente no encontrado");
@@ -234,12 +244,11 @@ namespace CotizacionMVC.Servicios.Aplicacion
             if (empresa == null)
                 return ResultadoCotizacionDto.Error("Empresa no encontrada");
 
-            if (!cliente.TieneContacto())
-                return ResultadoCotizacionDto.Error("El cliente no tiene información de contacto.");
+            // Validar que la empresa esté activa
+            if (!empresa.Activa)
+                return ResultadoCotizacionDto.Error("La empresa seleccionada no está activa");
 
-            if (!cliente.TieneDireccion())
-                return ResultadoCotizacionDto.Error("El cliente no tiene dirección registrada.");
-
+            // ========== VALIDAR EQUIPOS ==========
             foreach (var eq in dto.Equipos)
             {
                 var equipo = await _equipoRepo.GetByIdAsync(eq.EquipoId);
@@ -254,70 +263,105 @@ namespace CotizacionMVC.Servicios.Aplicacion
                     return ResultadoCotizacionDto.Error($"El equipo {equipo.Modelo} no está disponible actualmente.");
             }
 
-            var numeroCotizacion = await _cotizacionRepo.GenerarSiguienteNumeroAsync();
-            var vendedor = await _context.Users.FindAsync(dto.VendedorId);
+            // ========== GENERAR NÚMERO DE COTIZACIÓN ==========
+            var ultimoNumero = await _cotizacionRepo.ObtenerUltimoNumeroAsync();
+            var numeroCotizacion = Cotizacion.GenerarSiguienteNumero(ultimoNumero);
 
+            var vendedor = await _userContextService.GetCurrentUserAsync();
             if (vendedor == null)
                 return ResultadoCotizacionDto.Error("Vendedor no encontrado");
 
+            // ========== CREAR COTIZACIÓN ==========
             Cotizacion cotizacion;
             try
             {
-                cotizacion = new Cotizacion(numeroCotizacion, cliente, empresa, vendedor,
-                    dto.AreaMetrosCuadrados, dto.CondicionesPago,
-                    dto.TipoCambio, dto.RecargoCiudadPorcentaje);
+                cotizacion = new Cotizacion(
+                    numeroCotizacion,
+                    cliente,
+                    empresa,
+                    vendedor,
+                    dto.AreaMetrosCuadrados,
+                    dto.CondicionesPago ?? string.Empty,
+                    dto.TipoCambio > 0 ? dto.TipoCambio : 17.43m,
+                    dto.RecargoCiudadPorcentaje
+                );
             }
             catch (ArgumentException ex)
             {
                 return ResultadoCotizacionDto.Error(ex.Message);
             }
+            catch (InvalidOperationException ex)
+            {
+                return ResultadoCotizacionDto.Error(ex.Message);
+            }
 
+            // ========== AGREGAR EQUIPOS ==========
             foreach (var eq in dto.Equipos)
             {
                 var equipo = await _equipoRepo.GetByIdAsync(eq.EquipoId);
+                if (equipo == null)
+                    return ResultadoCotizacionDto.Error($"Equipo {eq.EquipoId} no encontrado");
 
                 var factorPrecio = eq.FactorPrecio > 0
                     ? eq.FactorPrecio
-                    : empresa.UtilidadEmpresaPorcentaje / 100m;  
+                    : empresa.UtilidadEmpresaPorcentaje / 100m;
 
                 var factorUtilidad = eq.FactorUtilidad > 0
                     ? eq.FactorUtilidad
-                    : empresa.UtilidadVendedorPorcentaje / 100m; 
+                    : empresa.UtilidadVendedorPorcentaje / 100m;
 
-                cotizacion.AgregarEquipo(equipo!, eq.Cantidad, factorPrecio, factorUtilidad, null);
+                cotizacion.AgregarEquipo(equipo, eq.Cantidad, factorPrecio, factorUtilidad, null);
             }
 
+            // ========== AGREGAR INSTALACIONES ==========
             foreach (var inst in dto.Instalaciones)
             {
                 if (inst.InstalacionId.HasValue)
                 {
                     var instalacion = await _instalacionRepo.GetByIdAsync(inst.InstalacionId.Value);
-                    if (instalacion == null || !instalacion.Activo) continue;
-                    cotizacion.AgregarInstalacionPredefinida(instalacion, inst.Cantidad);
+                    if (instalacion != null && instalacion.Activo)
+                        cotizacion.AgregarInstalacionPredefinida(instalacion, inst.Cantidad);
                 }
                 else
                 {
-                    cotizacion.AgregarInstalacion(inst.Concepto, inst.Descripcion ?? "", inst.Cantidad, inst.CostoUnitario);
+                    cotizacion.AgregarInstalacion(
+                        inst.Concepto ?? "Instalación",
+                        inst.Descripcion ?? "",
+                        inst.Cantidad,
+                        inst.CostoUnitario
+                    );
                 }
             }
 
-            await _cotizacionRepo.AddAsync(cotizacion);
-            await _cotizacionRepo.SaveChangesAsync();
-
-            if (dto.LeadId.HasValue)
+            // ========== GUARDAR EN BD ==========
+            using var transaction = await _cotizacionRepo.BeginTransactionAsync(IsolationLevel.ReadCommitted);
+            try
             {
-                var lead = await _context.Leads.FindAsync(dto.LeadId.Value);
-                if (lead != null)
-                {
-                    cotizacion.VincularLead(lead);
-                    lead.MarcarCotizado();
-                    lead.ActualizarCategoria(CategoriaLead.Cotizando);
-                    await _context.SaveChangesAsync();
-                }
-            }
+                await _cotizacionRepo.AddAsync(cotizacion);
+                await _cotizacionRepo.SaveChangesAsync();
 
-            var detalle = MapearADetalleDto(cotizacion);
-            return ResultadoCotizacionDto.Exito(detalle);
+                if (dto.LeadId.HasValue)
+                {
+                    var lead = await _leadRepository.GetByIdAsync(dto.LeadId.Value);
+                    if (lead != null)
+                    {
+                        cotizacion.VincularLead(lead);
+                        lead.MarcarCotizado();
+                        lead.ActualizarCategoria(CategoriaLead.Cotizando);
+                        await _leadRepository.SaveChangesAsync();
+                    }
+                }
+
+                await transaction.CommitAsync();
+
+                var detalle = MapearADetalleDto(cotizacion);
+                return ResultadoCotizacionDto.Exito(detalle);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return ResultadoCotizacionDto.Error($"Error al guardar: {ex.Message}");
+            }
         }
 
         public async Task<ResultadoCotizacionDto> ActualizarAsync(ActualizarCotizacionDto dto)
@@ -420,7 +464,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
             return Task.FromResult(Math.Round(trSugerida, 1));
         }
 
-        // ==================== MÉTODOS PRIVADOS ====================
+        // ==================== MÉTODO DE MAPEO ====================
 
         private CotizacionDetalleDto MapearADetalleDto(Cotizacion cotizacion)
         {

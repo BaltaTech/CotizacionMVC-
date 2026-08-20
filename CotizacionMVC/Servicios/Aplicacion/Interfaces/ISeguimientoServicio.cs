@@ -1,4 +1,5 @@
 ﻿using CotizacionMVC.Servicios.Aplicacion.Dtos.Seguimientos;
+using CotizacionMVC.ViewModels.Seguimientos;
 
 namespace CotizacionMVC.Servicios.Aplicacion.Interfaces
 {
@@ -11,5 +12,7 @@ namespace CotizacionMVC.Servicios.Aplicacion.Interfaces
         Task<DashboardVendedorDto> ObtenerDashboardAsync(Guid vendedorId);
         Task MarcarRecordatorioEnviadoAsync(Guid seguimientoId);
          Task<DashboardRecepcionDto> ObtenerDashboardRecepcionAsync();
+        Task<ResultadoCrearLead> CrearLeadAsync(CrearLeadViewModel modelo);
+
     }
 }

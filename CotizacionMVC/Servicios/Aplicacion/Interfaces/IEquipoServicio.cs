@@ -14,5 +14,7 @@ namespace CotizacionMVC.Servicios.Aplicacion.Interfaces
         Task<IReadOnlyList<string>> ObtenerModosPorSistemaAsync(string sistema);
         Task<IReadOnlyList<EquipoResumenDto>> ObtenerPorSistemaYModoAsync(string sistema, string modo);
         Task<IReadOnlyList<string>> ObtenerSistemasPorMarcaAsync(TipoMarca marca);
+
+        Task<EquipoDetalleDto> ActivarAsync(Guid id);
     }
 }

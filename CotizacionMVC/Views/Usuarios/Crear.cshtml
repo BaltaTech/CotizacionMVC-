@@ -1,7 +1,10 @@
-﻿@model CotizacionMVC.Controllers.CrearUsuarioViewModel
+﻿@using CotizacionMVC.ViewModels.Usuarios
+@model CrearUsuarioViewModel
+
 @{
     ViewData["Title"] = "Nuevo Usuario";
     var roles = ViewBag.Roles as List<string>;
+    var empresas = ViewBag.Empresas as List<CotizacionMVC.Models.Entidades.Empresa>;
 }
 
 <h2><i class="fas fa-user-plus"></i> @ViewData["Title"]</h2>
@@ -39,6 +42,22 @@
                 }
             }
         </select>
+    </div>
+
+    <!-- ✅ NUEVO: Selección de Empresa -->
+    <div class="mb-3">
+        <label asp-for="EmpresaId" class="form-label">Empresa</label>
+        <select asp-for="EmpresaId" class="form-select" required>
+            <option value="">-- Seleccionar Empresa --</option>
+            @if (empresas != null)
+            {
+                foreach (var empresa in empresas)
+                {
+                    <option value="@empresa.Id">@empresa.NombreComercial</option>
+                }
+            }
+        </select>
+        <span asp-validation-for="EmpresaId" class="text-danger"></span>
     </div>
 
     <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Crear Usuario</button>

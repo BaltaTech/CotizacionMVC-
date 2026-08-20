@@ -1,4 +1,6 @@
 ﻿using CotizacionMVC.Data;
+using CotizacionMVC.Data.Repositorios.Interfaces;
+using CotizacionMVC.Models.Entidades;
 using CotizacionMVC.Models.Enums;
 using CotizacionMVC.Servicios.Aplicacion.Dtos.AdminDashboard;
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
@@ -8,71 +10,66 @@ namespace CotizacionMVC.Servicios.Aplicacion
 {
     public class AdminDashboardServicio : IAdminDashboardServicio
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IClienteRepository _clienteRepository; 
+        private readonly ICotizacionRepository _cotizacionRepository; 
+        private readonly ILeadRepository _leadRepository; 
+        private readonly IUsuarioRepository _usuarioRepository; 
+        
 
-        public AdminDashboardServicio(ApplicationDbContext context)
+        public AdminDashboardServicio(
+            IClienteRepository clienteRepository,
+            ICotizacionRepository cotizacionRepository,
+            ILeadRepository leadRepository,
+            IUsuarioRepository usuarioRepository)
         {
-            _context = context;
+            _clienteRepository = clienteRepository;
+            _cotizacionRepository = cotizacionRepository;
+            _leadRepository = leadRepository;
+            _usuarioRepository = usuarioRepository;
         }
 
         public async Task<AdminDashboardDto> ObtenerDashboardAsync(Guid? empresaId = null)
         {
             var hoy = DateTime.UtcNow.Date;
             var inicioMes = new DateTime(hoy.Year, hoy.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-
-            // ========== KPIs GENERALES ==========
-            var clientesNuevosHoy = await _context.Clientes
+            var clientesNuevosHoy = await _clienteRepository.ObtenerQueryable()
                 .Where(c => c.FechaRegistro.Date == hoy)
                 .CountAsync();
-
-            var clientesSinAsignar = await _context.Clientes
+            var clientesSinAsignar = await _clienteRepository.ObtenerQueryable()
                 .Where(c => c.Estado == EstadoCliente.SinAsignar)
                 .CountAsync();
-
-            var cotizacionesEnviadasHoy = await _context.Cotizaciones
+            var cotizacionesEnviadasHoy = await _cotizacionRepository.ObtenerQueryable()
                 .Where(c => c.Estado == EstadoCotizacion.CotizacionEnviada
                     && c.FechaCreacion.Date == hoy)
-                .CountAsync();
-
-            var cotizacionesActivas = await _context.Cotizaciones
+                .CountAsync();            
+            var cotizacionesActivas = await _cotizacionRepository.ObtenerQueryable()
                 .Where(c => c.Estado != EstadoCotizacion.Cerrada
                     && c.Estado != EstadoCotizacion.Perdida)
                 .CountAsync();
-
-            var ventasMes = await _context.Cotizaciones
+            var ventasMes = await _cotizacionRepository.ObtenerQueryable()
                 .Where(c => c.Estado == EstadoCotizacion.Cerrada
                     && c.FechaCreacion >= inicioMes)
-                .ToListAsync();
+                .ToListAsync();            
+            var leadsPerdidosMes = await _leadRepository.ContarPerdidosDesdeAsync(inicioMes);
 
-            var leadsPerdidosMes = await _context.Leads
-                .Where(l => l.Estado == EstadoCliente.Perdido
-                    && l.UltimoSeguimiento >= inicioMes)
-                .CountAsync();
-
-            var totalClientesAtendidos = await _context.Clientes
+            var totalClientesAtendidos = await _clienteRepository.ObtenerQueryable()
                 .Where(c => c.Estado == EstadoCliente.Cerrado || c.Estado == EstadoCliente.Cotizado)
                 .CountAsync();
-
-            var totalClientes = await _context.Clientes.CountAsync();
+            var totalClientes = await _clienteRepository.ObtenerQueryable()
+                .CountAsync();
 
             var tasaConversion = totalClientes > 0
                 ? Math.Round((decimal)ventasMes.Count / totalClientes * 100, 1)
                 : 0;
-
-            // ========== TABLA POR VENDEDOR ==========
-            var vendedores = await _context.Users
-                .Where(u => u.Activo)
-                .ToListAsync();
+            var vendedores = await _usuarioRepository.ObtenerActivosAsync();
 
             var vendedoresMetricas = new List<VendedorMetricasDto>();
 
             foreach (var vendedor in vendedores)
             {
-                var leadsVendedor = await _context.Leads
-                    .Where(l => l.VendedorAsignadoId == vendedor.Id)
-                    .ToListAsync();
-
-                var cotizacionesVendedor = await _context.Cotizaciones
+                var leadsVendedor = await _leadRepository.ObtenerPorVendedorAsync(vendedor.Id);
+             
+                var cotizacionesVendedor = await _cotizacionRepository.ObtenerQueryable()
                     .Where(c => c.VendedorId == vendedor.Id)
                     .ToListAsync();
 
@@ -109,14 +106,10 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 });
             }
 
-            // ========== PIPELINE POR ETAPA ==========
-            var leadsConEtapa = await _context.Leads
-                .Where(l => l.EtapaNegociacion.HasValue
-                    && l.Estado != EstadoCliente.Perdido
-                    && l.Estado != EstadoCliente.Cerrado)
-                .ToListAsync();
+   
+            var leadsConEtapa = await _leadRepository.ObtenerTodosAsync();
 
-            var cotizacionesConEtapa = await _context.Cotizaciones
+            var cotizacionesConEtapa = await _cotizacionRepository.ObtenerQueryable()
                 .Where(c => c.EtapaNegociacion.HasValue
                     && c.Estado != EstadoCotizacion.Cerrada
                     && c.Estado != EstadoCotizacion.Perdida)
@@ -161,7 +154,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
             var hace4Horas = DateTime.UtcNow.AddHours(-4);
             var hace48Horas = hoy.AddDays(-2);
 
-            var urgentesSinContacto = await _context.Leads
+            var urgentesSinContacto = await _leadRepository.ObtenerQueryable()
                 .Where(l => l.EtapaNegociacion == EtapaNegociacion.SinContactar
                     && l.OrigenLead == OrigenLead.Recepcion
                     && l.FechaAsignacion < hace4Horas)
@@ -170,7 +163,7 @@ namespace CotizacionMVC.Servicios.Aplicacion
             if (urgentesSinContacto > 0)
                 alertas.Add($"🚨 {urgentesSinContacto} clientes urgentes sin contacto en más de 4 horas");
 
-            var asignadosSinContacto = await _context.Clientes
+            var asignadosSinContacto = await _clienteRepository.ObtenerQueryable()
                 .Where(c => c.Estado == EstadoCliente.Asignado
                     && c.FechaAsignacion < hace48Horas)
                 .CountAsync();
@@ -183,8 +176,8 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 if (v.SinContactar > 5)
                     alertas.Add($"📋 {v.Nombre} tiene {v.SinContactar} leads sin contactar");
             }
-
-            var cotizacionesPorVencer = await _context.Cotizaciones
+   
+            var cotizacionesPorVencer = await _cotizacionRepository.ObtenerQueryable()
                 .Where(c => c.Estado != EstadoCotizacion.Cerrada
                     && c.Estado != EstadoCotizacion.Perdida
                     && c.FechaVencimiento <= DateTime.UtcNow.AddDays(3))

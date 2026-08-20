@@ -483,3 +483,4 @@ $RECYCLE.BIN/
 
 # Archivos PDF de cotizaciones generados automáticamente
 CotizacionMVC/wwwroot/pdf/cotizaciones/
+CotizacionMVC/appsettings.json

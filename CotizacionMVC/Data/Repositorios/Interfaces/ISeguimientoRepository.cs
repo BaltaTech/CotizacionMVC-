@@ -14,5 +14,7 @@ namespace CotizacionMVC.Data.Repositorios.Interfaces
         Task AddAsync(Seguimiento seguimiento);
         void Update(Seguimiento seguimiento);
         Task SaveChangesAsync();
+        Task<IReadOnlyList<Seguimiento>> ObtenerPorClientesAsync(List<Guid> clienteIds);
+
     }
 }

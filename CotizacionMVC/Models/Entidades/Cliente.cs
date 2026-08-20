@@ -91,10 +91,6 @@ namespace CotizacionMVC.Models.Entidades
             FechaAsignacion = DateTime.UtcNow;
         }
 
-        public void Contactar()
-        {
-            Estado = EstadoCliente.Contactado;
-        }
 
         public void MarcarCotizado()
         {
@@ -107,12 +103,6 @@ namespace CotizacionMVC.Models.Entidades
             Estado = EstadoCliente.NoCotizable;
             MotivoNoCotizable = motivo;
             ComentarioNoCotizable = comentario?.Trim();
-        }
-
-        public void ReasignarVendedor(Guid nuevoVendedorId)
-        {
-            VendedorAsignadoId = nuevoVendedorId;
-            FechaAsignacion = DateTime.UtcNow;
         }
 
         public void ConfigurarRegistro(OrigenCliente origen, Guid registradoPorId)
@@ -130,10 +120,7 @@ namespace CotizacionMVC.Models.Entidades
                 Estado = EstadoCliente.SinAsignar;
         }
 
-        public void MarcarPendienteAsignar()
-        {
-            Estado = EstadoCliente.SinAsignar;
-        }
+      
 
         public void AsignarFolio(string folio)
         {
@@ -141,6 +128,13 @@ namespace CotizacionMVC.Models.Entidades
                 throw new ArgumentException("El folio es obligatorio");
 
             Folio = folio;
-        }        
+        }
+
+        public static string GenerarFolio()
+        {
+            var fecha = DateTime.UtcNow.ToString("yyMMdd");
+            var guidCorto = Guid.NewGuid().ToString("N")[..6].ToUpper();
+            return $"CLI-{fecha}-{guidCorto}";
+        }
     }
 }

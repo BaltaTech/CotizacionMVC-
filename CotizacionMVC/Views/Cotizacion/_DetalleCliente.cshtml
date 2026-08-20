@@ -1,0 +1,97 @@
+﻿@model CotizacionMVC.Servicios.Aplicacion.Dtos.Recepcion.ClienteDetalleRecepcionDto
+
+<div class="row">
+    <div class="col-md-6">
+        <h6 class="text-muted border-bottom pb-2">Información del Cliente</h6>
+        <table class="table table-sm table-borderless">
+            <tr>
+                <td class="fw-bold" style="width: 130px;">Folio:</td>
+                <td><span class="badge bg-light text-dark border">@Model.Folio</span></td>
+            </tr>
+            <tr>
+                <td class="fw-bold">Nombre:</td>
+                <td><strong>@Model.Nombre</strong></td>
+            </tr>
+            <tr>
+                <td class="fw-bold">Teléfono:</td>
+                <td><i class="fas fa-phone text-muted me-1"></i>@Model.Telefono</td>
+            </tr>
+            <tr>
+                <td class="fw-bold">Tel. Móvil:</td>
+                <td>
+                    @if (string.IsNullOrWhiteSpace(Model.TelefonoMovil))
+                    {
+                        <span class="text-muted">N/A</span>
+                    }
+                    else
+                    {
+                        @Model.TelefonoMovil
+                    }
+                </td>
+            </tr>
+            <tr>
+                <td class="fw-bold">Correo:</td>
+                <td>
+                    @if (string.IsNullOrWhiteSpace(Model.Correo))
+                    {
+                        <span class="text-muted">N/A</span>
+                    }
+                    else
+                    {
+                        @Model.Correo
+                    }
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <h6 class="text-muted border-bottom pb-2">Datos de Registro</h6>
+        <table class="table table-sm table-borderless">
+            <tr>
+                <td class="fw-bold" style="width: 130px;">Origen:</td>
+                <td><span class="badge bg-light text-dark">@Model.Origen</span></td>
+            </tr>
+            <tr>
+                <td class="fw-bold">Estado:</td>
+                <td><span class="badge bg-info">@Model.Estado</span></td>
+            </tr>
+            <tr>
+                <td class="fw-bold">Producto:</td>
+                <td>@Model.Producto</td>
+            </tr>
+            <tr>
+                <td class="fw-bold">Vendedor:</td>
+                <td>
+                    @if (!string.IsNullOrWhiteSpace(Model.VendedorNombre))
+                    {
+                        <i class="fas fa-user-check text-success me-1"></i>
+                        @Model.VendedorNombre
+                    }
+                    else
+                    {
+                        <span class="text-warning"><i class="fas fa-clock me-1"></i>Sin asignar</span>
+                    }
+                </td>
+            </tr>
+            <tr>
+                <td class="fw-bold">Fecha Registro:</td>
+                <td>@Model.FechaRegistro.ToString("dd/MM/yyyy HH:mm")</td>
+            </tr>
+        </table>
+    </div>
+</div>
+<div class="row mt-3">
+    <div class="col-12">
+        <h6 class="text-muted border-bottom pb-2">Observaciones</h6>
+        <div class="p-3 bg-light rounded" style="min-height: 60px;">
+            @if (string.IsNullOrWhiteSpace(Model.Observaciones))
+            {
+                <span class="text-muted">Sin observaciones</span>
+            }
+            else
+            {
+                @Model.Observaciones
+            }
+        </div>
+    </div>
+</div>

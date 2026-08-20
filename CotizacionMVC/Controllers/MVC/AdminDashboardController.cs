@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using CotizacionMVC.Servicios.Aplicacion.Interfaces;
 
-namespace CotizacionMVC.Controllers
+namespace CotizacionMVC.Controllers.MVC
 {
     [Authorize(Roles = "Administrador")]
     public class AdminDashboardController : Controller

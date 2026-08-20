@@ -105,11 +105,22 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 dto.Descripcion
             );
 
-            if (!string.IsNullOrWhiteSpace(dto.Tipo))
-                equipo.CompletarDetalles(dto.Tipo, dto.Tension ?? "", dto.Tecnologia ?? "");
+            if (!string.IsNullOrWhiteSpace(dto.Tipo) &&
+                !string.IsNullOrWhiteSpace(dto.Tension) &&
+                !string.IsNullOrWhiteSpace(dto.Tecnologia))
 
-            await _equipoRepository.AddAsync(equipo);
-            await _equipoRepository.SaveChangesAsync();
+            {
+                equipo.CompletarDetalles(dto.Tipo, dto.Tension, dto.Tecnologia);
+            }
+
+            if (!equipo.TieneDetallesCompletos())
+                throw new InvalidCastException("El equipo debe tener Tipo, Tensión y Tecnologia definidos");
+
+            if (!equipo.TieneCapacidad())
+                throw new InvalidCastException("El equipo debe tener una capacidad mayor a 0");
+
+                await _equipoRepository.AddAsync(equipo);
+                await _equipoRepository.SaveChangesAsync();
 
             return MapearADetalleDto(equipo);
         }
@@ -120,6 +131,11 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 ?? throw new KeyNotFoundException($"No se encontró el equipo con ID {dto.Id}");
 
             equipo.ActualizarPrecio(dto.PrecioBase);
+
+            if (!string.IsNullOrWhiteSpace(dto.Descripcion))
+            {
+                equipo.ActualizarDescripcion(dto.Descripcion);
+            }
 
             _equipoRepository.Update(equipo);
             await _equipoRepository.SaveChangesAsync();
@@ -188,6 +204,19 @@ namespace CotizacionMVC.Servicios.Aplicacion
                 .Distinct()
                 .OrderBy(s => s)
                 .ToListAsync();
+        }
+
+        public async Task<EquipoDetalleDto> ActivarAsync(Guid id)
+        {
+            var equipo = await _equipoRepository.GetByIdAsync(id)
+                ?? throw new KeyNotFoundException($"No se encontró el equipo con ID {id}");
+
+            equipo.Activar();
+
+            _equipoRepository.Update(equipo);
+            await _equipoRepository.SaveChangesAsync();
+
+            return MapearADetalleDto(equipo);
         }
     }
 }

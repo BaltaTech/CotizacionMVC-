@@ -10,7 +10,6 @@ namespace CotizacionMVC.Data.CargaDatos
             var gestorRoles = proveedorServicios.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
             var gestorUsuarios = proveedorServicios.GetRequiredService<UserManager<Usuario>>();
 
-            // Cargar roles si no existen
             string[] roles = { "Administrador", "Vendedor", "Recepcion" };
             foreach (var rol in roles)
             {
@@ -18,7 +17,6 @@ namespace CotizacionMVC.Data.CargaDatos
                     await gestorRoles.CreateAsync(new IdentityRole<Guid>(rol));
             }
 
-            // Cargar usuario administrador por defecto
             var correoAdmin = "admin@empresa.com";
             var usuarioAdmin = await gestorUsuarios.FindByEmailAsync(correoAdmin);
             if (usuarioAdmin == null)
