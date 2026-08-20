@@ -1,130 +1,254 @@
-# Sistema de Cotizaciones HVAC 
+# HVAC Quotation System
 
-##  Descripción del Proyecto
-Sistema web especializado para la gestión y control de cotizaciones en el sector de climatización (HVAC). La plataforma permite administrar de forma integral clientes, equipos e instalaciones, generando cotizaciones profesionales con cálculos automatizados de precios, márgenes de utilidad e impuestos. Desarrollado bajo un enfoque de **Domain-Driven Design (DDD)** utilizando modelos enriquecidos con lógica de negocio interna.
+## 📋 Project Description
 
-### 🎯 Características Principales
-* **Gestión de Cotizaciones:** Creación, edición estructural y seguimiento de cotizaciones comerciales.
-* **Catálogo de Equipos:** Administración del inventario de equipos HVAC con soporte nativo de precios en MXN/USD.
-* **Gestión de Clientes:** Registro centralizado con soporte multcontacto y direcciones detalladas.
-* **Múltiples Empresas:** Soporte multiempresa para diferentes razones sociales con márgenes de utilidad configurables.
-* **Generación de PDF:** Creación automática de documentos profesionales con branding corporativo mediante QuestPDF.
-* **Control de Acceso:** Esquema seguro de autenticación y autorización basado en roles (Administrador/Vendedor) vía ASP.NET Core Identity.
-* **Cálculo Automático:** Motor de precios que procesa utilidades encadenadas, IVA y sugerencias de carga térmica.
+A specialized web system for managing and controlling quotations in the HVAC (Heating, Ventilation, and Air Conditioning) sector. The platform enables comprehensive management of clients, equipment, and installations, generating professional quotations with automated calculations for pricing, profit margins, and taxes.
+
+Developed following **Domain-Driven Design (DDD)** principles with rich domain models that encapsulate business logic internally.
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## 🎯 Key Features
+
+- **Quotation Management:** Creation, structural editing, and tracking of commercial quotations.
+- **Equipment Catalog:** Management of HVAC equipment inventory with native support for MXN/USD pricing.
+- **Client Management:** Centralized registration with multi-contact support and detailed addresses.
+- **Multi-Company Support:** Multi-tenant architecture with configurable profit margins.
+- **PDF Generation:** Automatic generation of professional documents with corporate branding using QuestPDF.
+- **Access Control:** Secure authentication and role-based authorization (Administrator/Seller) via ASP.NET Core Identity.
+- **Automated Calculations:** Pricing engine processing chained profits, VAT, and thermal load suggestions.
+
+---
+
+## 🛠️ Technology Stack
 
 ### Backend
-* **.NET 8** - Framework principal del ecosistema.
-* **ASP.NET Core MVC** - Arquitectura de presentación basada en el patrón Modelo-Vista-Controlador.
-* **Entity Framework Core** - ORM para el mapeo y acceso eficiente a datos.
-* **PostgreSQL** - Motor de base de datos relacional para entornos de producción.
-* **ASP.NET Core Identity** - Sistema de gestión de usuarios, sesiones y políticas de seguridad.
+
+| Technology | Purpose |
+|------------|---------|
+| .NET 8 | Core framework |
+| ASP.NET Core MVC | Presentation architecture (Model-View-Controller) |
+| Entity Framework Core | ORM for data mapping and access |
+| PostgreSQL | Relational database engine |
+| ASP.NET Core Identity | User management, sessions, and security policies |
 
 ### Frontend
-* **Razor Views** - Motor de plantillas dinámicas del lado del servidor.
-* **Bootstrap 5** - Framework CSS para maquetación responsiva.
-* **jQuery** - Manipulación del DOM e interacciones asíncronas en el cliente.
-* **Font Awesome** - Set de iconografía vectorial.
 
-### Generación de Documentos
-* **QuestPDF** - Librería avanzada para el diseño y maquetación de archivos PDF profesionales.
+| Technology | Purpose |
+|------------|---------|
+| Razor Views | Server-side dynamic templating |
+| Bootstrap 5 | Responsive CSS framework |
+| jQuery | DOM manipulation and async interactions |
+| Font Awesome | Vector iconography |
 
-### Arquitectura y Patrones
-* **Domain-Driven Design (DDD):** Modelos y entidades ricas que encapsulan el comportamiento y las reglas de negocio.
-* **Value Objects:** Inmutabilidad aplicada a conceptos del dominio como `Contacto`, `Dirección` y `Dinero`.
-* **Repository Pattern:** Capa de abstracción para el desacoplamiento de la persistencia de datos.
-* **Dependency Injection:** Inversión de control nativa para la gestión de ciclo de vida de los servicios.
+### Document Generation
+
+| Technology | Purpose |
+|------------|---------|
+| QuestPDF | Advanced PDF design and layout generation |
+
+### Architecture & Patterns
+
+| Pattern | Application |
+|---------|-------------|
+| **Domain-Driven Design (DDD)** | Rich domain models encapsulating business rules |
+| **Value Objects** | Immutability applied to domain concepts (Contact, Address, Money) |
+| **Repository Pattern** | Abstraction layer for data persistence decoupling |
+| **Dependency Injection** | Native inversion of control for service lifecycle management |
 
 ---
 
-## 📁 Estructura del Proyecto
-
-```text
+## 📁 Project Structure
 CotizacionMVC/
-├── Controllers/              # Controladores de la arquitectura MVC
-│   ├── AutenticacionController.cs
-│   ├── ClienteController.cs
-│   ├── CotizacionController.cs
-│   ├── EmpresaController.cs
-│   ├── EquipoController.cs
-│   └── UsuariosController.cs
-├── Models/                   # Modelos y lógica de Dominio
-│   ├── Entidades/            # Entidades ricas enriquecidas con lógica interna
-│   │   ├── Cliente.cs
-│   │   ├── Cotizacion.cs
-│   │   ├── Empresa.cs
-│   │   ├── Equipo.cs
-│   │   ├── Instalacion.cs
-│   │   ├── ItemCotizacion.cs
-│   │   ├── ItemInstalacion.cs
-│   │   ├── Lead.cs
-│   │   ├── Seguimiento.cs
-│   │   └── Usuario.cs
-│   ├── Enums/                # Enumeradores globales del sistema
-│   ├── Valor/                # Objetos de Valor (Value Objects Inmutables)
-│   │   ├── Contacto.cs
-│   │   ├── Dinero.cs
-│   │   └── Direccion.cs
-│   └── Reglas/               # Validaciones y especificaciones de negocio
-├── Data/                     # Capa de infraestructura de persistencia
-│   └── ApplicationDbContext.cs
-├── Servicios/                # Servicios de aplicación e infraestructura externa
-│   ├── IDocumento.cs
-│   └── PdfCotizacion.cs
-├── Views/                    # Vistas e interfaces Razor (.cshtml)
-│   ├── Autenticacion/
-│   ├── Cliente/
-│   ├── Cotizacion/
-│   ├── Empresa/
-│   ├── Equipo/
-│   └── Usuarios/
-└── wwwroot/                  # Recursos estáticos de la aplicación
-    ├── css/
-    ├── js/
-    ├── lib/
-    └── pdf/cotizaciones/     # Directorio de almacenamiento temporal de PDFs
+├── Controllers/ # MVC Architecture Controllers
+│ ├── AutenticacionController.cs
+│ ├── ClienteController.cs
+│ ├── CotizacionController.cs
+│ ├── EmpresaController.cs
+│ ├── EquipoController.cs
+│ └── UsuariosController.cs
+├── Models/ # Domain Models and Logic
+│ ├── Entidades/ # Rich Entities with internal logic
+│ │ ├── Cliente.cs
+│ │ ├── Cotizacion.cs
+│ │ ├── Empresa.cs
+│ │ ├── Equipo.cs
+│ │ ├── Instalacion.cs
+│ │ ├── ItemCotizacion.cs
+│ │ ├── ItemInstalacion.cs
+│ │ ├── Lead.cs
+│ │ ├── Seguimiento.cs
+│ │ └── Usuario.cs
+│ ├── Enums/ # System-wide enumerations
+│ ├── Valor/ # Immutable Value Objects
+│ │ ├── Contacto.cs
+│ │ ├── Dinero.cs
+│ │ └── Direccion.cs
+│ └── Reglas/ # Business validations and specifications
+├── Data/ # Persistence Infrastructure Layer
+│ └── ApplicationDbContext.cs
+├── Servicios/ # Application and External Infrastructure Services
+│ ├── IDocumento.cs
+│ └── PdfCotizacion.cs
+├── Views/ # Razor Views and Interfaces (.cshtml)
+│ ├── Autenticacion/
+│ ├── Cliente/
+│ ├── Cotizacion/
+│ ├── Empresa/
+│ ├── Equipo/
+│ └── Usuarios/
+└── wwwroot/ # Static Application Resources
+├── css/
+├── js/
+├── lib/
+└── pdf/cotizaciones/ # Temporary PDF storage directory
 
- Instalación y ConfiguraciónPrerrequisitos.NET 8 SDKPostgreSQL (Configurable a SQL Server si se prefiere)JetBrains Rider o Visual Studio 2022 / VS CodePasos de InstalaciónClonar el repositorio:Bashgit clone [https://github.com/BaltaTech/Ventas.git](https://github.com/BaltaTech/Ventas.git)
-cd Ventas
-Configurar la base de datos:Modifica el archivo appsettings.json dentro de la raíz con tu cadena de conexión local:JSON{
+text
+
+---
+
+## 🚀 Installation & Setup
+
+### Prerequisites
+
+- .NET 8 SDK
+- PostgreSQL (configurable to SQL Server if preferred)
+- JetBrains Rider, Visual Studio 2022, or VS Code
+
+### Installation Steps
+
+**1. Clone the repository:**
+
+```bash
+git clone https://github.com/BaltaTech/CotizacionMVC-.git
+cd CotizacionMVC
+2. Configure the database:
+
+Modify the appsettings.json file in the root directory with your local connection string:
+
+json
+{
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Database=CotizacionDB;Username=postgres;Password=tu-password"
+    "DefaultConnection": "Host=localhost;Database=CotizacionDB;Username=postgres;Password=your-password"
   }
 }
-Restaurar dependencias y aplicar migraciones:Bash# Restaurar paquetes de NuGet
+3. Restore dependencies and apply migrations:
+
+bash
+# Restore NuGet packages
 dotnet restore
 
-# Crear y aplicar la estructura inicial en la base de datos
+# Create and apply the initial database structure
 dotnet ef migrations add InitialCreate
 dotnet ef database update
-Ejecutar el proyecto:Bashdotnet run
-La aplicación se levantará localmente en los puertos correspondientes:HTTP: http://localhost:5000HTTPS: https://localhost:5001🔐 Autenticación y RolesCredenciales por Defecto (Seed Data)CorreoContraseñaRol Asignadoadmin@empresa.comAdmin123!AdministradorPolíticas de AutorizaciónAdministrador:
-Acceso irrestricto a configuraciones globales, catálogos, auditorías y control de usuarios.Vendedor:
-Permisos enfocados a la gestión operativa: visualización de equipos, creación de clientes y emisión de cotizaciones.Usuario Anónimo: Acceso restringido exclusivamente al portal de Login.
-📊 Flujo de Trabajo y Reglas de Negocio.
- Ciclo de una CotizaciónSelección del Cliente: Vinculación directa desde el catálogo maestro.Carga de Equipos: Selección de ítems técnicos configurados previamente.Servicios de Instalación: Inclusión opcional de mano de obra y viáticos.Cálculo de Precios:
-El núcleo del dominio procesa en cascada:$$\text{Precio Final} = \text{Precio Base} \times (1 + \text{Utilidad Empresa}\%) \times (1 + \text{Utilidad Vendedor}\%)$$Impuestos y Totales:
- Aplicación automatizada del IVA (16%) y conversión a la moneda base.Emisión: Compilación limpia del archivo PDF listo para su envío comercial.2. Matriz de Reglas TécnicasEntidad /
-FlujoRegla de NegocioDescripción TécnicaEquiposMoneda restringida por fabricanteEquipos marcas Trane y York se cotizan estrictamente en USD.
-Otras marcas en MXN.ClientesContacto MandatorioNo se permite el alta de clientes sin al menos un medio de contacto válido (Email/Teléfono).
-FinanzasValidaciones numéricasTodos los costos base y precios de lista deben ser estrictamente mayores a cero ($>0$).EvoluciónMáquina de EstadosLos estados de las cotizaciones siguen un flujo lineal hacia adelante; no se permite el retroceso de fases comerciales.
-🔧 Configuración AvanzadaTipo de Cambio FinancieroEl sistema centraliza las tasas de conversión dentro de la entidad de cotización para asegurar consistencia transaccional histórica:C#// Ubicado en: Models/Entidades/Cotizacion.cs
+4. Run the project:
+
+bash
+dotnet run
+The application will start on the following ports:
+
+HTTP: http://localhost:5000
+
+HTTPS: https://localhost:5001
+
+🔐 Authentication & Roles
+Default Credentials (Seed Data)
+Email	Password	Assigned Role
+admin@empresa.com	Admin123!	Administrator
+Authorization Policies
+Role	Permissions
+Administrator	Full access to global configurations, catalogs, audits, and user management
+Seller	Operational access: equipment viewing, client creation, and quotation issuance
+Anonymous User	Restricted access exclusively to the Login portal
+📊 Workflow & Business Rules
+Quotation Lifecycle
+Stage	Description
+Client Selection	Direct linking from the master catalog
+Equipment Loading	Selection of pre-configured technical items
+Installation Services	Optional inclusion of labor and expenses
+Price Calculation	Domain core processes the cascade:
+Final Price = Base Price × (1 + Company Profit%) × (1 + Seller Profit%)
+Taxes & Totals	Automated application of VAT (16%) and base currency conversion
+Issuance	Clean PDF compilation ready for commercial delivery
+Technical Rules Matrix
+Entity / Flow	Business Rule	Technical Description
+Equipment	Currency restricted by manufacturer	Trane and York brands are quoted strictly in USD. Other brands in MXN.
+Clients	Mandatory Contact	Client registration is not allowed without at least one valid contact method (Email/Phone).
+Finance	Numeric Validations	All base costs and list prices must be strictly greater than zero (
+>
+0
+>0).
+Evolution	State Machine	Quotation states follow a linear forward flow; backward phase transitions are not permitted.
+⚙️ Advanced Configuration
+Financial Exchange Rate
+The system centralizes conversion rates within the quotation entity to ensure historical transactional consistency:
+
+csharp
+// Located in: Models/Entidades/Cotizacion.cs
 public decimal ObtenerTipoCambioActual()
 {
-    return 20.50m; // Centralizado y configurable según necesidades del negocio
+    return 20.50m; // Centralized and configurable per business needs
 }
-Márgenes por Defecto: Utilidad Corporativa: 20% | Comisión de Venta: 10%.🧪 Pruebas de SoftwareEl proyecto incluye un conjunto de pruebas automatizadas destinadas a asegurar que el núcleo de cálculo no sufra regresiones:Bash# Ejecutar la suite completa de pruebas
+Default Margins:
+
+Corporate Profit: 20%
+
+Sales Commission: 10%
+
+🧪 Software Testing
+The project includes an automated test suite to ensure the calculation core does not suffer regressions:
+
+bash
+# Run the complete test suite
 dotnet test
 
-# Filtrar ejecuciones exclusivas del dominio (Unit Tests)
+# Filter execution exclusively for the domain (Unit Tests)
 dotnet test --filter "Category=Unit"
- DesplieguePublicación Local / IISBashdotnet publish --configuration Release --output ./publish
-Implementación en Azure CloudBash# Empaquetar artefactos de producción
+🚀 Deployment
+Local / IIS Publishing
+bash
+dotnet publish --configuration Release --output ./publish
+Azure Cloud Deployment
+bash
+# Package production artifacts
 dotnet publish --configuration Release
 
-# Despliegue directo mediante Azure CLI
-az webapp deployment source config-zip --resource-group <tu-grupo-recursos> --name <nombre-app> --src publish.zip
- Contribución y Buenas PrácticasSi deseas colaborar en el desarrollo del módulo de cotizaciones, por favor sigue el flujo estructurado de Git:Realiza un Fork del repositorio.Crea una rama de desarrollo limpia (git checkout -b feature/nueva-funcionalidad).Guarda tus cambios bajo convenios descriptivos (git commit -m 'feat: Agrega nueva regla de cálculo').Sube tu rama al origen remoto (git push origin feature/nueva-funcionalidad).Abre un Pull Request apuntando hacia la rama main del repositorio principal.Guía de Estilo de Código InternoPresentación: Las vistas Razor y controladores web se nombran en español descriptivo para mantener cohesión con el lenguaje de negocio.Documentación: Todo método público en servicios o repositorios debe incluir comentarios estructurados en XML.DDD: Queda estrictamente prohibido colocar lógica transaccional o de negocio dentro de los Controladores o ViewModels; esta debe vivir encapsulada en las entidades de dominio.📄 LicenciaEste proyecto está distribuido bajo la licencia MIT. Consulta el archivo LICENSE para mayores detalles.
+# Direct deployment using Azure CLI
+az webapp deployment source config-zip --resource-group <your-resource-group> --name <app-name> --src publish.zip
+🤝 Contribution & Best Practices
+If you wish to collaborate on the quotation module development, please follow the structured Git workflow:
+
+Fork the repository
+
+Create a clean development branch (git checkout -b feature/new-functionality)
+
+Commit your changes with descriptive conventions (git commit -m 'feat: Add new calculation rule')
+
+Push your branch to the remote origin (git push origin feature/new-functionality)
+
+Open a Pull Request targeting the main branch of the main repository
+
+Internal Code Style Guide
+Aspect	Guideline
+Presentation	Razor Views and web controllers are named in descriptive Spanish to maintain cohesion with the business language
+Documentation	All public methods in services or repositories must include XML structured comments
+DDD	It is strictly forbidden to place transactional or business logic inside Controllers or ViewModels; this must live encapsulated within the domain entities
+📄 License
+This project is distributed under the MIT License. See the LICENSE file for details.
+
+"Enterprise-grade software development with Domain-Driven Design, Clean Architecture, and SOLID principles."
+
+text
+
+---
+
+## ¿Qué necesitas hacer?
+
+1. **Reemplaza** el contenido de tu `README.md` con el texto de arriba
+2. **Guarda el archivo**
+3. **Sube el cambio:**
+
+```bash
+git add README.md
+git commit -m "docs: Update README to English version with same structure"
+git push origin main
