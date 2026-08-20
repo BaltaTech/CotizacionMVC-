@@ -4,23 +4,51 @@
 
 ---
 
+## 📋 Overview
+
+CotizacionMVC is a comprehensive web application for the HVAC (Heating, Ventilation, and Air Conditioning) industry. It streamlines the entire quotation lifecycle—from client registration and equipment selection to PDF generation and sales pipeline management.
+
+Built with **Domain-Driven Design (DDD)** , **Clean Architecture**, and **SOLID principles**, this system demonstrates enterprise-grade software development with a strong focus on maintainability, scalability, and business logic encapsulation.
+
+---
+
+## 🎯 Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Quotation Management** | Create, edit, and track commercial quotes |
+| **Equipment Catalog** | Manage HVAC equipment with MXN/USD pricing support |
+| **Client Management** | Centralized registry with multi-contact support |
+| **Sales Pipeline** | Lead management, follow-ups, and opportunity tracking |
+| **Multi-Company** | Configurable profit margins per company |
+| **PDF Generation** | Professional documents with corporate branding |
+| **Role-Based Access** | Administrator, Seller, Receptionist roles |
+| **Real-Time Notifications** | SignalR-powered alerts |
+| **Dashboards** | Receptionist and seller performance dashboards |
+
+---
+
 ## 🏗️ Architecture Overview
 
 ### Clean Architecture + DDD
 
-![Arquitectura General](./docs/diagramas/01-arquitectura-general.png)
+The system follows a layered architecture with clear separation of concerns:
 
-### Layers & Dependencies
+| Layer | Responsibility |
+|-------|----------------|
+| **Presentation** | MVC Controllers, Razor Views, ViewModels, SignalR Hubs |
+| **Application** | Services, DTOs, Interfaces, Dependency Injection |
+| **Domain** | Entities, Value Objects, Business Rules, Strategy Pattern |
+| **Infrastructure** | Repositories, EF Core, PostgreSQL, Background Services |
 
-![Capas y Dependencias](./docs/diagramas/02-capas-dependencias.png)
+### Architecture Diagrams
 
-### Domain & Relationships
-
-![Dominio y Relaciones](./docs/diagramas/03-dominio-relaciones.png)
-
-### API REST & JWT
-
-![API REST y JWT](./docs/diagramas/04-api-jwt.png)
+| Diagram | Description |
+|---------|-------------|
+| ![Arquitectura General](./docs/diagramas/01-arquitectura-general.puml.png) | High-level system overview with actors and external systems |
+| ![Capas y Dependencias](./docs/diagramas/02-capas-dependencias.puml.png) | Clean Architecture layer separation and dependencies |
+| ![Dominio y Relaciones](./docs/diagramas/03-dominio-relaciones.puml.png) | Rich domain model with entities, value objects, and relationships |
+| ![API REST y JWT](./docs/diagramas/04-api-jwt.puml.png) | REST API structure, JWT authentication flow, and endpoints |
 
 ---
 
@@ -108,9 +136,19 @@ text
 
 ## 🔐 Authentication & Roles
 
+### Default Credentials
+
 | Email | Password | Role |
 |-------|----------|------|
 | `admin@empresa.com` | `Admin123!` | Administrator |
+
+### Authorization Policies
+
+| Role | Permissions |
+|------|-------------|
+| **Administrator** | Full system access |
+| **Seller** | Quotation, client, and follow-up management |
+| **Receptionist** | Client registration and seller assignment |
 
 ---
 
@@ -118,9 +156,23 @@ text
 
 The system uses a **Strategy Pattern** for price calculation per brand:
 
-- **Trane:** `Price (USD) = Base Price × 0.31 × 1.18`
-- **Hisense / TCL:** `Price (MXN) = Base Price (list price)`
-- **Other Brands:** `Price (MXN) = Base Price × (1 + Company Profit %)`
+| Brand | Formula |
+|-------|---------|
+| **Trane** | `Price (USD) = Base Price × 0.31 × 1.18` |
+| **Hisense / TCL** | `Price (MXN) = Base Price (list price)` |
+| **Other Brands** | `Price (MXN) = Base Price × (1 + Company Profit %)` |
+
+### Total Calculation
+Equipment Subtotal (USD) + City Surcharge % → Total Equipment (USD)
+Total Equipment (USD) → Convert to MXN
+
+Installations (MXN)
+= Subtotal (MXN)
+
+16% VAT
+= Final Total (MXN)
+
+text
 
 ---
 
@@ -130,6 +182,7 @@ The system uses a **Strategy Pattern** for price calculation per brand:
 |--------|------|
 | **Equipment** | Currency restricted by brand (Trane/York → USD, Hisense/TCL → MXN) |
 | **Equipment** | Capacity required (`CapacidadToneladas > 0`) |
+| **Equipment** | Complete details required (Type, Voltage, Technology) |
 | **Client** | Contact required (phone, mobile, or email) |
 | **Client** | Address required |
 | **Quotation** | Valid area required (`AreaMetrosCuadrados > 0`) |
@@ -139,9 +192,17 @@ The system uses a **Strategy Pattern** for price calculation per brand:
 
 ## 🚀 Getting Started
 
+### Prerequisites
+
+- .NET 8 SDK
+- PostgreSQL 15+
+
+### Installation
+
 ```bash
-# Clone
-git clone https://github.com/yourusername/CotizacionMVC.git
+# Clone the repository
+git clone https://github.com/BaltaTech/CotizacionMVC-.git
+cd CotizacionMVC
 
 # Restore dependencies
 dotnet restore
@@ -149,18 +210,38 @@ dotnet restore
 # Update database
 dotnet ef database update
 
-# Run
+# Run the application
 dotnet run
-Default Login: admin@empresa.com / Admin123!
+Default Login
+text
+Email: admin@empresa.com
+Password: Admin123!
+API Documentation
+Once running, access Swagger at:
 
+text
+https://localhost:7271/swagger/index.html
 📄 Documentation
-UML Diagrams (PlantUML)
+Document	Location
+UML Diagrams	./docs/diagramas/
+PlantUML Source	./docs/uml/
+API Documentation	/swagger (local)
+🧪 Testing
+bash
+# Run all tests
+dotnet test
 
-Swagger API (runs locally)
-
+# Run only unit tests
+dotnet test --filter "Category=Unit"
 👤 Author
 Airey Baltazar
-GitHub • LinkedIn
+
+GitHub: @BaltaTech
+
+LinkedIn: linkedin.com/in/...
+
+📝 License
+MIT License
 
 "Enterprise-grade software development with Domain-Driven Design, Clean Architecture, and SOLID principles."
 
@@ -168,27 +249,13 @@ text
 
 ---
 
-## Resumen de cambios
+## Instrucciones
 
-| Antes | Ahora |
-|-------|-------|
-| Texto plano mal formateado | Imágenes profesionales de UML |
-| Estructura confusa | Diagramas claros y organizados |
-| README poco atractivo | README visual y profesional |
-| No se ve la arquitectura | Se ve la arquitectura de un vistazo |
-
----
-
-## Subir a GitHub
+1. **Reemplaza** el contenido de tu `README.md` con el texto de arriba
+2. **Guarda** el archivo
+3. **Sube** los cambios:
 
 ```bash
-# 1. Generar imágenes PNG desde PlantText
-# 2. Guardar en docs/diagramas/
-
-git add docs/diagramas/*.png
-git add docs/uml/*.puml
 git add README.md
-
-git commit -m "docs: Add UML diagrams as images and professional README"
-
-git push origin feature/jwt-implementation
+git commit -m "docs: Update README with professional format and correct image names"
+git push origin main
