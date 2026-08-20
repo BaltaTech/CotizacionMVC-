@@ -1,232 +1,62 @@
-# Sistema de Cotizaciones HVAC - CotizacionMVC
+# CotizacionMVC
 
-## 📋 Descripción del Proyecto
-
-Sistema web especializado para la gestión y control de cotizaciones en el sector de climatización (HVAC). La plataforma permite administrar de forma integral clientes, equipos e instalaciones, generando cotizaciones profesionales con cálculos automatizados de precios, márgenes de utilidad e impuestos.
-
-Desarrollado bajo un enfoque de **Domain-Driven Design (DDD)** con modelos enriquecidos que encapsulan la lógica de negocio, aplicando principios SOLID y arquitectura limpia (Clean Architecture).
-
-### 🎯 Características Principales
-
-- **Gestión de Cotizaciones:** Creación, edición estructural y seguimiento de cotizaciones comerciales.
-- **Catálogo de Equipos:** Administración del inventario de equipos HVAC con soporte nativo de precios en MXN/USD.
-- **Gestión de Clientes:** Registro centralizado con soporte multicontacto y direcciones detalladas.
-- **Pipeline de Ventas:** Gestión de Leads, seguimientos y oportunidades comerciales.
-- **Múltiples Empresas:** Soporte multiempresa con márgenes de utilidad configurables.
-- **Generación de PDF:** Creación automática de documentos profesionales con branding corporativo.
-- **Control de Acceso:** Autenticación y autorización basada en roles (Administrador, Vendedor, Recepción).
-- **Cálculo Automático:** Motor de precios con estrategias por marca, IVA y sugerencias de carga térmica.
-- **Notificaciones en Tiempo Real:** Sistema de alertas mediante SignalR.
-- **Dashboards:** Paneles de control para recepción y vendedores.
+**A Professional HVAC Quotation Management System**
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## 🚀 Overview
 
-### Backend
-| Tecnología | Versión | Propósito |
-|------------|---------|-----------|
-| **.NET** | 8 | Framework principal |
-| **ASP.NET Core MVC** | 8 | Arquitectura de presentación |
-| **Entity Framework Core** | 8 | ORM para acceso a datos |
-| **PostgreSQL** | 15+ | Base de datos relacional |
-| **ASP.NET Core Identity** | 8 | Autenticación y autorización |
-| **SignalR** | 8 | Notificaciones en tiempo real |
+CotizacionMVC is a comprehensive web application designed for the HVAC (Heating, Ventilation, and Air Conditioning) industry. It streamlines the entire quotation lifecycle—from client registration and equipment selection to PDF generation and sales pipeline management.
 
-### Frontend
-| Tecnología | Propósito |
-|------------|-----------|
-| **Razor Views** | Motor de plantillas del lado del servidor |
-| **Bootstrap 5** | Framework CSS responsivo |
-| **jQuery** | Manipulación del DOM e interacciones AJAX |
-| **Font Awesome** | Iconografía vectorial |
-
-### Generación de Documentos
-| Tecnología | Propósito |
-|------------|-----------|
-| **QuestPDF** | Generación de PDF profesionales |
-
-### Arquitectura y Patrones
-| Patrón | Aplicación |
-|--------|------------|
-| **Domain-Driven Design (DDD)** | Modelos y entidades ricas con lógica de negocio |
-| **Value Objects** | Inmutabilidad en conceptos como `Contacto`, `Dirección`, `Dinero` |
-| **Repository Pattern** | Abstracción de la capa de persistencia |
-| **Dependency Injection** | Inversión de control nativa |
-| **Strategy Pattern** | Cálculo de precios por marca |
-| **Open/Closed Principle** | Dominio abierto a extensión, cerrado a modificación |
+Built with **Domain-Driven Design (DDD)**, **Clean Architecture**, and **SOLID principles**, this system demonstrates enterprise-grade software development with a strong focus on maintainability, scalability, and business logic encapsulation.
 
 ---
 
-## 📁 Estructura del Proyecto
-CotizacionMVC/
-├── Controllers/ # Controladores MVC
-│ ├── AutenticacionController.cs
-│ ├── ClienteController.cs
-│ ├── CotizacionController.cs
-│ ├── EmpresaController.cs
-│ ├── EquipoController.cs
-│ ├── HomeController.cs
-│ ├── InstalacionController.cs
-│ ├── NotificacionController.cs
-│ ├── RecepcionController.cs
-│ ├── RecepcionDashboardController.cs
-│ ├── SeguimientoController.cs
-│ └── UsuariosController.cs
-│
-├── Models/ # Capa de Dominio
-│ ├── Entidades/ # Entidades Ricas (DDD)
-│ │ ├── Cliente.cs 
-│ │ ├── Cotizacion.cs 
-│ │ ├── Empresa.cs 
-│ │ ├── Equipo.cs 
-│ │ ├── Instalacion.cs
-│ │ ├── ItemCotizacion.cs
-│ │ ├── ItemInstalacion.cs
-│ │ ├── Lead.cs
-│ │ ├── Notificacion.cs
-│ │ ├── Seguimiento.cs
-│ │ └── Usuario.cs
-│ │
-│ ├── Enums/ # Enumeradores del sistema
-│ │ ├── CategoriaLead.cs
-│ │ ├── EstadoCliente.cs
-│ │ ├── EstadoCotizacion.cs
-│ │ ├── EstadoSeguimiento.cs
-│ │ ├── MedioContacto.cs
-│ │ ├── MotivoNoCotizable.cs
-│ │ ├── OrigenCliente.cs
-│ │ ├── OrigenLead.cs
-│ │ ├── ResultadoSeguimiento.cs
-│ │ ├── RolUsuario.cs
-│ │ ├── TipoEspacio.cs
-│ │ └── TipoMarca.cs
-│ │
-│ ├── Valor/ # Value Objects (Inmutables)
-│ │ ├── Contacto.cs
-│ │ ├── Dinero.cs
-│ │ └── Direccion.cs
-│ │
-│ └── Reglas/ # Reglas de Negocio
-│ ├── ReglasNegocio.cs
-│ ├── ICalculadoraPrecio.cs
-│ ├── CalculadoraPrecioTrane.cs
-│ ├── CalculadoraPrecioYork.cs
-│ ├── CalculadoraPrecioHisense.cs
-│ ├── CalculadoraPrecioTCL.cs
-│ └── CalculadoraPrecioEstandar.cs
-│
-├── ViewModels/ # ViewModels y DTOs
-│ ├── Cliente/
-│ ├── Cotizacion/
-│ ├── Empresa/
-│ ├── Equipo/
-│ ├── Instalacion/
-│ ├── Recepcion/
-│ ├── Seguimientos/
-│ └── Usuarios/ 
-│ └── CrearUsuarioViewModel.cs
-│
-├── Servicios/ # Capa de Aplicación
-│ ├── Aplicacion/
-│ │ ├── Interfaces/ # Contratos de servicios
-│ │ │ ├── IAutorizacionServicio.cs
-│ │ │ ├── IClienteServicio.cs
-│ │ │ ├── ICotizacionServicio.cs
-│ │ │ ├── IEmpresaServicio.cs
-│ │ │ ├── IEquipoServicio.cs
-│ │ │ ├── IInstalacionServicio.cs
-│ │ │ ├── IRecepcionServicio.cs
-│ │ │ └── ISeguimientoServicio.cs
-│ │ │
-│ │ ├── AutorizacionServicio.cs
-│ │ ├── ClienteServicio.cs
-│ │ ├── CotizacionServicio.cs 
-│ │ ├── EmpresaServicio.cs
-│ │ ├── EquipoServicio.cs 
-│ │ ├── InstalacionServicio.cs
-│ │ ├── RecepcionServicio.cs
-│ │ └── SeguimientoServicio.cs
-│ │
-│ ├── Infraestructura/
-│ │ ├── NotificacionServicio.cs
-│ │ └── RecordatorioBackgroundService.cs
-│ │
-│ └── IDocumento.cs
-│
-├── Data/ # Capa de Infraestructura
-│ ├── ApplicationDbContext.cs
-│ ├── Repositorios/
-│ │ ├── Interfaces/ # Contratos de repositorios
-│ │ │ ├── IClienteRepository.cs
-│ │ │ ├── ICotizacionRepository.cs
-│ │ │ ├── IEmpresaRepository.cs
-│ │ │ ├── IEquipoRepository.cs
-│ │ │ ├── IInstalacionRepository.cs
-│ │ │ └── ISeguimientoRepository.cs
-│ │ │
-│ │ └── Implementaciones/ # Implementaciones concretas
-│ │ ├── BaseRepository.cs
-│ │ ├── ClienteRepository.cs
-│ │ ├── CotizacionRepository.cs
-│ │ ├── EmpresaRepository.cs
-│ │ ├── EquipoRepository.cs
-│ │ ├── InstalacionRepository.cs
-│ │ └── SeguimientoRepository.cs
-│ │
-│ ├── CargaDatos/
-│ │ └── CargadorDatosIniciales.cs
-│ │
-│ └── Importadores/
-│ ├── ImportadorEquipos.cs
-│ └── ImportadorInstalaciones.cs
-│
-├── Hubs/ # SignalR Hubs
-│ └── NotificacionHub.cs
-│
-├── Views/ # Vistas Razor (.cshtml)
-│ ├── Autenticacion/
-│ ├── Cliente/
-│ ├── Cotizacion/
-│ ├── Empresa/
-│ ├── Equipo/
-│ ├── Home/
-│ ├── Instalacion/
-│ ├── Recepcion/
-│ ├── Seguimiento/
-│ ├── Shared/
-│ └── Usuarios/
-│
-├── Tests/
-│ ├── Pruebas Unitarias/
-│ │ ├── Entidades/
-│ │ │ ├── CotizacionTests.cs
-│ │ │ ├── CotizacionTotalesTests.cs
-│ │ │ └── SeguimientoTests.cs
-│ │ └── ValueObjects/
-│ │ ├── ContactoTests.cs
-│ │ ├── DineroTests.cs
-│ │ └── DireccionTests.cs
-│ │
-│ └── Pruebas Integracion/
-│ └── DetectarErrorCotizacionTests.cs
-│
-├── Program.cs # Punto de entrada
-├── appsettings.json
-└── README.md
+## 🎯 Key Features
 
-text
+### Core Business Features
+- **Quotation Management** – Create, edit, and track commercial quotes.
+- **Equipment Catalog** – Manage HVAC equipment inventory with support for MXN/USD pricing.
+- **Client Management** – Centralized client registry with multi-contact support.
+- **Sales Pipeline** – Lead management, follow-ups, and opportunity tracking.
+- **Multi-Company Support** – Configurable profit margins per company.
+- **PDF Generation** – Professional documents with corporate branding.
+- **Role-Based Access Control** – Administrator, Seller, Receptionist.
+- **Real-Time Notifications** – SignalR-powered alerts.
+- **Dashboards** – Receptionist and seller performance dashboards.
+
+### Technical Highlights
+- **Rich Domain Model** – Business logic encapsulated within entities, not services.
+- **Value Objects** – Immutable concepts like `Money`, `Contact`, `Address`.
+- **Strategy Pattern** – Price calculation per brand (Trane, York, Hisense, TCL, Standard).
+- **Repository Pattern** – Abstraction of the persistence layer.
+- **Dependency Injection** – Native .NET IoC container.
+- **Background Services** – Automated reminders and scheduled tasks.
 
 ---
 
-## 🏗️ Arquitectura
+## 🛠️ Technology Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Backend** | .NET 8, ASP.NET Core MVC, Entity Framework Core, PostgreSQL |
+| **Authentication** | ASP.NET Core Identity, Role-Based Authorization |
+| **Real-Time** | SignalR |
+| **Document Generation** | QuestPDF |
+| **Frontend** | Razor Views, Bootstrap 5, jQuery, Font Awesome |
+| **Testing** | xUnit, FluentAssertions, Moq |
+| **Architecture** | Clean Architecture, DDD, SOLID |
+
+---
+
+## 🏗️ Architecture Overview
 
 ### Clean Architecture + DDD
 ┌─────────────────────────────────────────────────────────────┐
 │ PRESENTATION LAYER │
 │ (Controllers, Views, ViewModels) │
 │ │
-│ ✅ MVC Controllers ✅ Razor Views ✅ SignalR Hubs │
+│ MVC Controllers │ Razor Views │ SignalR Hubs │
 └─────────────────────────────────────────────────────────────┘
 │
 ▼
@@ -234,7 +64,7 @@ text
 │ APPLICATION LAYER │
 │ (Services, DTOs, Interfaces) │
 │ │
-│ ✅ Servicios de Aplicación ✅ Dependency Injection │
+│ Application Services │ Dependency Injection │
 └─────────────────────────────────────────────────────────────┘
 │
 ▼
@@ -242,8 +72,8 @@ text
 │ DOMAIN LAYER │
 │ (Entities, Value Objects, Rules) │
 │ │
-│ ✅ Entidades Ricas ✅ Value Objects ✅ Reglas Negocio │
-│ ✅ OCP Cumplido ✅ Validaciones encapsuladas │
+│ Rich Entities │ Value Objects │ Business Rules │
+│ OCP Compliant │ Encapsulated │ Strategy Pattern │
 └─────────────────────────────────────────────────────────────┘
 │
 ▼
@@ -251,116 +81,259 @@ text
 │ INFRASTRUCTURE LAYER │
 │ (Repositories, Data, External Services) │
 │ │
-│ ✅ Repository Pattern ✅ EF Core ✅ PostgreSQL │
-│ ✅ Importadores ✅ Background Services │
+│ Repository Pattern │ EF Core │ PostgreSQL │
+│ Importers │ Background Services │
 └─────────────────────────────────────────────────────────────┘
 
 text
 
----
+### 📐 Architecture Diagrams
 
-## 🔐 Autenticación y Roles
-
-### Credenciales por Defecto
-
-| Correo | Contraseña | Rol |
-|--------|------------|-----|
-| admin@empresa.com | Admin123! | Administrador |
-
-### Políticas de Autorización
-
-| Rol | Permisos |
-|-----|----------|
-| **Administrador** | Acceso total a todas las funcionalidades del sistema |
-| **Vendedor** | Gestión de cotizaciones, clientes y seguimientos |
-| **Recepción** | Registro de clientes, asignación de vendedores y dashboard |
-| **Usuario Anónimo** | Acceso exclusivo a la pantalla de login |
+| Diagram | Description |
+|---------|-------------|
+| [Architecture General](./docs/diagramas/01-arquitectura-general.png) | High-level system overview |
+| [Layers & Dependencies](./docs/diagramas/02-capas-dependencias.png) | Clean Architecture layer separation |
+| [Domain & Relationships](./docs/diagramas/03-dominio-relaciones.png) | Rich domain model with entities and value objects |
+| [API & JWT](./docs/diagramas/04-api-jwt.png) | REST API structure and authentication flow |
 
 ---
 
-## 📊 Flujo de Trabajo - Cotización
+## 🔐 Authentication & Roles
 
-### Ciclo de Vida
-Registro de Cliente
-│
-▼
-Selección de Equipos
-│
-▼
-Cálculo de Precios
-├── Precio Base × Utilidad Empresa%
-├── Subtotal + Utilidad Vendedor%
-└── + IVA (16%)
-│
-▼
-Generación de PDF
-│
-▼
-Envío al Cliente
+### Default Credentials
 
+| Email | Password | Role |
+|-------|----------|------|
+| `admin@empresa.com` | `Admin123!` | Administrator |
 
-### Reglas de Negocio
+### Authorization Policies
 
-| Entidad | Regla | Descripción Técnica |
-|---------|-------|---------------------|
-| **Equipo** | Moneda restringida por fabricante | Trane/York → USD, Hisense/TCL → MXN |
-| **Equipo** | Capacidad requerida | No se permite equipo con CapacidadToneladas = 0 |
-| **Equipo** | Detalles completos | Tipo, Tensión y Tecnología son obligatorios |
-| **Cliente** | Contacto obligatorio | Debe tener al menos un medio de contacto |
-| **Cliente** | Dirección obligatoria | Debe tener dirección registrada |
-| **Cotización** | Área válida | ÁreaMetrosCuadrados > 0 |
-| **Cotización** | Recargo ciudad | Solo aplica a equipos Trane |
-| **Cotización** | Estado lineal | No se permite retroceso de estados |
-
-### Métodos de Dominio Implementados
-
-| Método | Ubicación | Estado | Implementado en |
-|--------|-----------|--------|-----------------|
-| `ActualizarDescripcion()` | `Equipo` | ✅ | `EquipoServicio.ActualizarAsync()` |
-| `TieneDetallesCompletos()` | `Equipo` | ✅ | `EquipoServicio.CrearAsync()` |
-| `TieneCapacidad()` | `Equipo` | ✅ | `EquipoServicio.CrearAsync()` + `Cotizacion.AgregarEquipo()` |
-| `Activar()` | `Equipo` | ✅ | `EquipoServicio.ActivarAsync()` |
-| `AgregarUsuarioAcceso()` | `Empresa` | ✅ | `UsuariosController.Crear()` |
-| `ActualizarRecargoCiudad()` | `Cotizacion` | ⏳ | Pendiente de análisis de negocio |
+| Role | Permissions |
+|------|-------------|
+| **Administrator** | Full system access |
+| **Seller** | Quotation, client, and follow-up management |
+| **Receptionist** | Client registration and seller assignment |
 
 ---
 
-## 💰 Cálculo de Precios
+## 💰 Pricing Engine (Strategy Pattern)
 
-### Motor de Precios (Strategy Pattern)
+The system uses a **Strategy Pattern** for price calculation per brand:
+Final Price = Base Price × Price Factor × Profit Factor
 
-```csharp
-Precio Final = Precio Base × FactorPrecio × FactorUtilidad
+// Trane Equipment
+Price (USD) = Base Price × 0.31 × 1.18
+Price (MXN) = Price (USD) × Exchange Rate
 
-// Para Trane:
-PrecioUSD = PrecioBase × 0.31 × 1.18
-PrecioMXN = PrecioUSD × TipoCambio
+// Hisense / TCL Equipment
+Price (MXN) = Base Price (list price)
+Price (USD) = Price (MXN) / Exchange Rate
 
-// Para Hisense/TCL:
-PrecioMXN = PrecioBase (precio de lista)
-PrecioUSD = PrecioMXN / TipoCambio
+// Other Brands
+Price (MXN) = Base Price × (1 + Company Profit %)
+Price (USD) = Price (MXN) / Exchange Rate
 
-// Para otras marcas:
-PrecioMXN = PrecioBase × (1 + UtilidadEmpresa%)
-PrecioUSD = PrecioMXN / TipoCambio
-Totales
 text
-SubtotalEquipos (USD) → + RecargoCiudad% → TotalEquipos (USD)
-TotalEquipos (USD) → Convertir a MXN
-+ Instalaciones (MXN)
+
+### Total Calculation
+Equipment Subtotal (USD) + City Surcharge % → Total Equipment (USD)
+Total Equipment (USD) → Convert to MXN
+
+Installations (MXN)
 = Subtotal (MXN)
-+ IVA 16%
-= Total Final (MXN)
 
+16% IVA (VAT)
+= Final Total (MXN)
 
-🤝 Contribución
+text
+
+---
+
+## 📊 Business Rules
+
+| Entity | Rule | Technical Implementation |
+|--------|------|--------------------------|
+| **Equipment** | Currency restricted by brand | Trane/York → USD, Hisense/TCL → MXN |
+| **Equipment** | Capacity required | `CapacidadToneladas > 0` validation |
+| **Equipment** | Complete details required | Type, Voltage, Technology mandatory |
+| **Client** | Contact required | Must have phone, mobile, or email |
+| **Client** | Address required | Must have registered address |
+| **Quotation** | Valid area required | `AreaMetrosCuadrados > 0` |
+| **Quotation** | City surcharge | Only applies to Trane equipment |
+| **Quotation** | Linear state progression | No backward state transitions allowed |
+
+---
+
+## 📁 Project Structure
+CotizacionMVC/
+├── Controllers/ # MVC Controllers
+│ ├── AutenticacionController.cs
+│ ├── ClienteController.cs
+│ ├── CotizacionController.cs
+│ ├── EmpresaController.cs
+│ ├── EquipoController.cs
+│ └── ... (13 controllers)
+│
+├── Models/ # Domain Layer
+│ ├── Entidades/ # Rich Entities (DDD)
+│ │ ├── Cliente.cs
+│ │ ├── Cotizacion.cs
+│ │ ├── Equipo.cs
+│ │ ├── Lead.cs
+│ │ ├── Seguimiento.cs
+│ │ └── ... (10 entities)
+│ ├── Valor/ # Value Objects
+│ │ ├── Dinero.cs
+│ │ ├── Contacto.cs
+│ │ └── Direccion.cs
+│ ├── Enums/ # System Enums
+│ │ ├── EstadoCotizacion.cs
+│ │ ├── EstadoCliente.cs
+│ │ ├── TipoMarca.cs
+│ │ └── ... (14 enums)
+│ └── Reglas/ # Business Rules
+│ ├── ReglasNegocio.cs
+│ ├── ICalculadoraPrecio.cs
+│ └── CalculadoraPrecioTrane.cs
+│
+├── Servicios/ # Application Layer
+│ ├── Aplicacion/
+│ │ ├── Interfaces/ # Service Contracts
+│ │ │ ├── IClienteServicio.cs
+│ │ │ ├── ICotizacionServicio.cs
+│ │ │ └── ... (8 interfaces)
+│ │ └── Servicios/ # Service Implementations
+│ │ ├── ClienteServicio.cs
+│ │ ├── CotizacionServicio.cs
+│ │ └── ... (8 services)
+│ └── Infraestructura/
+│ ├── NotificacionServicio.cs
+│ └── RecordatorioBackgroundService.cs
+│
+├── Data/ # Infrastructure Layer
+│ ├── ApplicationDbContext.cs
+│ ├── Repositorios/
+│ │ ├── Interfaces/ # Repository Contracts
+│ │ └── Implementaciones/ # Repository Implementations
+│ │ ├── BaseRepository.cs
+│ │ ├── ClienteRepository.cs
+│ │ └── ... (7 repositories)
+│ └── Importadores/
+│ ├── ImportadorEquipos.cs
+│ └── ImportadorInstalaciones.cs
+│
+├── Views/ # Razor Views (.cshtml)
+├── Hubs/ # SignalR Hubs
+├── Tests/ # Unit & Integration Tests
+├── Program.cs # Entry Point
+└── appsettings.json # Configuration
+
+text
+
+---
+
+## 🧪 Testing
+
+| Test Type | Coverage |
+|-----------|----------|
+| **Unit Tests** | Domain entities, Value Objects, Services |
+| **Integration Tests** | Repository operations, End-to-end scenarios |
+
+**Tested Scenarios:**
+- ✅ Quotation total calculation
+- ✅ Equipment capacity validation
+- ✅ State transitions
+- ✅ Money conversions (USD/MXN)
+- ✅ Contact validation
+- ✅ Follow-up registration
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- .NET 8 SDK
+- PostgreSQL 15+
+- Visual Studio 2022 / VS Code
+
+### Clone & Run
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/CotizacionMVC.git
+
+# Navigate to the project
+cd CotizacionMVC
+
+# Restore dependencies
+dotnet restore
+
+# Update database (create PostgreSQL DB)
+dotnet ef database update
+
+# Run the application
+dotnet run
+Default Login
+text
+Email: admin@empresa.com
+Password: Admin123!
+📄 Documentation
+Document	Description
+Architecture Diagrams	UML diagrams (PlantUML)
+API Documentation	Swagger/OpenAPI (runs locally)
+🔧 Development Workflow
 bash
-# 1. Fork del repositorio
-# 2. Crear rama de desarrollo
-git checkout -b feature/nueva-funcionalidad
+# Create a feature branch
+git checkout -b feature/new-feature
 
-# 3. Commit con mensaje descriptivo
-git commit -m "feat: Agrega nueva regla de cálculo"
+# Commit with descriptive message
+git commit -m "feat: Add new calculation rule"
 
-# 4. Push y Pull Request
-git push origin feature/nueva-funcionalidad
+# Push and create Pull Request
+git push origin feature/new-feature
+📝 License
+This project is for portfolio demonstration purposes.
+
+👤 Author
+Airey Baltazar
+GitHub • LinkedIn
+
+📊 Key Metrics
+Architecture: Clean Architecture + DDD
+
+Patterns: Repository, DI, Strategy, Unit of Work, Background Service
+
+SOLID: ✅ All five principles applied
+
+Testing: ✅ Unit + Integration tests
+
+Documentation: ✅ Swagger + UML diagrams
+
+Security: ✅ JWT + Role-based authorization
+
+"This project demonstrates enterprise-grade software development with a focus on domain-driven design, clean architecture, and maintainable code."
+
+text
+
+---
+
+## Subir a GitHub
+
+```bash
+# 1. Agregar todos los archivos
+git add docs/
+git add README.md
+
+# 2. Commit
+git commit -m "docs: Add professional README and UML diagrams
+
+- Added README.md in English with project overview
+- Added 4 key UML diagrams:
+  - Architecture General
+  - Layers & Dependencies
+  - Domain & Relationships
+  - API & JWT
+- Added documentation for technology stack, architecture, and business rules"
+
+# 3. Push
+git push origin feature/jwt-implementation
