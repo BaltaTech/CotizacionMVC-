@@ -1,130 +1,192 @@
-# CotizacionMVC
+This isn't just a CRUD application. It demonstrates:
 
-<p align="center">
-  <strong>Un Sistema de Gestión e Ingeniería de Cotizaciones HVAC de Nivel Empresarial</strong>
-</p>
+| Senior Skill | How It's Applied |
+|---------------|------------------|
+| **Domain-Driven Design** | Rich entities with business logic, not anemic models |
+| **Clean Architecture** | Complete separation of concerns (Presentation → Application → Domain → Infrastructure) |
+| **SOLID Principles** | Every principle applied intentionally, not accidentally |
+| **Strategy Pattern** | Pluggable pricing engines per brand (Trane, York, Hisense, TCL) |
+| **Repository Pattern** | Generic repository with specific implementations |
+| **JWT Authentication** | Stateless, secure, with refresh tokens |
+| **Background Services** | Automated reminders and scheduled tasks |
+| **Real-Time Communication** | SignalR for instant notifications |
+| **Unit Testing** | xUnit + FluentAssertions + Moq |
+| **Documentation** | Swagger + UML diagrams |
 
-<p align="center">
-  <img src="https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet" alt=".NET 8" />
-  <img src="https://img.shields.io/badge/Architecture-Clean%20%2B%20DDD-blue?style=for-the-badge" alt="Clean Architecture" />
-  <img src="https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql" alt="PostgreSQL" />
-  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License MIT" />
-</p>
-
----
-
-## 📋 Resumen Ejecutivo
-
-**CotizacionMVC** es una plataforma web integral diseñada para la industria HVAC (*Heating, Ventilation, and Air Conditioning*). Automatiza y optimiza todo el ciclo de vida comercial: desde la prospección y registro de clientes, pasando por la selección paramétrica de equipos y cálculo dinámico de precios, hasta la generación de documentos PDF de alta calidad y la analítica en tiempo real del embudo de ventas.
-
-El sistema fue desarrollado bajo **Clean Architecture**, **Domain-Driven Design (DDD)** y los principios **SOLID**, garantizando un bajo acoplamiento, alta mantenibilidad y testabilidad end-to-end.
+> **This project proves I can design, build, and document a production-ready system from scratch.**
 
 ---
 
-## 🎯 Capacidades Principales
+## 📋 Features
 
-| Módulo | Descripción |
-| :--- | :--- |
-| **Gestión de Cotizaciones** | Flujo de estados con reglas estricta de transición comercial y motor de cálculo dinámico. |
-| **Catálogo de Equipamiento** | Administración multi-marca con soporte dinámico para multimoneda (**USD / MXN**). |
-| **Gestión de Clientes (CRM)** | Registro centralizado con soporte multi-contacto y jerarquías organizacionales. |
-| **Pipeline de Ventas** | Seguimiento de *leads*, historial de oportunidades y métricas de conversión. |
-| **Estructura Multi-Empresa** | Parametrización de márgenes de utilidad y políticas comerciales por entidad. |
-| **Motor de Documentos PDF** | Renderizado dinámico de propuestas comerciales mediante **QuestPDF**. |
-| **Seguridad y RBAC** | Control de acceso basado en roles (*Administrator*, *Seller*, *Receptionist*). |
-| **Notificaciones en T. Real** | Canal de alertas y eventos distribuidos con **SignalR**. |
+### Business Features
 
----
+- **Quotation Management** — Create, edit, track, and export professional HVAC quotes
+- **Equipment Catalog** — Full CRUD with multi-currency support (MXN/USD)
+- **Client Management** — Multi-contact, multi-address, full history
+- **Sales Pipeline** — Lead tracking with follow-ups and status transitions
+- **Multi-Company** — Separate profit margins, branding, and configurations
+- **PDF Generation** — Professional documents with corporate colors and logos
+- **Real-Time Alerts** — SignalR notifications for follow-ups and reminders
+- **Role-Based Access** — Administrator, Seller, Receptionist
 
-## 🏗️ Arquitectura de Software
+### Technical Features
 
-La aplicación implementa una separación estricta de responsabilidades en cuatro capas principales, asegurando que la lógica de negocio permanezca independiente de infraestructura o marcos web.
-
-   ┌─────────────────────────────────────────────────────────┐
-   │                   Presentation Layer                    │
-   │         (MVC Controllers, Views, SignalR Hubs)          │
-   └───────────────────────────┬─────────────────────────────┘
-                               │
-   ┌───────────────────────────▼─────────────────────────────┐
-   │                    Application Layer                    │
-   │             (Services, DTOs, Contracts)                 │
-   └───────────────────────────┬─────────────────────────────┘
-                               │
-   ┌───────────────────────────▼─────────────────────────────┐
-   │                      Domain Layer                       │
-   │       (Rich Entities, Value Objects, Domain Rules)      │
-   └───────────────────────────▲─────────────────────────────┘
-                               │
-   ┌───────────────────────────┴─────────────────────────────┐
-   │                   Infrastructure Layer                  │
-   │          (EF Core, PostgreSQL, External APIs)           │
-   └─────────────────────────────────────────────────────────┘
-
-### 📐 Diagramas del Sistema
-
-| Diagrama | Descripción | Vista Previa |
-| :--- | :--- | :---: |
-| **Arquitectura General** | Vista global del ecosistema y de los actores clave. | [Ver Diagrama](./docs/diagramas/01-arquitectura-general.puml.png) |
-| **Capas y Dependencias** | Aislamiento de capas bajo principios Clean Architecture. | [Ver Diagrama](./docs/diagramas/02-capas-dependencias.puml.png) |
-| **Modelo de Dominio** | Grafo de entidades, agregados y *Value Objects*. | [Ver Diagrama](./docs/diagramas/03-dominio-relaciones.puml.png) |
-| **Flujo de Autenticación** | Seguridad basada en JWT y roles. | [Ver Diagrama](./docs/diagramas/04-api-jwt.puml.png) |
+- **JWT Authentication** — Secure, stateless, with refresh tokens
+- **Swagger/OpenAPI** — Interactive API documentation
+- **Background Jobs** — Automated reminders every 15 minutes
+- **Unit & Integration Tests** — Coverage for domain, services, and repositories
+- **UML Diagrams** — Architecture, layers, domain, and API flow
+- **Clean Architecture** — Domain has zero external dependencies
 
 ---
 
-## 📁 Estructura del Proyecto
+## 🏗️ Architecture at a Glance
 
-```text
+### Clean Architecture + DDD
+
+| Layer | Responsibility | Key Components |
+|-------|----------------|----------------|
+| **Presentation** | User Interface | MVC Controllers, Razor Views, SignalR Hubs |
+| **Application** | Use Cases | Services, DTOs, Interfaces |
+| **Domain** | Business Logic | Entities, Value Objects, Business Rules, Strategy Pattern |
+| **Infrastructure** | Technical Details | Repositories, EF Core, PostgreSQL, Background Services |
+
+### Architecture Diagrams
+
+| Diagram | What It Shows |
+|---------|---------------|
+| ![Architecture](./docs/diagramas/01-arquitectura-general.puml.png) | Full system overview with actors and external systems |
+| ![Layers](./docs/diagramas/02-capas-dependencias.puml.png) | Layer separation and dependency flow |
+| ![Domain](./docs/diagramas/03-dominio-relaciones.puml.png) | Rich domain model with entities, value objects, and relationships |
+| ![API & JWT](./docs/diagramas/04-api-jwt.puml.png) | REST API structure, JWT authentication, and endpoints |
+
+---
+
+## 🔐 Authentication & Authorization
+
+### Default Credentials
+
+| Email | Password | Role |
+|-------|----------|------|
+| `admin@empresa.com` | `Admin123!` | Administrator |
+
+### Role-Based Access
+
+| Role | Permissions |
+|------|-------------|
+| **Administrator** | Full system access |
+| **Seller** | Quotes, clients, follow-ups |
+| **Receptionist** | Client registration and assignment |
+
+---
+
+## 💰 Pricing Engine
+
+The system uses a **Strategy Pattern** for price calculation per brand:
+
+| Brand | Formula |
+|-------|---------|
+| **Trane** | `Price (USD) = Base × 0.31 × 1.18` |
+| **Hisense / TCL** | `Price (MXN) = Base (list price)` |
+| **Other Brands** | `Price (MXN) = Base × (1 + Company Profit %)` |
+
+### Total Calculation Flow
+Equipment Subtotal (USD) + City Surcharge → Total Equipment (USD)
+Total Equipment (USD) → Convert to MXN
+
+Installations (MXN)
+= Subtotal (MXN)
+
+16% VAT
+= Final Total (MXN)
+
+text
+
+---
+
+## 🧠 Business Rules
+
+| Entity | Rule |
+|--------|------|
+| **Equipment** | Currency is restricted by brand (Trane/York → USD, Hisense/TCL → MXN) |
+| **Equipment** | Capacity is required (`CapacidadToneladas > 0`) |
+| **Client** | At least one contact method is required (phone, mobile, or email) |
+| **Client** | Address is required |
+| **Quotation** | Area must be greater than zero (`AreaMetrosCuadrados > 0`) |
+| **Quotation** | State progression is linear (no backward transitions) |
+
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Backend** | .NET 8, ASP.NET Core MVC, Entity Framework Core, PostgreSQL |
+| **Authentication** | ASP.NET Core Identity, JWT, Role-Based Authorization |
+| **Real-Time** | SignalR |
+| **Document Generation** | QuestPDF |
+| **Frontend** | Razor Views, Bootstrap 5, jQuery, Font Awesome |
+| **Testing** | xUnit, FluentAssertions, Moq |
+| **Architecture** | Clean Architecture, DDD, SOLID |
+
+---
+
+## 📁 Project Structure (Key Parts)
 CotizacionMVC/
-├── src/
-│   ├── Controllers/            # Controladores MVC y Endpoints REST
-│   │   ├── AutenticacionController.cs
-│   │   ├── ClienteController.cs
-│   │   ├── CotizacionController.cs
-│   │   └── ...
-│   ├── Models/                 # Capa de Dominio (Domain Layer)
-│   │   ├── Entidades/          # Entidades ricas con encapsulamiento DDD
-│   │   │   ├── Cliente.cs
-│   │   │   ├── Cotizacion.cs
-│   │   │   └── ...
-│   │   ├── Valor/              # Value Objects inmutables
-│   │   │   ├── Dinero.cs
-│   │   │   ├── Contacto.cs
-│   │   │   └── Direccion.cs
-│   │   ├── Reglas/             # Estrategias y lógica pura de negocio
-│   │   └── Enums/              # Enumeradores del sistema
-│   ├── Servicios/              # Capa de Aplicación e Infraestructura
-│   │   ├── Aplicacion/         # Orquestación de casos de uso (DTOs e Interfaces)
-│   │   └── Infraestructura/    # Implementaciones externas y servicios de fondo
-│   ├── Data/                   # Persistencia de Datos
-│   │   ├── ApplicationDbContext.cs
-│   │   ├── Repositorios/       # Patrón Repository & Unit of Work
-│   │   └── Importadores/       # Parsers de catálogos e insumos
-│   ├── Views/                  # Vistas Razor (.cshtml)
-│   ├── Hubs/                   # WebSockets con SignalR
-│   └── Program.cs              # Contenedor de IoC y Pipeline HTTP
-├── tests/                      # Batería de Pruebas Unitarias e Integración
-│   └── CotizacionMVC.Tests/
-└── docs/                       # Documentación técnica y diagramas PlantUML
-🛠️ Stack TecnológicoCore: .NET 8.0 SDK (C# 12)Web Framework: ASP.NET Core MVCPersistencia: Entity Framework Core 8, PostgreSQLGeneración de Reportes: QuestPDFReal-Time: ASP.NET Core SignalRFrontend: Razor Views, Bootstrap 5, Font Awesome, jQueryTesting: xUnit, Moq, FluentAssertionsDocumentación API: Swagger / OpenAPI💰 Motor de Precios (Strategy Pattern)Para gestionar las complejas variaciones tarifarias de los fabricantes, se implementó el patrón Strategy en el cálculo de costos:                      ┌──────────────────────┐
-                      │ ICalculadoraPrecio   │
-                      └──────────┬───────────┘
-                                 │
-         ┌───────────────────────┼───────────────────────┐
-         │                       │                       │
-┌────────┴─────────┐    ┌────────┴─────────┐    ┌────────┴─────────┐
-│ CalculadoraTrane │    │CalculadoraHisense│    │CalculadoraGenerica│
-└──────────────────┘    └──────────────────┘    └──────────────────┘
-Trane: Precio (USD) = Precio Base × 0.31 × 1.18Hisense / TCL: Precio (MXN) = Precio ListaMarcas Generales: Precio (MXN) = Precio Base × (1 + % Margen Empresa)🔐 Configuración y Roles PredeterminadosEl sistema cuenta con un Seeder que inicializa los roles de seguridad y las credenciales por defecto para entornos de desarrollo:UsuarioContraseñaRol Asignadoadmin@empresa.comAdmin123!Administrator🚀 Despliegue e Instalación LocalRequisitos Previos.NET 8.0 SDKPostgreSQL 15+Pasos de EjecuciónClonar el repositorio:Bashgit clone [https://github.com/BaltaTech/CotizacionMVC-.git](https://github.com/BaltaTech/CotizacionMVC-.git)
+├── Controllers/
+│ ├── MVC/ # HTML Views
+│ └── API/ # REST API (JWT protected)
+├── Models/ # Domain Layer
+│ ├── Entidades/ # Rich Entities
+│ ├── Valor/ # Value Objects
+│ ├── Enums/ # System Enums
+│ └── Reglas/ # Business Rules + Strategy Pattern
+├── Servicios/ # Application Layer
+│ ├── Aplicacion/ # Services + Interfaces
+│ └── Infraestructura/ # External Services
+├── Data/ # Infrastructure Layer
+│ ├── ApplicationDbContext.cs
+│ └── Repositorios/ # Repository Pattern
+└── Tests/ # Unit + Integration Tests
+
+text
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# 1. Clone
+git clone https://github.com/BaltaTech/CotizacionMVC-.git
 cd CotizacionMVC
-Restaurar dependencias:Bashdotnet restore
-Configurar la base de datos:Actualiza la cadena de conexión en appsettings.json o mediante User Secrets:JSON"ConnectionStrings": {
-  "DefaultConnection": "Host=localhost;Database=CotizacionDb;Username=postgres;Password=tu_password"
-}
-Aplicar migraciones:Bashdotnet ef database update
-Iniciar la aplicación:Bashdotnet run
-Explorar API (Swagger):Abre tu navegador e ingresa a https://localhost:7271/swagger.🧪 Batería de PruebasPara ejecutar las pruebas unitarias y de integración:Bash# Ejecutar la suite completa de pruebas
+
+# 2. Restore
+dotnet restore
+
+# 3. Database (PostgreSQL required)
+dotnet ef database update
+
+# 4. Run
+dotnet run
+Default Login: admin@empresa.com / Admin123!
+
+Swagger (API Docs): https://localhost:7271/swagger
+
+🧪 Testing
+bash
+# All tests
 dotnet test
 
-# Ejecutar únicamente pruebas unitarias
+# Unit tests only
 dotnet test --filter "Category=Unit"
-📄 LicenciaEste proyecto está distribuido bajo la Licencia MIT. Consulta el archivo LICENSE para obtener más detalles.
+👤 Author
+Airey Baltazar
+
+GitHub: @BaltaTech
+
+LinkedIn: linkedin.com/in/...
+
+📄 License
+MIT License
+
