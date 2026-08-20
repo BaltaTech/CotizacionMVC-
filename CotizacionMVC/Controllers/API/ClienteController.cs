@@ -21,7 +21,6 @@ namespace CotizacionMVC.Controllers.API
             _userContextService = userContextService;
         }
 
-        // ========== GET: Todos los clientes ==========
         [HttpGet]
         public async Task<ActionResult<IReadOnlyList<ClienteResumenDto>>> Get()
         {
@@ -30,7 +29,6 @@ namespace CotizacionMVC.Controllers.API
             return Ok(clientes);
         }
 
-        // ========== GET: Cliente por ID con sus cotizaciones ==========
         [HttpGet("{id}")]
         public async Task<ActionResult<ClienteDetalleDto>> Get(Guid id)
         {
@@ -40,7 +38,6 @@ namespace CotizacionMVC.Controllers.API
             return Ok(cliente);
         }
 
-        // ========== POST: Crear cliente ==========
         [HttpPost]
         public async Task<ActionResult<ClienteDetalleDto>> Post([FromBody] CrearClienteDto dto)
         {

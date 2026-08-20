@@ -1,0 +1,18 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=NombreDB;Username=tu_usuario;Password=tu_password"
+  },
+  "Jwt": {
+    "Key": "REEMPLAZAR_CON_CLAVE_SEGURA_DE_32_CARACTERES_MINIMO",
+    "Issuer": "CotizacionMVC",
+    "Audience": "CotizacionMVCAPI",
+    "ExpiresInMinutes": 60
+  },
+  "AllowedHosts": "*"
+}
