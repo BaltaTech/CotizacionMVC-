@@ -60,12 +60,12 @@ This isn't just a CRUD application. It demonstrates a deep understanding of ente
 
 ### Architecture Diagrams
 
-| Diagram | Description |
+| Diagram | What It Shows |
 | :--- | :--- |
-| `01-arquitectura-general.puml.png` | Full system overview with actors and external systems |
-| `02-capas-dependencias.puml.png` | Layer separation and dependency flow |
-| `03-dominio-relaciones.puml.png` | Rich domain model with entities, value objects, and relationships |
-| `04-api-jwt.puml.png` | REST API structure, JWT authentication, and endpoints |
+| ![Architecture](./docs/diagramas/01-arquitectura-general.puml.png) | Full system overview with actors and external systems |
+| ![Layers](./docs/diagramas/02-capas-dependencias.puml.png) | Layer separation and dependency flow |
+| ![Domain](./docs/diagramas/03-dominio-relaciones.puml.png) | Rich domain model with entities, value objects, and relationships |
+| ![API & JWT](./docs/diagramas/04-api-jwt.puml.png) | REST API structure, JWT authentication, and endpoints |
 
 ---
 
